@@ -1,0 +1,30 @@
+<nav class="navbar navbar-expand-lg navbar-light shadow-sm px-3">
+  <!-- Sidebar Toggle -->
+  <button class="btn btn-primary me-3" (click)="toggleSidebar.emit()">☰</button>
+
+  <!-- App Name -->
+  <a class="navbar-brand text-primary fw-bold" href="/dashboard">Dashboard</a>
+
+  <!-- Right Side -->
+  <div class="ms-auto d-flex align-items-center">
+    <!-- User Profile Dropdown -->
+    <div class="dropdown">
+      <a class="d-flex align-items-center text-decoration-none"
+         role="button"
+         id="userDropdown"
+         data-bs-toggle="dropdown"
+         aria-expanded="false">
+        <img src="https://i.pravatar.cc/40"
+             class="rounded-circle me-2"
+             alt="User Avatar">
+        <span class="text-primary fw-bold">{{ currentUserName }}</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+        <li><a class="dropdown-item" routerLink="/profile">My Profile</a></li>
+        <li><a class="dropdown-item" routerLink="/settings">Settings</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" (click)="logout()">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>

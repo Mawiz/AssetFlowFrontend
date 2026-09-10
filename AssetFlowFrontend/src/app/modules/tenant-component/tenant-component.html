@@ -1,0 +1,379 @@
+<!-- tenant-component.html -->
+
+<p-toolbar styleClass="mb-4">
+
+    <ng-template #start>
+
+        <p-button
+            label="New"
+            icon="pi pi-plus"
+            severity="secondary"
+            class="mr-2"
+            (onClick)="openNew()" />
+
+        <p-button
+            label="Delete"
+            icon="pi pi-trash"
+            severity="secondary"
+            outlined
+            [disabled]="!selectedTenants || !selectedTenants.length"
+            (onClick)="deleteSelectedTenants()" />
+
+    </ng-template>
+
+    <ng-template #end>
+
+        <p-button
+            label="Export"
+            icon="pi pi-upload"
+            severity="secondary"
+            (onClick)="dt.exportCSV()" />
+
+    </ng-template>
+
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="tenants()"
+    [rows]="tenantFilter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onTenantPage($event)"
+    (onSort)="onSort($event)"
+    [customSort]="true"
+    [globalFilterFields]="['companyName','subscriptionName']"
+    [(selection)]="selectedTenants"
+    dataKey="id"
+    [rowHover]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tenants"
+    [rowsPerPageOptions]="[10,20,30]"
+    [totalRecords]="totalRecords">
+
+    <!-- CAPTION -->
+    <ng-template #caption>
+
+        <div class="flex justify-between items-center">
+
+            <h5 class="m-0">Manage Tenants</h5>
+
+            <div class="flex gap-2">
+
+                <!-- SEARCH -->
+                <p-iconfield>
+
+                    <p-inputicon styleClass="pi pi-search" />
+
+                    <input
+                        pInputText
+                        type="text"
+                        [(ngModel)]="tenantFilter.searchText"
+                        (keydown.enter)="onTenantSearch()"
+                        placeholder="Search..." />
+
+                </p-iconfield>
+
+                <!-- FILTER -->
+                <p-button
+                    icon="pi pi-filter"
+                    label="Filters"
+                    severity="secondary"
+                    outlined
+                    (click)="filterDialogVisible = true">
+                </p-button>
+
+                <!-- CLEAR -->
+                <p-button
+                    icon="pi pi-times"
+                    label="Clear"
+                    severity="danger"
+                    outlined
+                    *ngIf="
+                        tenantFilter.searchText ||
+                        tenantFilter.isActive !== null ||
+                        tenantFilter.startDate ||
+                        tenantFilter.endDate
+                    "
+                    (click)="clearFilters()">
+                </p-button>
+
+            </div>
+
+        </div>
+
+    </ng-template>
+
+    <!-- HEADER -->
+    <ng-template #header>
+
+        <tr>
+
+            <th style="width:3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+
+            <th pSortableColumn="companyName">
+                Company Name
+                <p-sortIcon field="companyName"></p-sortIcon>
+            </th>
+
+            <th pSortableColumn="subscriptionName">
+                Subscription Type
+                <p-sortIcon field="subscriptionName"></p-sortIcon>
+            </th>
+
+            <th pSortableColumn="isActive">
+                Active
+                <p-sortIcon field="isActive"></p-sortIcon>
+            </th>
+
+            <th style="width:8rem"></th>
+
+        </tr>
+
+    </ng-template>
+
+    <!-- BODY -->
+    <ng-template #body let-tenant>
+
+        <tr>
+
+            <td>
+                <p-tableCheckbox [value]="tenant" />
+            </td>
+
+            <td>{{ tenant.companyName }}</td>
+
+            <td>{{ tenant.subscriptionName }}</td>
+
+            <td>
+
+                <p-tag
+                    [value]="tenant.isActive ? 'Active' : 'Inactive'"
+                    [severity]="tenant.isActive ? 'success' : 'danger'"
+                    class="cursor-pointer"
+                    (click)="toggleActive(tenant)">
+                </p-tag>
+
+            </td>
+
+            <td class="text-end">
+
+                <p-button
+                    icon="pi pi-pencil"
+                    class="mr-2"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="editTenant(tenant)">
+                </p-button>
+
+                <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="deleteTenant(tenant)">
+                </p-button>
+
+            </td>
+
+        </tr>
+
+    </ng-template>
+
+</p-table>
+
+<!-- FILTER DIALOG -->
+<p-dialog
+    header="Filters"
+    [(visible)]="filterDialogVisible"
+    [modal]="true"
+    [style]="{ width: '400px' }">
+
+    <div class="flex flex-col gap-5 mt-3">
+
+        <!-- START DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>Start Date</label>
+
+            <p-datepicker
+                [(ngModel)]="tenantFilter.startDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- END DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>End Date</label>
+
+            <p-datepicker
+                [(ngModel)]="tenantFilter.endDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- STATUS -->
+        <div class="flex flex-col gap-2">
+
+            <label>Status</label>
+
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="tenantFilter.isActive"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+                placeholder="Select Status">
+            </p-select>
+
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-end gap-2 mt-2">
+
+            <p-button
+                label="Clear"
+                severity="secondary"
+                outlined
+                (click)="clearFilters()">
+            </p-button>
+
+            <p-button
+                label="Apply"
+                icon="pi pi-check"
+                (click)="applyFilters()">
+            </p-button>
+
+        </div>
+
+    </div>
+
+</p-dialog>
+
+<!-- DRAWER -->
+<p-drawer
+    [(visible)]="drawerVisible"
+    position="right"
+    [modal]="true"
+    [blockScroll]="true"
+    [closeOnEscape]="true"
+    [showCloseIcon]="true"
+    [style]="{ width: '400px' }"
+    [header]="isEditing ? 'Edit Tenant' : 'Create Tenant'">
+
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+        <!-- COMPANY NAME -->
+        <div class="flex flex-col gap-2">
+
+            <label for="companyName">Company Name</label>
+
+            <input
+                pInputText
+                id="companyName"
+                formControlName="companyName" />
+
+            <small
+                *ngIf="submitted && form.controls['companyName'].invalid"
+                class="text-red-500">
+
+                Company name is required.
+
+            </small>
+
+        </div>
+
+        <!-- SUBSCRIPTION -->
+        <div class="flex flex-col gap-2">
+
+            <label for="subscriptionTypeId">
+                Subscription Type
+            </label>
+
+            <p-select
+                id="subscriptionTypeId"
+                formControlName="subscriptionTypeId"
+                [options]="subscriptionTypes"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select Subscription Type">
+            </p-select>
+
+            <small
+                *ngIf="submitted && form.controls['subscriptionTypeId'].invalid"
+                class="text-red-500">
+
+                Subscription type is required.
+
+            </small>
+
+        </div>
+
+        <!-- LANGUAGES -->
+        <div class="flex flex-col gap-2">
+
+            <label>Languages</label>
+
+            <div class="flex flex-col gap-2">
+
+                <div *ngFor="let lang of languages">
+
+                    <p-checkbox
+                        [inputId]="'lang' + lang.id"
+                        [binary]="true"
+                        (onChange)="onLanguageChange($event, lang.id)"
+                        [ngModel]="languagesArray.value.includes(lang.id)"
+                        [ngModelOptions]="{ standalone: true }">
+                    </p-checkbox>
+
+                    <label [for]="'lang' + lang.id">
+                        {{ lang.name }}
+                    </label>
+
+                </div>
+
+            </div>
+
+            <small
+                *ngIf="submitted && languagesArray.invalid"
+                class="text-red-500">
+
+                At least one language is required.
+
+            </small>
+
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="mt-4 flex justify-end gap-2">
+
+            <p-button
+                label="Cancel"
+                icon="pi pi-times"
+                text
+                (click)="hideDrawer()">
+            </p-button>
+
+            <p-button
+                label="Save"
+                icon="pi pi-check"
+                (click)="saveTenant()">
+            </p-button>
+
+        </div>
+
+    </form>
+
+</p-drawer>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+
+<p-toast />

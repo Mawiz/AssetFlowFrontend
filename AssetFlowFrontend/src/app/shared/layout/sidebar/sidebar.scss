@@ -1,0 +1,14 @@
+#sidebar-wrapper {
+  width: 250px;
+  transition: all 0.3s ease-in-out;
+
+  &.collapsed {
+    margin-left: -250px;
+  }
+}
+
+.list-group-item.active {
+  background-color: #cce7ff;
+  color: #004085;
+  font-weight: 600;
+}

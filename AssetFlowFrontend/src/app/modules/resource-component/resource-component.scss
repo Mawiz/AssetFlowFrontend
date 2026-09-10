@@ -1,0 +1,105 @@
+.resource-container {
+  padding: 1rem;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .resource-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1rem;
+
+    .resource-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+
+      .resource-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+    }
+  }
+}
+
+/* Offcanvas Side Dialog */
+.offcanvas {
+  background-color: #fff;
+  width: 420px;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  right: -100%;
+  z-index: 1100;
+  transition: right 0.3s ease-in-out;
+  border-left: 1px solid #ddd;
+  overflow-y: auto;
+
+  &.show.d-block {
+    right: 0;
+  }
+
+  .offcanvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .offcanvas-body {
+    padding: 1rem 1.25rem;
+
+    .subresource-section {
+      margin-top: 1rem;
+
+      .subresource-card {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+        }
+
+        .card-body {
+          .form-control {
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            padding: 0.5rem;
+          }
+
+          textarea.form-control {
+            resize: vertical;
+          }
+        }
+      }
+    }
+  }
+
+  .offcanvas-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #eee;
+  }
+}

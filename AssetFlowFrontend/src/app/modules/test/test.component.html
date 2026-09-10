@@ -1,0 +1,59 @@
+<main class="main">
+
+  <div class="g-2">
+    <!-- Buttons that are not in a group -->
+    <div class="flex-buttons-container">
+      <p-button label="PrimeNG Button" icon="pi pi-check"></p-button>
+      <p-button label="Secondary" icon="pi pi-star"></p-button>
+    </div>
+
+    <br />
+
+    <div class="flex-buttons-container">
+      <p-button label="Primary" />
+      <p-button label="Secondary" severity="secondary" />
+      <p-button label="Success" severity="success" />
+      <p-button label="Info" severity="info" />
+      <p-button label="Warn" severity="warn" />
+      <p-button label="Help" severity="help" />
+      <p-button label="Danger" severity="danger" />
+      <p-button label="Contrast" severity="contrast" />
+    </div>
+    <br />
+
+    <!-- The button group does not need this, as it is a single component -->
+    <p-buttongroup>
+      <p-button label="Save" icon="pi pi-check" />
+      <p-button label="Delete" icon="pi pi-trash" />
+      <p-button label="Cancel" icon="pi pi-times" />
+    </p-buttongroup>
+
+    <br />
+
+
+    <p-treeselect class="md:w-80 w-full" [options]="nodes" placeholder="Select Item" />
+
+        <br />
+
+
+    <p-treetable [value]="files" [scrollable]="true" [tableStyle]="{'min-width':'50rem'}">
+      <ng-template #header>
+        <tr>
+          <th>Name</th>
+          <th>Size</th>
+          <th>Type</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-rowNode let-rowData="rowData">
+        <tr [ttRow]="rowNode">
+          <td>
+            <p-treetable-toggler [rowNode]="rowNode" />
+            {{ rowData.name }}
+          </td>
+          <td>{{ rowData.size }}</td>
+          <td>{{ rowData.type }}</td>
+        </tr>
+      </ng-template>
+    </p-treetable>
+  </div>
+</main>

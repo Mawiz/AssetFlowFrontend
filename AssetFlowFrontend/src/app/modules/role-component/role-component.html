@@ -1,0 +1,373 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+
+        <p-button
+            label="New"
+            icon="pi pi-plus"
+            severity="secondary"
+            class="mr-2"
+            (onClick)="openNew()" />
+
+        <p-button
+            label="Delete"
+            icon="pi pi-trash"
+            severity="secondary"
+            outlined
+            [disabled]="!selectedRoles || !selectedRoles.length"
+            (onClick)="deleteSelectedRoles()" />
+
+    </ng-template>
+
+    <ng-template #end>
+
+        <p-button
+            label="Export"
+            icon="pi pi-upload"
+            severity="secondary"
+            (onClick)="exportCSV()" />
+
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="roles()"
+    [rows]="roleFilter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onRolePage($event)"
+    (onSort)="onSort($event)"
+    [globalFilterFields]="['name','displayName','description']"
+    [(selection)]="selectedRoles"
+    dataKey="id"
+    [rowHover]="true"
+    [rowsPerPageOptions]="[10,20,30]"
+    [totalRecords]="totalRecords"
+    [customSort]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} roles">
+
+    <!-- CAPTION -->
+    <ng-template #caption>
+
+        <div class="flex justify-between items-center">
+
+            <h5 class="m-0">Manage Roles</h5>
+
+            <div class="flex gap-2">
+
+                <!-- SEARCH -->
+                <p-iconfield>
+
+                    <p-inputicon styleClass="pi pi-search" />
+
+                    <input
+                        pInputText
+                        type="text"
+                        [(ngModel)]="roleFilter.searchText"
+                        (keydown.enter)="onRoleSearch()"
+                        placeholder="Search..." />
+
+                </p-iconfield>
+
+                <!-- FILTER BUTTON -->
+                <p-button
+                    icon="pi pi-filter"
+                    label="Filters"
+                    severity="secondary"
+                    outlined
+                    (click)="filterDialogVisible = true">
+                </p-button>
+
+                <!-- CLEAR BUTTON -->
+                <p-button
+                    icon="pi pi-times"
+                    label="Clear"
+                    severity="danger"
+                    outlined
+                    *ngIf="
+                        roleFilter.searchText ||
+                        roleFilter.isActive !== null ||
+                        roleFilter.startDate ||
+                        roleFilter.endDate
+                    "
+                    (click)="clearFilters()">
+                </p-button>
+
+            </div>
+
+        </div>
+
+    </ng-template>
+
+    <!-- HEADER -->
+    <ng-template #header>
+
+        <tr>
+
+            <th style="width:3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+
+            <th pSortableColumn="name">
+
+                Role Name
+
+                <p-sortIcon field="name"></p-sortIcon>
+
+            </th>
+
+            <th pSortableColumn="displayName">
+
+                Display Name
+
+                <p-sortIcon field="displayName"></p-sortIcon>
+
+            </th>
+
+            <th>
+                Description
+            </th>
+
+            <th *ngIf="systemAdmin" pSortableColumn="tenantName">
+
+                Tenant
+
+                <p-sortIcon field="tenantName"></p-sortIcon>
+
+            </th>
+
+            <th style="width:8rem"></th>
+
+        </tr>
+
+    </ng-template>
+
+    <!-- BODY -->
+    <ng-template #body let-role>
+
+        <tr>
+
+            <td>
+                <p-tableCheckbox [value]="role" />
+            </td>
+
+            <td>{{ role.name }}</td>
+
+            <td>{{ role.displayName }}</td>
+
+            <td>{{ role.description }}</td>
+
+            <td *ngIf="systemAdmin">
+                {{ role.tenantId === null || role.tenantId === 0 ? 'System' : role.tenantName }}
+            </td>
+
+            <td class="text-end">
+
+                <p-button
+                    icon="pi pi-pencil"
+                    class="mr-2"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="editRole(role)">
+                </p-button>
+
+                <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="deleteRole(role)">
+                </p-button>
+
+            </td>
+
+        </tr>
+
+    </ng-template>
+
+</p-table>
+
+<!-- FILTER DIALOG -->
+<p-dialog
+    header="Filters"
+    [(visible)]="filterDialogVisible"
+    [modal]="true"
+    [style]="{ width: '400px' }">
+
+    <div class="flex flex-col gap-5 mt-3">
+
+        <!-- START DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>Start Date</label>
+
+            <p-datepicker
+                [(ngModel)]="roleFilter.startDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- END DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>End Date</label>
+
+            <p-datepicker
+                [(ngModel)]="roleFilter.endDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- STATUS -->
+        <div class="flex flex-col gap-2">
+
+            <label>Status</label>
+
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="roleFilter.isActive"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select Status">
+            </p-select>
+
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="flex justify-end gap-2 mt-2">
+
+            <p-button
+                label="Clear"
+                severity="secondary"
+                outlined
+                (click)="clearFilters()">
+            </p-button>
+
+            <p-button
+                label="Apply"
+                icon="pi pi-check"
+                (click)="applyFilters()">
+            </p-button>
+
+        </div>
+
+    </div>
+
+</p-dialog>
+
+<!-- DRAWER -->
+<p-drawer
+    [(visible)]="drawerVisible"
+    position="right"
+    [modal]="true"
+    [blockScroll]="true"
+    [closeOnEscape]="true"
+    [showCloseIcon]="true"
+    [style]="{ width: '450px' }"
+    [header]="isEditing ? 'Edit Role' : 'Create Role'">
+
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+        <!-- ROLE NAME -->
+        <div class="flex flex-col gap-2">
+
+            <label for="name">Role Name</label>
+
+            <input
+                pInputText
+                id="name"
+                formControlName="name" />
+
+            <small
+                *ngIf="submitted && form.controls['name'].invalid"
+                class="text-red-500">
+
+                Role name is required.
+
+            </small>
+
+        </div>
+
+        <!-- DISPLAY NAME -->
+        <div class="flex flex-col gap-2">
+
+            <label for="displayName">Display Name</label>
+
+            <input
+                pInputText
+                id="displayName"
+                formControlName="displayName" />
+
+            <small
+                *ngIf="submitted && form.controls['displayName'].invalid"
+                class="text-red-500">
+
+                Display name is required.
+
+            </small>
+
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="flex flex-col gap-2">
+
+            <label for="description">Description</label>
+
+            <textarea
+                pInputTextarea
+                id="description"
+                formControlName="description"
+                rows="3">
+            </textarea>
+
+        </div>
+
+        <!-- TENANT -->
+        <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+
+            <label for="tenantId">Tenant</label>
+
+            <p-select
+                id="tenantId"
+                formControlName="tenantId"
+                [options]="tenants"
+                optionLabel="companyName"
+                optionValue="id"
+                placeholder="Select Tenant">
+            </p-select>
+
+        </div>
+
+        <!-- RESOURCES -->
+<div class="flex flex-col gap-2"> <label>Assign Resources</label> <div *ngFor="let res of resources" class="ml-1"> <p-card class="p-card-sm mb-2"> <p-checkbox [binary]="true" [(ngModel)]="res.checked" [ngModelOptions]="{ standalone: true }" (onChange)="onResourceChange(res)"> </p-checkbox> <label> {{ res.resourceName }} </label> <div class="row mt-3 ml-3"> <div class="col-6 d-flex align-items-center mb-2" *ngFor="let sub of res.subResources"> <p-checkbox [binary]="true" [(ngModel)]="sub.checked" [ngModelOptions]="{ standalone: true }" (onChange)="onSubResourceChange(res, sub)"></p-checkbox> <label class="ms-2">{{ sub.resourceName }}</label> </div> </div> </p-card> </div> </div>
+        <!-- ACTIONS -->
+        <div class="mt-4 flex justify-end gap-2">
+
+            <p-button
+                label="Cancel"
+                icon="pi pi-times"
+                text
+                (click)="hideDrawer()">
+            </p-button>
+
+            <p-button
+                label="Save"
+                icon="pi pi-check"
+                (click)="saveRole()">
+            </p-button>
+
+        </div>
+
+    </form>
+
+</p-drawer>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+
+<p-toast />

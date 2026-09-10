@@ -1,0 +1,470 @@
+<p-toolbar styleClass="mb-4">
+
+    <ng-template #start>
+
+        <p-button
+            label="New"
+            icon="pi pi-plus"
+            severity="secondary"
+            class="mr-2"
+            (onClick)="openNew()" />
+
+        <p-button
+            label="Delete"
+            icon="pi pi-trash"
+            severity="secondary"
+            outlined
+            [disabled]="!selectedUsers || !selectedUsers.length"
+            (onClick)="deleteSelectedUsers()" />
+
+    </ng-template>
+
+    <ng-template #end>
+
+        <p-button
+            label="Export"
+            icon="pi pi-upload"
+            severity="secondary"
+            (onClick)="dt.exportCSV()" />
+
+    </ng-template>
+
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="users()"
+    [rows]="userFilter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onUserPage($event)"
+    (onSort)="onSort($event)"
+    [globalFilterFields]="['fullName', 'userName', 'email', 'tenantName']"
+    [(selection)]="selectedUsers"
+    dataKey="id"
+    [rowHover]="true"
+    [rowsPerPageOptions]="[10,20,30]"
+    [totalRecords]="totalRecords"
+    [customSort]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users">
+
+    <!-- CAPTION -->
+    <ng-template #caption>
+
+        <div class="flex justify-between items-center">
+
+            <h5 class="m-0">Manage Users</h5>
+
+            <div class="flex gap-2">
+
+                <!-- SEARCH -->
+                <p-iconfield>
+
+                    <p-inputicon styleClass="pi pi-search" />
+
+                    <input
+                        pInputText
+                        type="text"
+                        [(ngModel)]="userFilter.searchText"
+                        (keydown.enter)="onUserSearch()"
+                        placeholder="Search..." />
+
+                </p-iconfield>
+
+                <!-- FILTER -->
+                <p-button
+                    icon="pi pi-filter"
+                    label="Filters"
+                    severity="secondary"
+                    outlined
+                    (click)="filterDialogVisible = true">
+                </p-button>
+
+                <!-- CLEAR -->
+                <p-button
+                    icon="pi pi-times"
+                    label="Clear"
+                    severity="danger"
+                    outlined
+                    *ngIf="
+                        userFilter.searchText ||
+                        userFilter.isActive !== null ||
+                        userFilter.startDate ||
+                        userFilter.endDate
+                    "
+                    (click)="clearFilters()">
+                </p-button>
+
+            </div>
+
+        </div>
+
+    </ng-template>
+
+    <!-- HEADER -->
+    <ng-template #header>
+
+        <tr>
+
+            <th style="width:3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+
+            <th pSortableColumn="fullName">
+                Full Name
+                <p-sortIcon field="fullName"></p-sortIcon>
+            </th>
+
+            <th pSortableColumn="userName">
+                Username
+                <p-sortIcon field="userName"></p-sortIcon>
+            </th>
+
+            <th pSortableColumn="email">
+                Email
+                <p-sortIcon field="email"></p-sortIcon>
+            </th>
+
+            <th pSortableColumn="roleName">
+                Role
+                <p-sortIcon field="roleName"></p-sortIcon>
+            </th>
+
+            <th
+                *ngIf="systemAdmin"
+                pSortableColumn="tenantName">
+
+                Tenant
+                <p-sortIcon field="tenantName"></p-sortIcon>
+
+            </th>
+
+            <th pSortableColumn="isActive">
+
+                Status
+                <p-sortIcon field="isActive"></p-sortIcon>
+
+            </th>
+
+            <th style="width:8rem"></th>
+
+        </tr>
+
+    </ng-template>
+
+    <!-- BODY -->
+    <ng-template #body let-user>
+
+        <tr>
+
+            <td>
+                <p-tableCheckbox [value]="user" />
+            </td>
+
+            <td>{{ user.fullName }}</td>
+
+            <td>{{ user.userName }}</td>
+
+            <td>{{ user.email }}</td>
+
+            <td>{{ user.roleName }}</td>
+
+            <td *ngIf="systemAdmin">
+
+                {{
+                    user.tenantId === null || user.tenantId === 0
+                        ? 'System'
+                        : user.tenantName
+                }}
+
+            </td>
+
+            <td>
+
+                <p-tag
+                    [value]="user.isActive ? 'Active' : 'Inactive'"
+                    [severity]="user.isActive ? 'success' : 'danger'">
+                </p-tag>
+
+            </td>
+
+            <td class="text-end">
+
+                <p-button
+                    icon="pi pi-pencil"
+                    class="mr-2"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="editUser(user)">
+                </p-button>
+
+                <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [rounded]="true"
+                    [outlined]="true"
+                    (click)="deleteUser(user)">
+                </p-button>
+
+            </td>
+
+        </tr>
+
+    </ng-template>
+
+</p-table>
+
+<!-- FILTER DIALOG -->
+<p-dialog
+    header="Filters"
+    [(visible)]="filterDialogVisible"
+    [modal]="true"
+    [style]="{ width: '400px' }">
+
+    <div class="flex flex-col gap-5 mt-3">
+
+        <!-- START DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>Start Date</label>
+
+            <p-datepicker
+                [(ngModel)]="userFilter.startDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- END DATE -->
+        <div class="flex flex-col gap-2">
+
+            <label>End Date</label>
+
+            <p-datepicker
+                [(ngModel)]="userFilter.endDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                appendTo="body">
+            </p-datepicker>
+
+        </div>
+
+        <!-- STATUS -->
+        <div class="flex flex-col gap-2">
+
+            <label>Status</label>
+
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="userFilter.isActive"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select Status">
+            </p-select>
+
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="flex justify-end gap-2 mt-2">
+
+            <p-button
+                label="Clear"
+                severity="secondary"
+                outlined
+                (click)="clearFilters()">
+            </p-button>
+
+            <p-button
+                label="Apply"
+                icon="pi pi-check"
+                (click)="applyFilters()">
+            </p-button>
+
+        </div>
+
+    </div>
+
+</p-dialog>
+
+<!-- DRAWER -->
+<p-drawer
+    [(visible)]="drawerVisible"
+    position="right"
+    header="{{ isEditing ? 'Edit User' : 'Create User' }}"
+    [modal]="true"
+    [blockScroll]="true"
+    [closeOnEscape]="true"
+    [showCloseIcon]="true"
+    [style]="{ width: '450px' }">
+
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+        <div class="flex flex-col gap-2">
+
+            <label for="fullName">Full Name</label>
+
+            <input
+                pInputText
+                id="fullName"
+                formControlName="fullName" />
+
+            <small
+                *ngIf="submitted && form.controls['fullName'].invalid"
+                class="text-red-500">
+
+                Full name is required.
+
+            </small>
+
+        </div>
+
+        <div class="flex flex-col gap-2">
+
+            <label for="firstLetter">First Letter</label>
+
+            <input
+                pInputText
+                id="firstLetter"
+                formControlName="firstLetter"
+                maxlength="1" />
+
+            <small
+                *ngIf="submitted && form.controls['firstLetter'].invalid"
+                class="text-red-500">
+
+                First letter is required.
+
+            </small>
+
+        </div>
+
+        <div class="flex flex-col gap-2">
+
+            <label for="userName">Username</label>
+
+            <input
+                pInputText
+                id="userName"
+                formControlName="userName" />
+
+            <small
+                *ngIf="submitted && form.controls['userName'].invalid"
+                class="text-red-500">
+
+                Username is required.
+
+            </small>
+
+        </div>
+
+        <div class="flex flex-col gap-2">
+
+            <label for="email">Email</label>
+
+            <input
+                pInputText
+                id="email"
+                type="email"
+                formControlName="email" />
+
+            <small
+                *ngIf="submitted && form.controls['email'].invalid"
+                class="text-red-500">
+
+                Valid email is required.
+
+            </small>
+
+        </div>
+
+        <div class="flex flex-col gap-2">
+
+            <label for="password">
+
+                Password
+                {{ !isEditing ? '' : '(Leave blank to keep current)' }}
+
+            </label>
+
+            <input
+                pInputText
+                id="password"
+                type="password"
+                formControlName="password" />
+
+            <small
+                *ngIf="submitted && form.controls['password'].invalid && isPasswordRequired"
+                class="text-red-500">
+
+                Password is required.
+
+            </small>
+
+        </div>
+
+        <div class="flex flex-col gap-2">
+
+            <label for="roleId">Role</label>
+
+            <p-select
+                id="roleId"
+                formControlName="roleId"
+                [options]="roles"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select a role">
+            </p-select>
+
+            <small
+                *ngIf="submitted && form.controls['roleId'].invalid"
+                class="text-red-500">
+
+                Role is required.
+
+            </small>
+
+        </div>
+
+        <div
+            class="flex flex-col gap-2"
+            *ngIf="systemAdmin">
+
+            <label for="tenantId">Tenant</label>
+
+            <p-select
+                id="tenantId"
+                formControlName="tenantId"
+                [options]="tenants"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select a tenant">
+            </p-select>
+
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+
+            <p-button
+                label="Cancel"
+                icon="pi pi-times"
+                text
+                (click)="hideDrawer()">
+            </p-button>
+
+            <p-button
+                label="Save"
+                icon="pi pi-check"
+                (click)="saveUser()">
+            </p-button>
+
+        </div>
+
+    </form>
+
+</p-drawer>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+
+<p-toast />

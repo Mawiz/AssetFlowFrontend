@@ -1,0 +1,130 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  #dt
+  [value]="resources()"
+  [rows]="10"
+  [paginator]="true"
+  [globalFilterFields]="['resourceName','verb']"
+  [rowHover]="true"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} resources"
+  [rowsPerPageOptions]="[10,20,30]"
+>
+  <ng-template #caption>
+    <div class="flex justify-between items-center">
+      <h5 class="m-0">Manage Resources</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" (input)="onGlobalFilter($event, dt)" placeholder="Search..." />
+      </p-iconfield>
+    </div>
+  </ng-template>
+
+  <ng-template #header>
+    <tr>
+      <th pSortableColumn="resourceName">Resource <p-sortIcon field="resourceName" /></th>
+      <th pSortableColumn="verb">Verb/API <p-sortIcon field="verb" /></th>
+      <th>Backend</th>
+      <th>Sub-Resources</th>
+      <th style="width:8rem"></th>
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-res>
+    <tr>
+      <td>{{ res.resourceName }}</td>
+      <td>{{ res.verb || '-' }}</td>
+      <td>
+        <p-tag [value]="res.isBackEnd ? 'Yes' : 'No'" [severity]="res.isBackEnd ? 'info' : 'secondary'" />
+      </td>
+      <td>
+        <ul *ngIf="res.subResources?.length; else noSub">
+          <li *ngFor="let sub of res.subResources">
+            {{ sub.resourceName }} <span *ngIf="sub.isBackEnd">(Backend)</span>
+          </li>
+        </ul>
+        <ng-template #noSub>-</ng-template>
+      </td>
+      <td class="text-end">
+        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (click)="editResource(res)" />
+        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteResource(res)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<!-- Drawer -->
+<p-drawer
+  [(visible)]="drawerVisible"
+  position="right"
+  header="{{ isEditing ? 'Edit Resource' : 'Create Resource' }}"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '500px' }"
+>
+  <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2">
+      <label>Feature Name</label>
+      <input pInputText formControlName="resourceName" />
+      <small *ngIf="submitted && form.controls['resourceName'].invalid" class="text-red-500">
+        Resource name is required.
+      </small>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label>Verb / API (Optional)</label>
+      <textarea pInputTextarea formControlName="verb" rows="2" placeholder="Enter API URL or description"></textarea>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isBackEnd" [binary]="true" />
+      <label>Is Backend</label>
+    </div>
+
+    <div class="mt-4">
+      <label class="font-semibold mb-2 block">Sub Resources</label>
+
+      <div formArrayName="subResources">
+        <ng-container *ngFor="let sub of subResources.controls; let i = index">
+          <p-card class="p-card-sm mb-2">
+            <div [formGroupName]="i" class="flex flex-col gap-2">
+              <div class="flex justify-between items-center">
+                <strong>Sub Resource {{ i + 1 }}</strong>
+                <p-button icon="pi pi-times" severity="danger" text size="small" (click)="removeSubResource(i)" />
+              </div>
+
+              <input pInputText placeholder="Sub Resource Name" formControlName="resourceName" />
+              <textarea
+                pInputTextarea
+                rows="2"
+                formControlName="verb"
+                placeholder="Enter API URL or description"
+              ></textarea>
+
+              <div class="flex items-center gap-2">
+                <p-checkbox formControlName="isBackEnd" [binary]="true" />
+                <label>Is Backend</label>
+              </div>
+            </div>
+          </p-card>
+        </ng-container>
+      </div>
+
+      <p-button label="Add Sub Resource" icon="pi pi-plus" text (click)="addSubResource()" />
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <p-button label="Cancel" icon="pi pi-times" text (click)="hideDrawer()" />
+      <p-button label="Save" icon="pi pi-check" (click)="saveResource()" />
+    </div>
+  </form>
+</p-drawer>
+
+<p-toast />
+<p-confirmdialog [style]="{ width: '450px' }" />
