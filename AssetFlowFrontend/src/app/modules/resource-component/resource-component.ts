@@ -18,6 +18,8 @@ import { CardModule } from 'primeng/card';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CreateResourceDto, ResourceDto, SubResourceDto, UpdateResourceDto } from '../../model/resource';
 import { ResourceService } from '@/services/resource-service';
+import { HasPermissionDirective } from '@/directives/has-permission.directive';
+import { Permissions } from '@/constants/permissions';
 
 @Component({
   selector: 'app-resource-component',
@@ -40,11 +42,13 @@ import { ResourceService } from '@/services/resource-service';
     InputIconModule,
     CheckboxModule,
     TagModule,
-    CardModule
+    CardModule,
+    HasPermissionDirective
   ],
   providers: [MessageService, ConfirmationService]
 })
 export class ResourceComponent implements OnInit {
+  readonly Permissions = Permissions;
   @ViewChild('dt') dt!: Table;
 
   resources = signal<ResourceDto[]>([]);

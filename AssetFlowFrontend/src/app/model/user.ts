@@ -1,12 +1,10 @@
-// src/app/model/user.ts
-
 export interface CreateUserDto {
   fullName: string;
   firstLetter: string;
   userName: string;
   email: string;
   password: string;
-  roleId: number;
+  roleIds: number[];
   tenantId?: number | null;
 }
 
@@ -16,7 +14,7 @@ export interface UpdateUserDto {
   firstLetter: string;
   userName: string;
   email: string;
-  roleId: number;
+  roleIds: number[];
   tenantId?: number | null;
 }
 
@@ -26,8 +24,10 @@ export interface UserDto {
   fullName: string;
   email: string;
   userName: string;
-  roleId: number;
+  roleId?: number;
+  roleIds?: number[];
   roleName?: string;
+  roleNames?: string[];
   tenantId?: number | null;
   tenantName?: string;
   isActive: boolean;

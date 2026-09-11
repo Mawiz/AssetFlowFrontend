@@ -7,6 +7,8 @@ import { Notfound } from './app/pages/notfound/notfound';
 import { TenantComponent } from '@/modules/tenant-component/tenant-component';
 import { SubscriptionComponent } from '@/modules/subscription-component/subscription-component';
 import { AuthGuard } from '@/guards/auth-guard';
+import { PermissionGuard } from '@/guards/permission-guard';
+import { Permissions } from '@/constants/permissions';
 import { TestComponent } from '@/modules/test/test.component';
 import { LoginComponent } from '@/shared/authentication/login.component/login.component';
 import { RoleComponent } from '@/modules/role-component/role-component';
@@ -43,9 +45,9 @@ export const appRoutes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'subscription', component: SubscriptionComponent },
-      { path: 'role', component: RoleComponent },
-      { path: 'tenant', component: TenantComponent },
+      { path: 'subscription', component: SubscriptionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Subscription.List] } },
+      { path: 'role', component: RoleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Role.List] } },
+      { path: 'tenant', component: TenantComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Tenant.List] } },
       { path: 'test', component: TestComponent },
       { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
       { path: 'documentation', component: Documentation },

@@ -1,6 +1,7 @@
 <p-toolbar styleClass="mb-4">
     <ng-template #start>
         <p-button
+            *appHasPermission="Permissions.Subscription.Create"
             label="New"
             icon="pi pi-plus"
             severity="secondary"
@@ -136,6 +137,7 @@
             <td class="text-end">
 
                 <p-button
+                    *appHasPermission="Permissions.Subscription.Update"
                     icon="pi pi-pencil"
                     class="mr-2"
                     [rounded]="true"
@@ -144,6 +146,7 @@
                 </p-button>
 
                 <p-button
+                    *appHasPermission="Permissions.Subscription.Delete"
                     icon="pi pi-trash"
                     severity="danger"
                     [rounded]="true"

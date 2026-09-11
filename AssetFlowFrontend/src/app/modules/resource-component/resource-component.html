@@ -1,6 +1,6 @@
 <p-toolbar styleClass="mb-4">
   <ng-template #start>
-    <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+    <p-button *appHasPermission="Permissions.Resource.Create" label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
   </ng-template>
 </p-toolbar>
 
@@ -50,7 +50,7 @@
         <ng-template #noSub>-</ng-template>
       </td>
       <td class="text-end">
-        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (click)="editResource(res)" />
+        <p-button *appHasPermission="Permissions.Resource.Update" icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (click)="editResource(res)" />
         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteResource(res)" />
       </td>
     </tr>

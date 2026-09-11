@@ -44,6 +44,8 @@ import {
 
 import { ListFilterDto } from '../../model/list-filter';
 import { MetadataService } from '../../services/metadata-service';
+import { HasPermissionDirective } from '@/directives/has-permission.directive';
+import { Permissions } from '@/constants/permissions';
 
 interface Column {
     field: string;
@@ -73,11 +75,14 @@ interface Column {
         SelectModule,
         CheckboxModule,
         DialogModule,
-        DatePickerModule
+        DatePickerModule,
+        HasPermissionDirective
     ],
     providers: [MessageService, ConfirmationService]
 })
 export class TenantComponent implements OnInit {
+
+    readonly Permissions = Permissions;
 
     @ViewChild('dt') dt!: Table;
 

@@ -22,6 +22,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
@@ -44,6 +45,8 @@ import { ListFilterDto } from '../../model/list-filter';
 import { RoleDto } from '../../model/role';
 import { TenantDto } from '../../model/tenant';
 import { MetadataService } from '@/services/metadata-service';
+import { HasPermissionDirective } from '@/directives/has-permission.directive';
+import { Permissions } from '@/constants/permissions';
 
 interface Column {
     field: string;
@@ -75,11 +78,15 @@ interface Column {
         InputIconModule,
         DialogModule,
         DatePickerModule,
-        CardModule
+        CardModule,
+        MultiSelectModule,
+        HasPermissionDirective
     ],
     providers: [MessageService, ConfirmationService]
 })
 export class UserComponent implements OnInit {
+
+    readonly Permissions = Permissions;
 
     @ViewChild('dt') dt!: Table;
 
@@ -187,7 +194,7 @@ export class UserComponent implements OnInit {
                     ? Validators.required
                     : []
             ],
-            roleId: [null, Validators.required],
+            roleIds: [[], [Validators.required, Validators.minLength(1)]],
             tenantId: [
                 this.systemAdmin
                     ? null
@@ -392,7 +399,7 @@ export class UserComponent implements OnInit {
             firstLetter: user.firstLetter,
             userName: user.userName,
             email: user.email,
-            roleId: user.roleId,
+            roleIds: user.roleIds?.length ? user.roleIds : user.roleId ? [user.roleId] : [],
             tenantId: this.systemAdmin
                 ? user.tenantId ?? null
                 : this.currentUser?.tenantId ?? null
@@ -417,7 +424,7 @@ export class UserComponent implements OnInit {
             firstLetter: this.form.value.firstLetter,
             userName: this.form.value.userName,
             email: this.form.value.email,
-            roleId: this.form.value.roleId,
+            roleIds: this.form.value.roleIds,
             tenantId: this.systemAdmin
                 ? this.form.value.tenantId ?? null
                 : this.currentUser?.tenantId ?? null

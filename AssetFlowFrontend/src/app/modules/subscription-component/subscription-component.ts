@@ -33,6 +33,8 @@ import {
     CreateSubscriptionType,
     UpdateSubscriptionType
 } from '../../model/subscription';
+import { HasPermissionDirective } from '@/directives/has-permission.directive';
+import { Permissions } from '@/constants/permissions';
 
 interface Column {
     field: string;
@@ -67,11 +69,13 @@ interface ExportColumn {
         TagModule,
         DialogModule,
         DatePickerModule,
-        SelectModule
+        SelectModule,
+        HasPermissionDirective
     ],
     providers: [MessageService, ConfirmationService]
 })
 export class SubscriptionComponent implements OnInit {
+    readonly Permissions = Permissions;
     @ViewChild('dt') dt!: Table;
 
     subscriptions = signal<SubscriptionType[]>([]);
