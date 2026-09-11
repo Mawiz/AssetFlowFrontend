@@ -288,7 +288,7 @@ export class RoleComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Failed to load resources'
+                    detail: 'Failed to load permissions'
                 })
 
         });

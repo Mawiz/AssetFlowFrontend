@@ -8,12 +8,9 @@ import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { DrawerModule } from 'primeng/drawer';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
-import { TagModule } from 'primeng/tag';
-import { CheckboxModule } from 'primeng/checkbox';
 import { CardModule } from 'primeng/card';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CreateResourceDto, ResourceDto, SubResourceDto, UpdateResourceDto } from '../../model/resource';
@@ -37,11 +34,8 @@ import { Permissions } from '@/constants/permissions';
     ConfirmDialogModule,
     DrawerModule,
     InputTextModule,
-    TextareaModule,
     IconFieldModule,
     InputIconModule,
-    CheckboxModule,
-    TagModule,
     CardModule,
     HasPermissionDirective
   ],
@@ -58,6 +52,7 @@ export class ResourceComponent implements OnInit {
   submitted = false;
   isEditing = false;
   selectedResourceId: number | null = null;
+  duplicatePermissionError = '';
 
   constructor(
     private fb: FormBuilder,
@@ -74,8 +69,6 @@ export class ResourceComponent implements OnInit {
   initForm() {
     this.form = this.fb.group({
       resourceName: ['', Validators.required],
-      verb: [''],
-      isBackEnd: [false],
       subResources: this.fb.array([])
     });
   }
@@ -87,9 +80,7 @@ export class ResourceComponent implements OnInit {
   addSubResource(sub?: SubResourceDto) {
     const group = this.fb.group({
       id: [sub?.id || 0],
-      resourceName: [sub?.resourceName || '', Validators.required],
-      verb: [sub?.verb || ''],
-      isBackEnd: [sub?.isBackEnd || false]
+      resourceName: [sub?.resourceName || '', Validators.required]
     });
     this.subResources.push(group);
   }
@@ -98,8 +89,6 @@ export class ResourceComponent implements OnInit {
     this.subResources.removeAt(index);
   }
 
-  // No trackBy for sub-resources to avoid index reuse issues when items are removed.
-
   loadResources() {
     this.service.getAll().subscribe({
       next: (res) => this.resources.set(res || []),
@@ -107,7 +96,7 @@ export class ResourceComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to load resources'
+          detail: 'Failed to load permissions'
         })
     });
   }
@@ -119,19 +108,20 @@ export class ResourceComponent implements OnInit {
     this.submitted = false;
     this.isEditing = false;
     this.selectedResourceId = null;
+    this.duplicatePermissionError = '';
   }
 
   editResource(res: ResourceDto) {
     this.isEditing = true;
     this.drawerVisible = true;
     this.selectedResourceId = res.id;
+    this.submitted = false;
+    this.duplicatePermissionError = '';
     this.form.reset();
     this.subResources.clear();
 
     this.form.patchValue({
-      resourceName: res.resourceName,
-      verb: res.verb,
-      isBackEnd: res.isBackEnd
+      resourceName: res.resourceName
     });
 
     res.subResources?.forEach(sr => this.addSubResource(sr));
@@ -140,20 +130,27 @@ export class ResourceComponent implements OnInit {
   hideDrawer() {
     this.drawerVisible = false;
     this.submitted = false;
+    this.duplicatePermissionError = '';
   }
 
   saveResource() {
     this.submitted = true;
-    if (this.form.invalid) return;
+    this.duplicatePermissionError = this.getDuplicatePermissionError();
+    if (this.form.invalid || this.duplicatePermissionError) return;
 
     const dto = this.form.value;
 
     const payload: CreateResourceDto | UpdateResourceDto = {
       ...(this.isEditing ? { id: this.selectedResourceId! } : {}),
       resourceName: dto.resourceName,
-      verb: dto.verb ?? '',
-      isBackEnd: dto.isBackEnd,
-      subResources: dto.subResources
+      verb: '',
+      isBackEnd: false,
+      subResources: (dto.subResources || []).map((s: { id?: number; resourceName?: string }) => ({
+        id: s.id || 0,
+        resourceName: s.resourceName,
+        verb: '',
+        isBackEnd: false
+      }))
     };
 
     const request = this.isEditing
@@ -167,16 +164,36 @@ export class ResourceComponent implements OnInit {
         this.messageService.add({
           severity: 'success',
           summary: this.isEditing ? 'Updated' : 'Created',
-          detail: `Resource ${this.isEditing ? 'updated' : 'created'} successfully`
+          detail: `Feature ${this.isEditing ? 'updated' : 'created'} successfully`
         });
       },
       error: () =>
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: `Failed to ${this.isEditing ? 'update' : 'create'} resource`
+          detail: `Failed to ${this.isEditing ? 'update' : 'create'} feature`
         })
     });
+  }
+
+  private getDuplicatePermissionError(): string {
+    const featureName = (this.form.value.resourceName || '').trim().toLowerCase();
+    const names = (this.form.value.subResources || [])
+      .map((s: { resourceName?: string }) => (s.resourceName || '').trim())
+      .filter((n: string) => n.length > 0);
+
+    const seen = new Set<string>();
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (key === featureName) {
+        return 'A permission cannot have the same name as its feature.';
+      }
+      if (seen.has(key)) {
+        return 'A feature cannot have two permissions with the same name.';
+      }
+      seen.add(key);
+    }
+    return '';
   }
 
   deleteResource(res: ResourceDto) {
@@ -185,12 +202,10 @@ export class ResourceComponent implements OnInit {
       header: 'Confirm',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        // Assuming API delete is available
-        // this.service.delete(res.id).subscribe(...)
         this.messageService.add({
           severity: 'success',
           summary: 'Deleted',
-          detail: 'Resource deleted successfully (API delete not implemented)'
+          detail: 'Feature deleted successfully (API delete not implemented)'
         });
       }
     });

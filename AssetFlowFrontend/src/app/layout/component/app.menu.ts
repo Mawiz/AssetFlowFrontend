@@ -26,7 +26,7 @@ export class AppMenu implements OnInit {
             { label: 'Subscription', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/subscription'], visible: this.authService.hasPrefix('Subscription.') },
             { label: 'Tenant', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/tenant'], visible: this.authService.hasPrefix('Tenant.') },
             { label: 'Role', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/role'], visible: this.authService.hasPrefix('Role.') },
-            { label: 'Resource', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/resource'], visible: this.authService.hasPrefix('Resource.') },
+            { label: 'Permissions', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/resource'], visible: this.authService.hasPrefix('Resource.') },
             { label: 'User', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/user'], visible: this.authService.hasPrefix('User.') }
         ].filter((item) => item.visible !== false);
 

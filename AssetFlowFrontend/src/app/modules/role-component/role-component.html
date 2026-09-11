@@ -271,7 +271,7 @@
     [blockScroll]="true"
     [closeOnEscape]="true"
     [showCloseIcon]="true"
-    [style]="{ width: '450px' }"
+    [style]="{ width: '520px' }"
     [header]="isEditing ? 'Edit Role' : 'Create Role'">
 
     <form [formGroup]="form" class="flex flex-col gap-4">
@@ -346,8 +346,35 @@
 
         </div>
 
-        <!-- RESOURCES -->
-<div class="flex flex-col gap-2"> <label>Assign Resources</label> <div *ngFor="let res of resources" class="ml-1"> <p-card class="p-card-sm mb-2"> <p-checkbox [binary]="true" [(ngModel)]="res.checked" [ngModelOptions]="{ standalone: true }" (onChange)="onResourceChange(res)"> </p-checkbox> <label> {{ res.resourceName }} </label> <div class="row mt-3 ml-3"> <div class="col-6 d-flex align-items-center mb-2" *ngFor="let sub of res.subResources"> <p-checkbox [binary]="true" [(ngModel)]="sub.checked" [ngModelOptions]="{ standalone: true }" (onChange)="onSubResourceChange(res, sub)"></p-checkbox> <label class="ms-2">{{ sub.resourceName }}</label> </div> </div> </p-card> </div> </div>
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">Assign Permissions</label>
+            <div *ngFor="let res of resources" class="ml-1">
+                <p-card class="p-card-sm mb-2">
+                    <div class="flex items-center gap-2">
+                        <p-checkbox
+                            [binary]="true"
+                            [(ngModel)]="res.checked"
+                            [ngModelOptions]="{ standalone: true }"
+                            (onChange)="onResourceChange(res)">
+                        </p-checkbox>
+                        <label>{{ res.resourceName }}</label>
+                    </div>
+                    <div class="flex flex-col gap-2 mt-3 ml-4">
+                        <div
+                            class="flex items-center gap-2"
+                            *ngFor="let sub of res.subResources">
+                            <p-checkbox
+                                [binary]="true"
+                                [(ngModel)]="sub.checked"
+                                [ngModelOptions]="{ standalone: true }"
+                                (onChange)="onSubResourceChange(res, sub)">
+                            </p-checkbox>
+                            <label>{{ sub.resourceName }}</label>
+                        </div>
+                    </div>
+                </p-card>
+            </div>
+        </div>
         <!-- ACTIONS -->
         <div class="mt-4 flex justify-end gap-2">
 

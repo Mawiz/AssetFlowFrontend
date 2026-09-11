@@ -9,14 +9,14 @@
   [value]="resources()"
   [rows]="10"
   [paginator]="true"
-  [globalFilterFields]="['resourceName','verb']"
+  [globalFilterFields]="['resourceName']"
   [rowHover]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} resources"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} features"
   [rowsPerPageOptions]="[10,20,30]"
 >
   <ng-template #caption>
     <div class="flex justify-between items-center">
-      <h5 class="m-0">Manage Resources</h5>
+      <h5 class="m-0">Manage Permissions</h5>
       <p-iconfield>
         <p-inputicon styleClass="pi pi-search" />
         <input pInputText type="text" (input)="onGlobalFilter($event, dt)" placeholder="Search..." />
@@ -26,10 +26,8 @@
 
   <ng-template #header>
     <tr>
-      <th pSortableColumn="resourceName">Resource <p-sortIcon field="resourceName" /></th>
-      <th pSortableColumn="verb">Verb/API <p-sortIcon field="verb" /></th>
-      <th>Backend</th>
-      <th>Sub-Resources</th>
+      <th pSortableColumn="resourceName">Feature <p-sortIcon field="resourceName" /></th>
+      <th>Permissions</th>
       <th style="width:8rem"></th>
     </tr>
   </ng-template>
@@ -37,14 +35,10 @@
   <ng-template #body let-res>
     <tr>
       <td>{{ res.resourceName }}</td>
-      <td>{{ res.verb || '-' }}</td>
-      <td>
-        <p-tag [value]="res.isBackEnd ? 'Yes' : 'No'" [severity]="res.isBackEnd ? 'info' : 'secondary'" />
-      </td>
       <td>
         <ul *ngIf="res.subResources?.length; else noSub">
           <li *ngFor="let sub of res.subResources">
-            {{ sub.resourceName }} <span *ngIf="sub.isBackEnd">(Backend)</span>
+            {{ sub.resourceName }}
           </li>
         </ul>
         <ng-template #noSub>-</ng-template>
@@ -57,11 +51,10 @@
   </ng-template>
 </p-table>
 
-<!-- Drawer -->
 <p-drawer
   [(visible)]="drawerVisible"
   position="right"
-  header="{{ isEditing ? 'Edit Resource' : 'Create Resource' }}"
+  header="{{ isEditing ? 'Edit Feature' : 'Create Feature' }}"
   [modal]="true"
   [blockScroll]="true"
   [closeOnEscape]="true"
@@ -71,52 +64,37 @@
   <form [formGroup]="form" class="flex flex-col gap-4">
     <div class="flex flex-col gap-2">
       <label>Feature Name</label>
-      <input pInputText formControlName="resourceName" />
+      <input pInputText formControlName="resourceName" placeholder="User" />
       <small *ngIf="submitted && form.controls['resourceName'].invalid" class="text-red-500">
-        Resource name is required.
+        Feature name is required.
       </small>
     </div>
 
-    <div class="flex flex-col gap-2">
-      <label>Verb / API (Optional)</label>
-      <textarea pInputTextarea formControlName="verb" rows="2" placeholder="Enter API URL or description"></textarea>
-    </div>
-
-    <div class="flex items-center gap-2">
-      <p-checkbox formControlName="isBackEnd" [binary]="true" />
-      <label>Is Backend</label>
-    </div>
-
     <div class="mt-4">
-      <label class="font-semibold mb-2 block">Sub Resources</label>
+      <label class="font-semibold mb-2 block">Permissions</label>
 
       <div formArrayName="subResources">
         <ng-container *ngFor="let sub of subResources.controls; let i = index">
           <p-card class="p-card-sm mb-2">
             <div [formGroupName]="i" class="flex flex-col gap-2">
               <div class="flex justify-between items-center">
-                <strong>Sub Resource {{ i + 1 }}</strong>
+                <strong>Permission {{ i + 1 }}</strong>
                 <p-button icon="pi pi-times" severity="danger" text size="small" (click)="removeSubResource(i)" />
               </div>
 
-              <input pInputText placeholder="Sub Resource Name" formControlName="resourceName" />
-              <textarea
-                pInputTextarea
-                rows="2"
-                formControlName="verb"
-                placeholder="Enter API URL or description"
-              ></textarea>
-
-              <div class="flex items-center gap-2">
-                <p-checkbox formControlName="isBackEnd" [binary]="true" />
-                <label>Is Backend</label>
-              </div>
+              <input pInputText placeholder="User.Create" formControlName="resourceName" />
+              <small *ngIf="submitted && sub.get('resourceName')?.invalid" class="text-red-500">
+                Permission name is required.
+              </small>
             </div>
           </p-card>
         </ng-container>
       </div>
 
-      <p-button label="Add Sub Resource" icon="pi pi-plus" text (click)="addSubResource()" />
+      <p-button label="Add Permission" icon="pi pi-plus" text (click)="addSubResource()" />
+      <small *ngIf="submitted && duplicatePermissionError" class="text-red-500 block mt-2">
+        {{ duplicatePermissionError }}
+      </small>
     </div>
 
     <div class="mt-4 flex justify-end gap-2">
