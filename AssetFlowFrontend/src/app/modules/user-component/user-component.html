@@ -432,6 +432,27 @@
 
         </div>
 
+        <div
+            class="flex flex-col gap-2"
+            *ngIf="systemAdmin">
+
+            <label for="tenantId">Tenant</label>
+
+            <p-select
+                id="tenantId"
+                formControlName="tenantId"
+                [options]="tenantsForForm"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select tenant (System or company)">
+            </p-select>
+
+            <small class="text-muted-color">
+                Roles listed below match the selected tenant.
+            </small>
+
+        </div>
+
         <div class="flex flex-col gap-2">
 
             <label for="roleIds">Roles</label>
@@ -455,23 +476,6 @@
                 At least one role is required.
 
             </small>
-
-        </div>
-
-        <div
-            class="flex flex-col gap-2"
-            *ngIf="systemAdmin">
-
-            <label for="tenantId">Tenant</label>
-
-            <p-select
-                id="tenantId"
-                formControlName="tenantId"
-                [options]="tenants"
-                optionLabel="displayName"
-                optionValue="id"
-                placeholder="Select a tenant">
-            </p-select>
 
         </div>
 

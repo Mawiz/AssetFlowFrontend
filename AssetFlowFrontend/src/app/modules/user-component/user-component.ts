@@ -42,7 +42,7 @@ import {
 } from '../../model/user';
 
 import { ListFilterDto } from '../../model/list-filter';
-import { RoleDto } from '../../model/role';
+import { RolePickerOption } from '../../model/role';
 import { TenantDto } from '../../model/tenant';
 import { MetadataService } from '@/services/metadata-service';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
@@ -94,9 +94,11 @@ export class UserComponent implements OnInit {
 
     selectedUsers!: UserDto[] | null;
 
-    roles: RoleDto[] = [];
+    roles: RolePickerOption[] = [];
 
     tenants: TenantDto[] = [];
+
+    tenantsForForm: { id: number | null; displayName: string }[] = [];
 
     currentUser: any;
 
@@ -162,10 +164,10 @@ export class UserComponent implements OnInit {
 
         this.loadUsers();
 
-        this.loadRoles();
-
         if (this.systemAdmin) {
             this.loadTenants();
+        } else {
+            this.loadRolesForTenant(this.getEffectiveTenantId());
         }
 
         this.cols = [
@@ -203,9 +205,27 @@ export class UserComponent implements OnInit {
             tenantId: [
                 this.systemAdmin
                     ? null
-                    : this.currentUser?.tenantId ?? null
+                    : this.normalizeTenantId(this.currentUser?.tenantId)
             ]
         });
+
+        if (this.systemAdmin) {
+            this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
+                this.form.patchValue({ roleIds: [] }, { emitEvent: false });
+                this.loadRolesForTenant(this.normalizeTenantId(tenantId));
+            });
+        }
+    }
+
+    private normalizeTenantId(tenantId: number | null | undefined): number | null {
+        return tenantId == null || tenantId === 0 ? null : tenantId;
+    }
+
+    private getEffectiveTenantId(): number | null {
+        if (this.systemAdmin) {
+            return this.normalizeTenantId(this.form?.get('tenantId')?.value);
+        }
+        return this.normalizeTenantId(this.currentUser?.tenantId);
     }
 
     onSort(event: any) {
@@ -306,24 +326,22 @@ export class UserComponent implements OnInit {
         this.filterDialogVisible = false;
     }
 
-    loadRoles() {
-
-      
-        const payload = {
-            secretKeys: ['ApplicationRole']
-        };
-        this.metadataService.getMetadataValues(payload).subscribe({
-
-            next: (res) =>
-                this.roles =  res.result?.metaResult[0]?.data  || [],
-
+    loadRolesForTenant(tenantId: number | null, afterLoad?: () => void) {
+        this.roleService.getRolesByTenant(tenantId ?? undefined).subscribe({
+            next: (res) => {
+                this.roles = (res || []).map((r) => ({
+                    id: r.roleId,
+                    displayName: r.displayName,
+                    name: r.roleName
+                }));
+                afterLoad?.();
+            },
             error: () =>
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: 'Failed to load roles'
                 })
-
         });
     }
 
@@ -336,6 +354,13 @@ export class UserComponent implements OnInit {
 
             next: (res) => {
                 this.tenants = res.result?.metaResult[0]?.data || [];
+                this.tenantsForForm = [
+                    { id: null, displayName: 'System (platform)' },
+                    ...this.tenants.map((t: TenantDto) => ({
+                        id: t.id,
+                        displayName: (t as { displayName?: string }).displayName || t.companyName || String(t.id)
+                    }))
+                ];
                 this.tenantFilterOptions = [
                     { label: 'All tenants', value: null },
                     ...this.tenants.map((t: { id: number; displayName?: string; name?: string }) => ({
@@ -391,6 +416,13 @@ export class UserComponent implements OnInit {
                 .get('tenantId')
                 ?.setValue(null);
 
+            this.loadRolesForTenant(this.getEffectiveTenantId());
+
+        }
+
+        if (this.systemAdmin) {
+            this.roles = [];
+            this.loadRolesForTenant(null);
         }
     }
 
@@ -412,15 +444,23 @@ export class UserComponent implements OnInit {
             .get('password')
             ?.updateValueAndValidity();
 
-        this.form.patchValue({
-            fullName: user.fullName,
-            firstLetter: user.firstLetter,
-            userName: user.userName,
-            email: user.email,
-            roleIds: user.roleIds?.length ? user.roleIds : user.roleId ? [user.roleId] : [],
-            tenantId: this.systemAdmin
-                ? user.tenantId ?? null
-                : this.currentUser?.tenantId ?? null
+        const tenantId = this.systemAdmin
+            ? this.normalizeTenantId(user.tenantId)
+            : this.getEffectiveTenantId();
+
+        this.loadRolesForTenant(tenantId, () => {
+            this.form.patchValue({
+                fullName: user.fullName,
+                firstLetter: user.firstLetter,
+                userName: user.userName,
+                email: user.email,
+                roleIds: user.roleIds?.length
+                    ? user.roleIds
+                    : user.roleId
+                      ? [user.roleId]
+                      : [],
+                tenantId
+            });
         });
     }
 
@@ -444,8 +484,8 @@ export class UserComponent implements OnInit {
             email: this.form.value.email,
             roleIds: this.form.value.roleIds,
             tenantId: this.systemAdmin
-                ? this.form.value.tenantId ?? null
-                : this.currentUser?.tenantId ?? null
+                ? this.normalizeTenantId(this.form.value.tenantId)
+                : this.getEffectiveTenantId()
         };
 
         let payload: any;

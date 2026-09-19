@@ -1,5 +1,11 @@
 // src/app/model/role.ts
 
+export interface RolePickerOption {
+  id: number;
+  displayName: string;
+  name: string;
+}
+
 export interface CreateRoleDto {
   name: string;
   displayName: string;
