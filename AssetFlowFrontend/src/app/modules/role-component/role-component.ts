@@ -118,8 +118,13 @@ export class RoleComponent implements OnInit {
         searchText: '',
         isActive: null,
         startDate: null,
-        endDate: null
+        endDate: null,
+        tenantId: null
     };
+
+    tenantFilterOptions: { label: string; value: number | null }[] = [
+        { label: 'All tenants', value: null }
+    ];
 
     totalRecords = 0;
 
@@ -151,9 +156,11 @@ export class RoleComponent implements OnInit {
 
         this.loadResources();
 
-        this.loadTenants();
-
         this.currentUser = this.authService.getCurrentUser();
+
+        if (this.systemAdmin) {
+            this.loadTenants();
+        }
 
         this.cols = [
             { field: 'name', header: 'Role Name' },
@@ -161,13 +168,11 @@ export class RoleComponent implements OnInit {
             { field: 'description', header: 'Description' }
         ];
 
-        if (!this.currentUser?.tenantId || this.currentUser.tenantId === 0) {
-
+        if (this.systemAdmin) {
             this.cols.push({
                 field: 'tenantName',
                 header: 'Tenant'
             });
-
         }
     }
 
@@ -231,6 +236,11 @@ export class RoleComponent implements OnInit {
         this.loadRoles();
     }
 
+    onTenantFilterChange() {
+        this.roleFilter.pageNumber = 1;
+        this.loadRoles();
+    }
+
     onRolePage(event: any) {
 
         this.roleFilter.pageNumber = event.page + 1;
@@ -257,7 +267,8 @@ export class RoleComponent implements OnInit {
             searchText: '',
             isActive: null,
             startDate: null,
-            endDate: null
+            endDate: null,
+            tenantId: null
         };
 
         this.loadRoles();
@@ -301,6 +312,13 @@ export class RoleComponent implements OnInit {
         this.metadataService.getMetadataValues(payload).subscribe({
             next: (res) => {
                 this.tenants = res.result?.metaResult[0]?.data || [];
+                this.tenantFilterOptions = [
+                    { label: 'All tenants', value: null },
+                    ...this.tenants.map((t: { id: number; displayName?: string; name?: string }) => ({
+                        label: t.displayName || t.name || String(t.id),
+                        value: t.id
+                    }))
+                ];
             },
             error: () =>
                 this.messageService.add({

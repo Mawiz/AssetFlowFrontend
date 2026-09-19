@@ -108,8 +108,13 @@ export class UserComponent implements OnInit {
         searchText: '',
         isActive: null,
         startDate: null,
-        endDate: null
+        endDate: null,
+        tenantId: null
     };
+
+    tenantFilterOptions: { label: string; value: number | null }[] = [
+        { label: 'All tenants', value: null }
+    ];
 
     totalRecords = 0;
 
@@ -259,6 +264,11 @@ export class UserComponent implements OnInit {
         this.loadUsers();
     }
 
+    onTenantFilterChange() {
+        this.userFilter.pageNumber = 1;
+        this.loadUsers();
+    }
+
     onUserPage(event: any) {
 
         this.userFilter.pageNumber =
@@ -287,7 +297,8 @@ export class UserComponent implements OnInit {
             searchText: '',
             isActive: null,
             startDate: null,
-            endDate: null
+            endDate: null,
+            tenantId: null
         };
 
         this.loadUsers();
@@ -323,9 +334,16 @@ export class UserComponent implements OnInit {
         };
         this.metadataService.getMetadataValues(payload).subscribe({
 
-            next: (res) =>
-                this.tenants =
-                      res.result?.metaResult[0]?.data   || [],
+            next: (res) => {
+                this.tenants = res.result?.metaResult[0]?.data || [];
+                this.tenantFilterOptions = [
+                    { label: 'All tenants', value: null },
+                    ...this.tenants.map((t: { id: number; displayName?: string; name?: string }) => ({
+                        label: t.displayName || t.name || String(t.id),
+                        value: t.id
+                    }))
+                ];
+            },
 
             error: () =>
                 this.messageService.add({

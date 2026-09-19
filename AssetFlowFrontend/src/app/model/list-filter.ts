@@ -8,4 +8,5 @@ export interface ListFilterDto {
   startDate?: Date | null;
   endDate?: Date | null;
   latestByDate?: Date;
+  tenantId?: number | null;
 }

@@ -54,7 +54,18 @@
 
             <h5 class="m-0">Manage Roles</h5>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap items-center">
+
+                <p-select
+                    *ngIf="systemAdmin"
+                    [options]="tenantFilterOptions"
+                    [(ngModel)]="roleFilter.tenantId"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="All tenants"
+                    [style]="{ minWidth: '12rem' }"
+                    (onChange)="onTenantFilterChange()">
+                </p-select>
 
                 <!-- SEARCH -->
                 <p-iconfield>
@@ -89,7 +100,8 @@
                         roleFilter.searchText ||
                         roleFilter.isActive !== null ||
                         roleFilter.startDate ||
-                        roleFilter.endDate
+                        roleFilter.endDate ||
+                        roleFilter.tenantId != null
                     "
                     (click)="clearFilters()">
                 </p-button>
@@ -237,6 +249,20 @@
                 optionLabel="label"
                 optionValue="value"
                 placeholder="Select Status">
+            </p-select>
+
+        </div>
+
+        <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+
+            <label>Tenant</label>
+
+            <p-select
+                [options]="tenantFilterOptions"
+                [(ngModel)]="roleFilter.tenantId"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All tenants">
             </p-select>
 
         </div>
