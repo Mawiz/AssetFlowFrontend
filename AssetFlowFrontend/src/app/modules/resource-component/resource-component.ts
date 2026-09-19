@@ -143,13 +143,9 @@ export class ResourceComponent implements OnInit {
     const payload: CreateResourceDto | UpdateResourceDto = {
       ...(this.isEditing ? { id: this.selectedResourceId! } : {}),
       resourceName: dto.resourceName,
-      verb: '',
-      isBackEnd: false,
       subResources: (dto.subResources || []).map((s: { id?: number; resourceName?: string }) => ({
         id: s.id || 0,
-        resourceName: s.resourceName,
-        verb: '',
-        isBackEnd: false
+        resourceName: s.resourceName
       }))
     };
 
