@@ -295,23 +295,19 @@ export class RoleComponent implements OnInit {
     }
 
     loadTenants() {
-
-              const payload = {
-            secretKeys: ['Language']
+        const payload = {
+            secretKeys: ['Tenant']
         };
         this.metadataService.getMetadataValues(payload).subscribe({
-
-            next: (res) =>{
-                    res.result?.metaResult[0]?.data || [];
+            next: (res) => {
+                this.tenants = res.result?.metaResult[0]?.data || [];
             },
             error: () =>
-
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: 'Failed to load tenants'
                 })
-
         });
     }
 
