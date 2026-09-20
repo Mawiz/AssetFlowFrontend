@@ -212,6 +212,17 @@ export class RoleComponent implements OnInit {
         });
     }
 
+    private applyRoleResourceIds(resourceIds: number[]) {
+        const idSet = new Set(resourceIds);
+        this.resources.forEach(r => {
+            r.subResources.forEach(s => {
+                s.checked = idSet.has(s.id);
+            });
+            r.checked =
+                idSet.has(r.id) || r.subResources.some(s => s.checked);
+        });
+    }
+
     exportCSV() {
         this.dt?.exportCSV();
     }
@@ -378,23 +389,31 @@ export class RoleComponent implements OnInit {
 
         this.selectedId = role.id;
 
-        const tenantId = this.normalizeTenantId(role.tenantId);
+        this.service.getById(role.id).subscribe({
+            next: (detail) => {
+                const tenantId = this.normalizeTenantId(detail.tenantId);
+                const resourceIds = detail.resourceIds ?? role.resourceIds ?? [];
 
-        this.loadResources(tenantId, () => {
-            this.form.patchValue({
-                name: role.name,
-                displayName: role.displayName,
-                description: role.description,
-                tenantId
-            });
+                this.loadResources(tenantId, () => {
+                    this.form.patchValue(
+                        {
+                            name: detail.name,
+                            displayName: detail.displayName,
+                            description: detail.description,
+                            tenantId
+                        },
+                        { emitEvent: false }
+                    );
 
-            const ids = role.resourceIds || [];
-            this.resources.forEach(r => {
-                r.checked = ids.includes(r.id);
-                r.subResources.forEach(s => {
-                    s.checked = ids.includes(s.id);
+                    this.applyRoleResourceIds(resourceIds);
                 });
-            });
+            },
+            error: () =>
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to load role details'
+                })
         });
     }
 

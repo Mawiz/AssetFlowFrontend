@@ -39,10 +39,10 @@ export class RoleService {
       .pipe(map(res => res.result));
   }
 
-  /** Get single role details */
-  getById(id: number): Observable<RoleWithResourcesDto> {
+  /** Get single role with assigned permission ids */
+  getById(id: number): Observable<RoleDto> {
     return this.http
-      .get<ApiResponse<RoleWithResourcesDto>>(`${this.apiUrl}/${id}`)
+      .get<ApiResponse<RoleDto>>(`${this.apiUrl}/${id}`)
       .pipe(map(res => res.result));
   }
 
