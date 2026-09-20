@@ -3,6 +3,7 @@ export interface CreateTenantDto {
   companyName: string;
   subscriptionTypeId: number;
   languageIds: number[];
+  resourceIds: number[];
 }
 
 export interface UpdateTenantDto {
@@ -10,6 +11,7 @@ export interface UpdateTenantDto {
   companyName: string;
   subscriptionTypeId: number;
   languageIds: number[];
+  resourceIds: number[];
 }
 
 export interface TenantDto {
@@ -17,6 +19,7 @@ export interface TenantDto {
   companyName: string;
   subscriptionTypeId: number;
   languageIds: number[];
+  resourceIds?: number[];
   isActive: boolean;
 }
 

@@ -268,7 +268,7 @@
     [blockScroll]="true"
     [closeOnEscape]="true"
     [showCloseIcon]="true"
-    [style]="{ width: '400px' }"
+    [style]="{ width: '480px' }"
     [header]="isEditing ? 'Edit Tenant' : 'Create Tenant'">
 
     <form [formGroup]="form" class="flex flex-col gap-4">
@@ -352,6 +352,39 @@
 
             </small>
 
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">Tenant permissions</label>
+            <p class="text-sm text-muted-color m-0">
+                Select which permissions this tenant may assign to its roles.
+            </p>
+            <div *ngFor="let res of resources" class="ml-1">
+                <p-card class="p-card-sm mb-2">
+                    <div class="flex items-center gap-2">
+                        <p-checkbox
+                            [binary]="true"
+                            [(ngModel)]="res.checked"
+                            [ngModelOptions]="{ standalone: true }"
+                            (onChange)="onResourceChange(res)">
+                        </p-checkbox>
+                        <label>{{ res.resourceName }}</label>
+                    </div>
+                    <div class="flex flex-col gap-2 mt-3 ml-4">
+                        <div
+                            class="flex items-center gap-2"
+                            *ngFor="let sub of res.subResources">
+                            <p-checkbox
+                                [binary]="true"
+                                [(ngModel)]="sub.checked"
+                                [ngModelOptions]="{ standalone: true }"
+                                (onChange)="onSubResourceChange(res, sub)">
+                            </p-checkbox>
+                            <label>{{ sub.resourceName }}</label>
+                        </div>
+                    </div>
+                </p-card>
+            </div>
         </div>
 
         <!-- ACTIONS -->

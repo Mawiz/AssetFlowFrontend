@@ -27,6 +27,7 @@ import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
+import { CardModule } from 'primeng/card';
 
 import {
     ConfirmationService,
@@ -44,6 +45,8 @@ import {
 
 import { ListFilterDto } from '../../model/list-filter';
 import { MetadataService } from '../../services/metadata-service';
+import { RoleService } from '../../services/role-service';
+import { ResourceDto, SubResourceDto } from '../../model/role';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 
@@ -76,6 +79,7 @@ interface Column {
         CheckboxModule,
         DialogModule,
         DatePickerModule,
+        CardModule,
         HasPermissionDirective
     ],
     providers: [MessageService, ConfirmationService]
@@ -93,6 +97,8 @@ export class TenantComponent implements OnInit {
     subscriptionTypes: any[] = [];
 
     languages: any[] = [];
+
+    resources: ResourceDto[] = [];
 
     tenantFilter: ListFilterDto = {
         pageNumber: 1,
@@ -131,7 +137,8 @@ export class TenantComponent implements OnInit {
         private subscriptionService: SubscriptionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
-        private metadataService: MetadataService
+        private metadataService: MetadataService,
+        private roleService: RoleService
     ) {}
 
     ngOnInit(): void {
@@ -143,6 +150,8 @@ export class TenantComponent implements OnInit {
         this.loadSubscriptions();
 
         this.loadLanguages();
+
+        this.loadPermissionCatalog();
 
         this.cols = [
             { field: 'companyName', header: 'Company Name' },
@@ -318,6 +327,27 @@ export class TenantComponent implements OnInit {
         this.languagesArray.updateValueAndValidity();
     }
 
+    loadPermissionCatalog() {
+        this.roleService.getResources().subscribe({
+            next: (res) => {
+                this.resources = (res || []).map(r => ({
+                    ...r,
+                    checked: false,
+                    subResources: (r.subResources || []).map(s => ({
+                        ...s,
+                        checked: false
+                    }))
+                }));
+            },
+            error: () =>
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to load permission catalog'
+                })
+        });
+    }
+
     openNew() {
 
         this.form.reset();
@@ -330,10 +360,12 @@ export class TenantComponent implements OnInit {
 
         this.submitted = false;
 
+        this.clearPermissionChecks();
+
         this.drawerVisible = true;
     }
 
-    editTenant(tenant: any) {
+    editTenant(tenant: TenantDto) {
 
         this.isEditing = true;
 
@@ -341,19 +373,95 @@ export class TenantComponent implements OnInit {
 
         this.drawerVisible = true;
 
-        this.form.patchValue({
-            companyName: tenant.companyName,
-            subscriptionTypeId: tenant.subscriptionTypeId
+        const applyDetail = (data: TenantDto) => {
+            this.form.patchValue({
+                companyName: data.companyName,
+                subscriptionTypeId: data.subscriptionTypeId
+            });
+
+            this.languagesArray.clear();
+            (data.languageIds || []).forEach((id: number) => {
+                this.languagesArray.push(this.fb.control(id));
+            });
+
+            this.applyTenantResourceIds(data.resourceIds || []);
+        };
+
+        this.tenantService.getById(tenant.id).subscribe({
+            next: (res) => {
+                const data: TenantDto = res?.result ?? res;
+
+                if (this.resources.length > 0) {
+                    applyDetail(data);
+                    return;
+                }
+
+                this.roleService.getResources().subscribe({
+                    next: (catalog) => {
+                        this.resources = (catalog || []).map(r => ({
+                            ...r,
+                            checked: false,
+                            subResources: (r.subResources || []).map(s => ({
+                                ...s,
+                                checked: false
+                            }))
+                        }));
+                        applyDetail(data);
+                    },
+                    error: () =>
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Failed to load permission catalog'
+                        })
+                });
+            },
+            error: () =>
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to load tenant details'
+                })
         });
+    }
 
-        this.languagesArray.clear();
-
-        tenant.languageIds?.forEach((id: number) => {
-
-            this.languagesArray.push(
-                this.fb.control(id)
-            );
+    clearPermissionChecks() {
+        this.resources.forEach(r => {
+            r.checked = false;
+            r.subResources.forEach(s => (s.checked = false));
         });
+    }
+
+    applyTenantResourceIds(resourceIds: number[]) {
+        const ids = new Set(resourceIds);
+        this.resources.forEach(r => {
+            r.subResources.forEach(s => {
+                s.checked = ids.has(s.id);
+            });
+            r.checked =
+                r.subResources.length > 0 &&
+                r.subResources.every(s => s.checked);
+        });
+    }
+
+    collectTenantResourceIds(): number[] {
+        const ids: number[] = [];
+        this.resources.forEach(r => {
+            r.subResources.forEach(s => {
+                if (s.checked) {
+                    ids.push(s.id);
+                }
+            });
+        });
+        return ids;
+    }
+
+    onResourceChange(resource: ResourceDto) {
+        resource.subResources.forEach(s => (s.checked = resource.checked));
+    }
+
+    onSubResourceChange(resource: ResourceDto, _sub: SubResourceDto) {
+        resource.checked = resource.subResources.some(s => s.checked);
     }
 
     hideDrawer() {
@@ -372,7 +480,8 @@ export class TenantComponent implements OnInit {
         const payload = {
             companyName: this.form.value.companyName,
             subscriptionTypeId: this.form.value.subscriptionTypeId,
-            languageIds: this.languagesArray.value
+            languageIds: this.languagesArray.value,
+            resourceIds: this.collectTenantResourceIds()
         };
 
         if (this.isEditing && this.selectedId) {

@@ -46,10 +46,21 @@ export class RoleService {
       .pipe(map(res => res.result));
   }
 
-  /** Get all available resources */
+  /** Full permission catalog (super admin / tenant setup) */
   getResources(): Observable<ResourceDto[]> {
     return this.http
       .get<ApiResponse<ResourceDto[]>>(this.resourceUrl)
+      .pipe(map(res => res.result));
+  }
+
+  /** Permissions available for role assignment (filtered by tenant when tenantId is set) */
+  getForRoleAssignment(tenantId?: number | null): Observable<ResourceDto[]> {
+    const url =
+      tenantId != null && tenantId !== 0
+        ? `${this.resourceUrl}/for-role-assignment?tenantId=${tenantId}`
+        : `${this.resourceUrl}/for-role-assignment`;
+    return this.http
+      .get<ApiResponse<ResourceDto[]>>(url)
       .pipe(map(res => res.result));
   }
 

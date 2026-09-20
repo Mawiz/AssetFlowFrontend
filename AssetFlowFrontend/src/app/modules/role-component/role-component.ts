@@ -150,13 +150,13 @@ export class RoleComponent implements OnInit {
 
     ngOnInit(): void {
 
+        this.currentUser = this.authService.getCurrentUser();
+
         this.initForm();
 
         this.loadRoles();
 
-        this.loadResources();
-
-        this.currentUser = this.authService.getCurrentUser();
+        this.loadResources(this.resolveRoleTenantId());
 
         if (this.systemAdmin) {
             this.loadTenants();
@@ -185,6 +185,31 @@ export class RoleComponent implements OnInit {
             tenantId: [null]
         });
 
+        if (this.systemAdmin) {
+            this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
+                this.loadResources(this.normalizeTenantId(tenantId), () => {
+                    this.clearResourceChecks();
+                });
+            });
+        }
+    }
+
+    private normalizeTenantId(tenantId: number | null | undefined): number | null {
+        return tenantId == null || tenantId === 0 ? null : tenantId;
+    }
+
+    private resolveRoleTenantId(): number | null {
+        if (this.systemAdmin) {
+            return this.normalizeTenantId(this.form?.get('tenantId')?.value);
+        }
+        return this.normalizeTenantId(this.currentUser?.tenantId);
+    }
+
+    private clearResourceChecks() {
+        this.resources.forEach(r => {
+            r.checked = false;
+            r.subResources.forEach(s => (s.checked = false));
+        });
     }
 
     exportCSV() {
@@ -276,14 +301,15 @@ export class RoleComponent implements OnInit {
         this.filterDialogVisible = false;
     }
 
-    loadResources() {
+    loadResources(tenantId?: number | null, afterLoad?: () => void) {
+        const effective =
+            tenantId !== undefined
+                ? tenantId
+                : this.resolveRoleTenantId();
 
-        this.service.getResources().subscribe({
-
+        this.service.getForRoleAssignment(effective).subscribe({
             next: (res) => {
-
                 const data = res || [];
-
                 this.resources = data.map(r => ({
                     ...r,
                     checked: r.checked ?? false,
@@ -292,16 +318,14 @@ export class RoleComponent implements OnInit {
                         checked: s.checked ?? false
                     }))
                 }));
+                afterLoad?.();
             },
-
             error: () =>
-
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: 'Failed to load permissions'
                 })
-
         });
     }
 
@@ -341,13 +365,9 @@ export class RoleComponent implements OnInit {
 
         this.selectedId = null;
 
-        this.resources.forEach(r => {
+        this.clearResourceChecks();
 
-            r.checked = false;
-
-            r.subResources.forEach(s => s.checked = false);
-
-        });
+        this.loadResources(this.systemAdmin ? null : this.resolveRoleTenantId());
     }
 
     editRole(role: RoleDto) {
@@ -358,25 +378,23 @@ export class RoleComponent implements OnInit {
 
         this.selectedId = role.id;
 
-        this.form.patchValue({
-            name: role.name,
-            displayName: role.displayName,
-            description: role.description,
-            tenantId: role.tenantId
-        });
+        const tenantId = this.normalizeTenantId(role.tenantId);
 
-        const ids = role.resourceIds || [];
-
-        this.resources.forEach(r => {
-
-            r.checked = ids.includes(r.id);
-
-            r.subResources.forEach(s => {
-
-                s.checked = ids.includes(s.id);
-
+        this.loadResources(tenantId, () => {
+            this.form.patchValue({
+                name: role.name,
+                displayName: role.displayName,
+                description: role.description,
+                tenantId
             });
 
+            const ids = role.resourceIds || [];
+            this.resources.forEach(r => {
+                r.checked = ids.includes(r.id);
+                r.subResources.forEach(s => {
+                    s.checked = ids.includes(s.id);
+                });
+            });
         });
     }
 
