@@ -4,6 +4,8 @@ import { SubscriptionComponent } from './subscription-component/subscription-com
 import { RoleComponent } from './role-component/role-component';
 import { ResourceComponent } from './resource-component/resource-component';
 import { UserComponent } from './user-component/user-component';
+import { LocationTypeComponent } from './location-type-component/location-type-component';
+import { LocationComponent } from './location-component/location-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -13,4 +15,6 @@ export const routes: Routes = [
   { path: 'role', component: RoleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Role.List] } },
   { path: 'resource', component: ResourceComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Resource.List] } },
   { path: 'user', component: UserComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.User.List] } },
+  { path: 'location-type', component: LocationTypeComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.LocationType.View] } },
+  { path: 'location', component: LocationComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Location.View] } },
 ];

@@ -35,5 +35,17 @@ export const Permissions = {
   },
   MetaData: {
     View: 'MetaData.View'
+  },
+  LocationType: {
+    Create: 'LocationType.Create',
+    Update: 'LocationType.Update',
+    View: 'LocationType.View',
+    Delete: 'LocationType.Delete'
+  },
+  Location: {
+    Create: 'Location.Create',
+    Update: 'Location.Update',
+    View: 'Location.View',
+    Delete: 'Location.Delete'
   }
 } as const;
