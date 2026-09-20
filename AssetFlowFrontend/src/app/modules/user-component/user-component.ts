@@ -166,8 +166,6 @@ export class UserComponent implements OnInit {
 
         if (this.systemAdmin) {
             this.loadTenants();
-        } else {
-            this.loadRolesForTenant(this.getEffectiveTenantId());
         }
 
         this.cols = [
@@ -327,12 +325,23 @@ export class UserComponent implements OnInit {
     }
 
     loadRolesForTenant(tenantId: number | null, afterLoad?: () => void) {
-        this.roleService.getRolesByTenant(tenantId ?? undefined).subscribe({
+        const filter: ListFilterDto = {
+            pageNumber: 1,
+            pageSize: 500,
+            searchText: '',
+            isActive: null,
+            startDate: null,
+            endDate: null,
+            // 0 = system roles only (backend convention); omit null so listing is not filtered
+            tenantId: tenantId === null ? 0 : tenantId
+        };
+
+        this.roleService.getAll(filter).subscribe({
             next: (res) => {
                 this.roles = (res || []).map((r) => ({
-                    id: r.roleId,
+                    id: r.id,
                     displayName: r.displayName,
-                    name: r.roleName
+                    name: r.name
                 }));
                 afterLoad?.();
             },
@@ -416,13 +425,13 @@ export class UserComponent implements OnInit {
                 .get('tenantId')
                 ?.setValue(null);
 
-            this.loadRolesForTenant(this.getEffectiveTenantId());
-
         }
 
+        this.roles = [];
         if (this.systemAdmin) {
-            this.roles = [];
             this.loadRolesForTenant(null);
+        } else {
+            this.loadRolesForTenant(this.getEffectiveTenantId());
         }
     }
 
@@ -449,18 +458,21 @@ export class UserComponent implements OnInit {
             : this.getEffectiveTenantId();
 
         this.loadRolesForTenant(tenantId, () => {
-            this.form.patchValue({
-                fullName: user.fullName,
-                firstLetter: user.firstLetter,
-                userName: user.userName,
-                email: user.email,
-                roleIds: user.roleIds?.length
-                    ? user.roleIds
-                    : user.roleId
-                      ? [user.roleId]
-                      : [],
-                tenantId
-            });
+            this.form.patchValue(
+                {
+                    fullName: user.fullName,
+                    firstLetter: user.firstLetter,
+                    userName: user.userName,
+                    email: user.email,
+                    roleIds: user.roleIds?.length
+                        ? user.roleIds
+                        : user.roleId
+                          ? [user.roleId]
+                          : [],
+                    tenantId
+                },
+                { emitEvent: false }
+            );
         });
     }
 
