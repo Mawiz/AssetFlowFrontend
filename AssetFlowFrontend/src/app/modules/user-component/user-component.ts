@@ -30,7 +30,6 @@ import { CardModule } from 'primeng/card';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { UserService } from '../../services/user-service';
-import { RoleService } from '../../services/role-service';
 import { TenantService } from '../../services/tenant-service';
 import { AuthService } from '../../services/auth-service';
 
@@ -145,7 +144,6 @@ export class UserComponent implements OnInit {
     constructor(
         private fb: FormBuilder,
         private service: UserService,
-        private roleService: RoleService,
         private tenantService: TenantService,
         private authService: AuthService,
         private messageService: MessageService,
@@ -325,33 +323,39 @@ export class UserComponent implements OnInit {
     }
 
     loadRolesForTenant(tenantId: number | null, afterLoad?: () => void) {
-        const filter: ListFilterDto = {
-            pageNumber: 1,
-            pageSize: 500,
-            searchText: '',
-            isActive: null,
-            startDate: null,
-            endDate: null,
-            // 0 = system roles only (backend convention); omit null so listing is not filtered
-            tenantId: tenantId === null ? 0 : tenantId
-        };
+        this.metadataService
+            .getMetadataValues({
+                secretKeys: ['ApplicationRole'],
+                tenantId: tenantId === null ? 0 : tenantId
+            })
+            .subscribe({
+                next: (res) => {
+                    const data =
+                        res.result?.metaResult?.find(
+                            (m: { key: string }) =>
+                                m.key === 'ApplicationRole'
+                        )?.data ?? res.result?.metaResult?.[0]?.data ?? [];
 
-        this.roleService.getAll(filter).subscribe({
-            next: (res) => {
-                this.roles = (res || []).map((r) => ({
-                    id: r.id,
-                    displayName: r.displayName,
-                    name: r.name
-                }));
-                afterLoad?.();
-            },
-            error: () =>
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load roles'
-                })
-        });
+                    this.roles = (data || []).map(
+                        (r: {
+                            id: number;
+                            displayName: string;
+                            name: string;
+                        }) => ({
+                            id: r.id,
+                            displayName: r.displayName,
+                            name: r.name
+                        })
+                    );
+                    afterLoad?.();
+                },
+                error: () =>
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to load roles'
+                    })
+            });
     }
 
     loadTenants() {
