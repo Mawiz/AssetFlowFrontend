@@ -35,6 +35,9 @@ import {
 import { LocationType } from '../../model/location-type';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
+import { AuthService } from '@/services/auth-service';
+import { MetadataService } from '@/services/metadata-service';
+import { TenantDto } from '../../model/tenant';
 
 @Component({
   selector: 'app-location-component',
@@ -71,7 +74,17 @@ export class LocationComponent implements OnInit {
 
   locations = signal<Location[]>([]);
   locationTypes: LocationType[] = [];
+  locationTypesForFilter: LocationType[] = [];
   parentLocationOptions: Location[] = [];
+  systemAdmin = false;
+  tenants: TenantDto[] = [];
+  tenantsForForm: { id: number; displayName: string }[] = [];
+  tenantFilterOptions: { label: string; value: number | null }[] = [
+    { label: 'All tenants', value: null }
+  ];
+  locationTypeFilterOptions: { label: string; value: number | null }[] = [
+    { label: 'All location types', value: null }
+  ];
   parentLocationRequired = false;
   parentLocationTypeName = '';
 
@@ -84,7 +97,8 @@ export class LocationComponent implements OnInit {
     isActive: null,
     startDate: null,
     endDate: null,
-    locationTypeId: null
+    locationTypeId: null,
+    tenantId: null
   };
 
   totalRecords = 0;
@@ -105,37 +119,135 @@ export class LocationComponent implements OnInit {
     private fb: FormBuilder,
     private service: LocationService,
     private locationTypeService: LocationTypeService,
+    private authService: AuthService,
+    private metadataService: MetadataService,
     private messageService: MessageService,
     private confirmationService: ConfirmationService
   ) {}
 
   ngOnInit() {
+    this.systemAdmin = this.authService.systemAdminPermissions();
     this.initForm();
-    this.loadLocationTypes();
+    if (this.systemAdmin) {
+      this.loadTenants();
+    }
+    this.loadLocationTypesForFilter();
+    this.loadLocationTypesForForm(this.getFormTenantId());
     this.loadLocations();
 
     this.form.get('locationTypeId')?.valueChanges.subscribe((typeId) => {
       this.onLocationTypeChanged(typeId);
     });
+
+    if (this.systemAdmin) {
+      this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
+        this.loadLocationTypesForForm(this.normalizeTenantId(tenantId));
+        this.form.patchValue(
+          { locationTypeId: null, parentLocationId: null },
+          { emitEvent: false }
+        );
+        this.parentLocationRequired = false;
+        this.parentLocationOptions = [];
+      });
+    }
   }
 
   initForm() {
     this.form = this.fb.group({
+      tenantId: [
+        this.systemAdmin ? null : this.getFixedTenantId(),
+        this.systemAdmin ? Validators.required : []
+      ],
       locationTypeId: [null as number | null, Validators.required],
       parentLocationId: [null as number | null],
       name: ['', Validators.required],
-      code: ['', Validators.required],
       description: [''],
       isActive: [true]
     });
   }
 
-  loadLocationTypes() {
-    this.locationTypeService.getAllActive().subscribe({
+  private getFixedTenantId(): number | null {
+    const t = this.authService.getTenantId();
+    return t == null || t === 0 ? null : t;
+  }
+
+  private normalizeTenantId(tenantId: number | null | undefined): number | null {
+    return tenantId == null || tenantId === 0 ? null : tenantId;
+  }
+
+  private getFormTenantId(): number | null {
+    if (this.systemAdmin) {
+      return this.normalizeTenantId(this.form?.get('tenantId')?.value);
+    }
+    return this.getFixedTenantId();
+  }
+
+  loadTenants() {
+    this.metadataService.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
+      next: (res) => {
+        this.tenants = res.result?.metaResult[0]?.data || [];
+        this.tenantsForForm = this.tenants.map((t: TenantDto) => ({
+          id: t.id,
+          displayName:
+            (t as { displayName?: string }).displayName ||
+            t.companyName ||
+            String(t.id)
+        }));
+        this.tenantFilterOptions = [
+          { label: 'All tenants', value: null },
+          ...this.tenants.map((t) => ({
+            label:
+              (t as { displayName?: string }).displayName ||
+              t.companyName ||
+              String(t.id),
+            value: t.id
+          }))
+        ];
+      }
+    });
+  }
+
+  loadLocationTypesForFilter() {
+    const tenantId = this.systemAdmin
+      ? this.normalizeTenantId(this.filter.tenantId)
+      : this.getFixedTenantId();
+    this.locationTypeService.getAllActive(tenantId).subscribe({
+      next: (list) => {
+        this.locationTypesForFilter = list.filter((t) => t.isActive);
+        this.locationTypeFilterOptions = [
+          { label: 'All location types', value: null },
+          ...this.locationTypesForFilter.map((t) => ({
+            label: t.name,
+            value: t.id
+          }))
+        ];
+        if (
+          this.filter.locationTypeId != null &&
+          !this.locationTypesForFilter.some((t) => t.id === this.filter.locationTypeId)
+        ) {
+          this.filter.locationTypeId = null;
+        }
+      }
+    });
+  }
+
+  loadLocationTypesForForm(tenantId: number | null) {
+    this.locationTypeService.getAllActive(tenantId).subscribe({
       next: (list) => {
         this.locationTypes = list.filter((t) => t.isActive);
       }
     });
+  }
+
+  onTenantFilterChange() {
+    this.filter.pageNumber = 1;
+    this.loadLocationTypesForFilter();
+    this.loadLocations();
+  }
+
+  onLocationTypeFilterChange() {
+    this.filter.pageNumber = 1;
+    this.loadLocations();
   }
 
   onLocationTypeChanged(typeId: number | null, keepParent = false) {
@@ -172,7 +284,12 @@ export class LocationComponent implements OnInit {
     parentControl?.setValidators(Validators.required);
     parentControl?.updateValueAndValidity();
 
-    this.service.getByLocationType(selectedType.parentLocationTypeId).subscribe({
+    this.service
+      .getByLocationType(
+        selectedType.parentLocationTypeId,
+        this.getFormTenantId()
+      )
+      .subscribe({
       next: (list) => {
         let options = list;
         if (this.isEditing && this.selectedId) {
@@ -244,8 +361,10 @@ export class LocationComponent implements OnInit {
       isActive: null,
       startDate: null,
       endDate: null,
-      locationTypeId: null
+      locationTypeId: null,
+      tenantId: null
     };
+    this.loadLocationTypesForFilter();
     this.loadLocations();
     this.filterDialogVisible = false;
   }
@@ -256,10 +375,14 @@ export class LocationComponent implements OnInit {
 
   openNew() {
     this.form.reset({
+      tenantId: this.systemAdmin ? null : this.getFixedTenantId(),
       locationTypeId: null,
       parentLocationId: null,
       isActive: true
     });
+    if (this.systemAdmin) {
+      this.locationTypes = [];
+    }
     this.isEditing = false;
     this.selectedId = null;
     this.submitted = false;
@@ -274,12 +397,16 @@ export class LocationComponent implements OnInit {
     this.drawerVisible = true;
     this.submitted = false;
 
+    const tenantId = this.normalizeTenantId(item.tenantId);
+    if (this.systemAdmin) {
+      this.loadLocationTypesForForm(tenantId);
+    }
     this.form.patchValue(
       {
+        tenantId,
         locationTypeId: item.locationTypeId,
         parentLocationId: item.parentLocationId ?? null,
         name: item.name,
-        code: item.code,
         description: item.description,
         isActive: item.isActive
       },
@@ -301,6 +428,9 @@ export class LocationComponent implements OnInit {
     const raw = this.form.value;
     const payload = {
       ...raw,
+      tenantId: this.systemAdmin
+        ? this.normalizeTenantId(raw.tenantId)
+        : this.getFixedTenantId(),
       parentLocationId: this.parentLocationRequired
         ? raw.parentLocationId
         : null

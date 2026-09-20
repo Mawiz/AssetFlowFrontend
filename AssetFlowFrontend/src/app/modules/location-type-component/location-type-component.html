@@ -34,7 +34,7 @@
     [lazy]="true"
     (onPage)="onPage($event)"
     (onSort)="onSort($event)"
-    [globalFilterFields]="['name','code','description']"
+    [globalFilterFields]="['name','description']"
     [(selection)]="selectedLocationTypes"
     dataKey="id"
     [rowHover]="true"
@@ -47,7 +47,18 @@
         <div class="flex justify-between items-center">
             <h5 class="m-0">Manage Location Types</h5>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap items-center">
+                <p-select
+                    *ngIf="systemAdmin"
+                    [options]="tenantFilterOptions"
+                    [(ngModel)]="filter.tenantId"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="All tenants"
+                    [style]="{ minWidth: '12rem' }"
+                    (onChange)="onTenantFilterChange()">
+                </p-select>
+
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
                     <input
@@ -75,7 +86,8 @@
                         filter.searchText ||
                         filter.isActive !== null ||
                         filter.startDate ||
-                        filter.endDate
+                        filter.endDate ||
+                        filter.tenantId != null
                     "
                     (click)="clearFilters()">
                 </p-button>
@@ -92,7 +104,7 @@
                 Name
                 <p-sortIcon field="name"></p-sortIcon>
             </th>
-            <th pSortableColumn="code">Code <p-sortIcon field="code"></p-sortIcon></th>
+            <th *ngIf="systemAdmin">Tenant</th>
             <th>Parent Type</th>
             <th pSortableColumn="sortOrder">Sort Order <p-sortIcon field="sortOrder"></p-sortIcon></th>
             <th>Description</th>
@@ -107,7 +119,7 @@
                 <p-tableCheckbox [value]="item" />
             </td>
             <td>{{ item.name }}</td>
-            <td>{{ item.code }}</td>
+            <td *ngIf="systemAdmin">{{ item.tenantName || '-' }}</td>
             <td>{{ item.parentLocationTypeName || '-' }}</td>
             <td>{{ item.sortOrder }}</td>
             <td>{{ item.description }}</td>
@@ -191,19 +203,28 @@
     [header]="isEditing ? 'Edit Location Type' : 'Create Location Type'">
 
     <form [formGroup]="form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+            <label for="tenantId">Tenant</label>
+            <p-select
+                inputId="tenantId"
+                formControlName="tenantId"
+                [options]="tenantsForForm"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select tenant">
+            </p-select>
+            <small
+                *ngIf="submitted && form.controls['tenantId'].invalid"
+                class="text-red-500">
+                Tenant is required.
+            </small>
+        </div>
+
         <div class="flex flex-col gap-2">
             <label for="name">Name</label>
             <input pInputText id="name" formControlName="name" />
             <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">
                 Name is required.
-            </small>
-        </div>
-
-        <div class="flex flex-col gap-2">
-            <label for="code">Code</label>
-            <input pInputText id="code" formControlName="code" />
-            <small *ngIf="submitted && form.controls['code'].invalid" class="text-red-500">
-                Code is required.
             </small>
         </div>
 

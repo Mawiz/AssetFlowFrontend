@@ -32,9 +32,13 @@ export class LocationTypeService {
       .pipe(map((res) => res.result));
   }
 
-  getAllActive(): Observable<LocationType[]> {
+  getAllActive(tenantId?: number | null): Observable<LocationType[]> {
+    const params =
+      tenantId != null && tenantId !== 0
+        ? { tenantId: String(tenantId) }
+        : undefined;
     return this.http
-      .get<ApiResult<LocationType[]>>(this.apiUrl)
+      .get<ApiResult<LocationType[]>>(this.apiUrl, { params })
       .pipe(map((res) => res.result));
   }
 

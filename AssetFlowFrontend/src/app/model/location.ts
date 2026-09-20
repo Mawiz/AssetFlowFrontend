@@ -2,21 +2,22 @@ import { ListFilterDto } from './list-filter';
 
 export interface Location {
   id: number;
+  tenantId?: number | null;
+  tenantName?: string | null;
   locationTypeId: number;
   locationTypeName?: string;
   parentLocationId?: number | null;
   parentLocationName?: string | null;
   name: string;
-  code: string;
   description?: string;
   isActive: boolean;
 }
 
 export interface CreateLocation {
+  tenantId?: number | null;
   locationTypeId: number;
   parentLocationId?: number | null;
   name: string;
-  code: string;
   description?: string;
   isActive: boolean;
 }

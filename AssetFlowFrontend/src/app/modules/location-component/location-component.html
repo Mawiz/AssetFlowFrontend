@@ -34,7 +34,7 @@
     [lazy]="true"
     (onPage)="onPage($event)"
     (onSort)="onSort($event)"
-    [globalFilterFields]="['name','code','locationTypeName','parentLocationName']"
+    [globalFilterFields]="['name','locationTypeName','parentLocationName']"
     [(selection)]="selectedLocations"
     dataKey="id"
     [rowHover]="true"
@@ -47,7 +47,28 @@
         <div class="flex justify-between items-center">
             <h5 class="m-0">Manage Locations</h5>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap items-center">
+                <p-select
+                    *ngIf="systemAdmin"
+                    [options]="tenantFilterOptions"
+                    [(ngModel)]="filter.tenantId"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="All tenants"
+                    [style]="{ minWidth: '12rem' }"
+                    (onChange)="onTenantFilterChange()">
+                </p-select>
+
+                <p-select
+                    [options]="locationTypeFilterOptions"
+                    [(ngModel)]="filter.locationTypeId"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="All location types"
+                    [style]="{ minWidth: '12rem' }"
+                    (onChange)="onLocationTypeFilterChange()">
+                </p-select>
+
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
                     <input
@@ -76,7 +97,8 @@
                         filter.isActive !== null ||
                         filter.startDate ||
                         filter.endDate ||
-                        filter.locationTypeId
+                        filter.locationTypeId ||
+                        filter.tenantId != null
                     "
                     (click)="clearFilters()">
                 </p-button>
@@ -93,7 +115,7 @@
                 Name
                 <p-sortIcon field="name"></p-sortIcon>
             </th>
-            <th pSortableColumn="code">Code <p-sortIcon field="code"></p-sortIcon></th>
+            <th *ngIf="systemAdmin">Tenant</th>
             <th>Location Type</th>
             <th>Parent Location</th>
             <th>Active</th>
@@ -107,7 +129,7 @@
                 <p-tableCheckbox [value]="item" />
             </td>
             <td>{{ item.name }}</td>
-            <td>{{ item.code }}</td>
+            <td *ngIf="systemAdmin">{{ item.tenantName || '-' }}</td>
             <td>{{ item.locationTypeName }}</td>
             <td>{{ item.parentLocationName || '-' }}</td>
             <td>
@@ -201,6 +223,23 @@
     [header]="isEditing ? 'Edit Location' : 'Create Location'">
 
     <form [formGroup]="form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+            <label for="tenantId">Tenant</label>
+            <p-select
+                inputId="tenantId"
+                formControlName="tenantId"
+                [options]="tenantsForForm"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select tenant">
+            </p-select>
+            <small
+                *ngIf="submitted && form.controls['tenantId'].invalid"
+                class="text-red-500">
+                Tenant is required.
+            </small>
+        </div>
+
         <div class="flex flex-col gap-2">
             <label for="locationTypeId">Location Type</label>
             <p-select
@@ -240,14 +279,6 @@
             <input pInputText id="name" formControlName="name" />
             <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">
                 Name is required.
-            </small>
-        </div>
-
-        <div class="flex flex-col gap-2">
-            <label for="code">Code</label>
-            <input pInputText id="code" formControlName="code" />
-            <small *ngIf="submitted && form.controls['code'].invalid" class="text-red-500">
-                Code is required.
             </small>
         </div>
 
