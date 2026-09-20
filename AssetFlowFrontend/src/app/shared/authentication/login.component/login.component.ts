@@ -10,6 +10,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CheckboxModule } from 'primeng/checkbox';
 import { AppFloatingConfigurator } from '@/layout/component/app.floatingconfigurator';
+import { environment } from '../../../../environments';
 
 @Component({
   selector: 'app-login',
@@ -41,6 +42,10 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (!environment.production) {
+      this.password = 'Click123.';
+    }
+
     // If a previous user session exists, clear it before showing login
     if (this.authService.isAuthenticated()) {
       this.authService.logout();
