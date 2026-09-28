@@ -1,5 +1,3 @@
-import { EntityMetaDataItem } from './entity-metadata';
-
 export interface Asset {
   id: number;
   tenantId?: number | null;
@@ -30,7 +28,6 @@ export interface Asset {
   expectedLifeUnit?: number | null;
   notes?: string;
   isActive: boolean;
-  metadata?: EntityMetaDataItem[];
 }
 
 export interface CreateAsset {
@@ -57,7 +54,6 @@ export interface CreateAsset {
   expectedLifeUnit?: number | null;
   notes?: string;
   isActive: boolean;
-  metadata?: EntityMetaDataItem[];
 }
 
 export interface UpdateAsset extends CreateAsset {

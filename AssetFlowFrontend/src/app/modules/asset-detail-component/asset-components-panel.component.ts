@@ -24,7 +24,6 @@ import {
   CreateAssetComponentItem,
   UpdateAssetComponentItem
 } from '../../model/asset-component-item';
-import { MetaDataKeyDefinition } from '../../model/entity-metadata';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 
@@ -70,8 +69,6 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
   selectedId: number | null = null;
   statusOptions: { label: string; value: number }[] = [];
   lifeUnitOptions: { label: string; value: number }[] = [];
-  metadataKeys: MetaDataKeyDefinition[] = [];
-  metadataValues: { keyId: number; value: string }[] = [];
   statusLabelMap = new Map<number, string>();
 
   constructor(
@@ -85,7 +82,6 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
   ngOnInit() {
     this.initForm();
     this.loadEnums();
-    this.loadMetadataKeys();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -132,16 +128,6 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
     });
   }
 
-  loadMetadataKeys() {
-    this.metadataService.getMetadataKeys('AssetComponent').subscribe({
-      next: (res) => {
-        this.metadataKeys = res?.result ?? [];
-        this.metadataValues = this.metadataKeys.map((k) => ({ keyId: k.id, value: '' }));
-      },
-      error: () => (this.metadataKeys = [])
-    });
-  }
-
   loadComponents() {
     if (!this.assetId) return;
     this.filter.assetId = this.assetId;
@@ -163,7 +149,6 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
     this.selectedId = null;
     this.submitted = false;
     this.form.reset({ currentStatus: 1, isActive: true });
-    this.metadataValues = this.metadataKeys.map((k) => ({ keyId: k.id, value: '' }));
     this.drawerVisible = true;
   }
 
@@ -173,10 +158,6 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
     this.form.patchValue({ ...item, installationDate: item.installationDate ? new Date(item.installationDate) : null,
       warrantyStartDate: item.warrantyStartDate ? new Date(item.warrantyStartDate) : null,
       warrantyEndDate: item.warrantyEndDate ? new Date(item.warrantyEndDate) : null });
-    this.metadataValues = this.metadataKeys.map((k) => {
-      const existing = item.metadata?.find((m) => m.metaDataKeyId === k.id);
-      return { keyId: k.id, value: existing?.value ?? '' };
-    });
     this.drawerVisible = true;
   }
 
@@ -185,15 +166,11 @@ export class AssetComponentsPanelComponent implements OnInit, OnChanges {
     if (this.form.invalid || !this.assetId) return;
 
     const raw = this.form.getRawValue();
-    const metadata = this.metadataValues
-      .filter((m) => m.value?.trim())
-      .map((m) => ({ metaDataKeyId: m.keyId, value: m.value.trim() }));
 
     const payload: CreateAssetComponentItem = {
       ...raw,
       assetId: this.assetId,
-      tenantId: this.tenantId,
-      metadata
+      tenantId: this.tenantId
     };
 
     const req = this.isEditing && this.selectedId

@@ -1,13 +1,16 @@
-export interface EntityMetaDataItem {
-  metaDataKeyId: number;
-  metaDataKeyName?: string;
-  metaDataKeyDisplayName?: string;
-  value: string;
-}
-
-export interface MetaDataKeyDefinition {
+export interface MetaDataByTypeItem {
   id: number;
   name: string;
   displayName: string;
-  applicableEntityType?: string;
+  hasChildren: boolean;
+  parentId?: number | null;
+  locationTypeId?: number | null;
+  tenantId?: number | null;
+}
+
+export interface MetaDataByTypeRequest {
+  type: string;
+  parentId?: number | null;
+  tenantId?: number | null;
+  locationTypeId?: number | null;
 }

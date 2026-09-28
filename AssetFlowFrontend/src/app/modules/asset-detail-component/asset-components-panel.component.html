@@ -59,10 +59,6 @@
         <p-datepicker formControlName="warrantyStartDate" placeholder="Warranty start" [showIcon]="true"></p-datepicker>
         <p-datepicker formControlName="warrantyEndDate" placeholder="Warranty end" [showIcon]="true"></p-datepicker>
         <textarea pTextarea formControlName="notes" rows="3" placeholder="Notes"></textarea>
-        <div *ngFor="let key of metadataKeys; let i = index" class="flex flex-col gap-1">
-            <label>{{ key.displayName || key.name }}</label>
-            <input pInputText [(ngModel)]="metadataValues[i].value" [ngModelOptions]="{ standalone: true }" />
-        </div>
         <div class="flex items-center gap-2">
             <p-checkbox formControlName="isActive" [binary]="true" inputId="compActive"></p-checkbox>
             <label for="compActive">Active</label>

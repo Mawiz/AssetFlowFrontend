@@ -1,5 +1,3 @@
-import { EntityMetaDataItem } from './entity-metadata';
-
 export interface AssetComponentItem {
   id: number;
   tenantId?: number | null;
@@ -22,7 +20,6 @@ export interface AssetComponentItem {
   currentRunningHours?: number | null;
   notes?: string;
   isActive: boolean;
-  metadata?: EntityMetaDataItem[];
 }
 
 export interface CreateAssetComponentItem {
@@ -44,7 +41,6 @@ export interface CreateAssetComponentItem {
   currentRunningHours?: number | null;
   notes?: string;
   isActive: boolean;
-  metadata?: EntityMetaDataItem[];
 }
 
 export interface UpdateAssetComponentItem extends CreateAssetComponentItem {

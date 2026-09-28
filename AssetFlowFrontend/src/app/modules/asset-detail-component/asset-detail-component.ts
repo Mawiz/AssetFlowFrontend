@@ -18,20 +18,25 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
 import { AssetService } from '../../services/asset-service';
-import { AssetCategoryService } from '../../services/asset-category-service';
-import { AssetTypeService } from '../../services/asset-type-service';
 import { LocationService } from '../../services/location-service';
 import { MetadataService } from '../../services/metadata-service';
 import { AssetCategory } from '../../model/asset-category';
 import { AssetType } from '../../model/asset-type';
-import { Location } from '../../model/location';
 import { CreateAsset, UpdateAsset } from '../../model/asset';
-import { MetaDataKeyDefinition } from '../../model/entity-metadata';
+import { Location } from '../../model/location';
+import { MetaDataByTypeItem } from '../../model/entity-metadata';
 import { AuthService } from '@/services/auth-service';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { AssetComponentsPanelComponent } from './asset-components-panel.component';
+
+interface LocationLevel {
+  label: string;
+  options: MetaDataByTypeItem[];
+  selectedId: number | null;
+}
 
 @Component({
   selector: 'app-asset-detail-component',
@@ -66,24 +71,23 @@ export class AssetDetailComponent implements OnInit {
   submitted = false;
   categories: AssetCategory[] = [];
   types: AssetType[] = [];
-  locations: Location[] = [];
   users: { id: number; displayName: string }[] = [];
   statusOptions: { label: string; value: number }[] = [];
   criticalityOptions: { label: string; value: number }[] = [];
   lifeUnitOptions: { label: string; value: number }[] = [];
-  metadataKeys: MetaDataKeyDefinition[] = [];
-  metadataValues: { keyId: number; value: string }[] = [];
   tenantsForForm: { id: number; displayName: string }[] = [];
   loadedTenantId: number | null = null;
   pageTitle = 'Asset';
+
+  locationLevels: LocationLevel[] = [];
+  departmentOptions: MetaDataByTypeItem[] = [];
+  selectedDepartmentId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private fb: FormBuilder,
     private assetService: AssetService,
-    private categoryService: AssetCategoryService,
-    private typeService: AssetTypeService,
     private locationService: LocationService,
     private metadataService: MetadataService,
     private authService: AuthService,
@@ -94,7 +98,6 @@ export class AssetDetailComponent implements OnInit {
     this.systemAdmin = this.authService.systemAdminPermissions();
     this.initForm();
     this.loadEnums();
-    this.loadMetadataKeys();
     if (this.systemAdmin) {
       this.loadTenants();
     }
@@ -108,6 +111,7 @@ export class AssetDetailComponent implements OnInit {
       } else {
         this.pageTitle = 'New Asset';
         this.loadLookups(this.getFormTenantId());
+        this.resetLocationCascade();
       }
     });
   }
@@ -141,13 +145,17 @@ export class AssetDetailComponent implements OnInit {
 
     this.form.get('assetCategoryId')?.valueChanges.subscribe((catId) => {
       this.form.patchValue({ assetTypeId: null }, { emitEvent: false });
-      this.loadTypes(catId);
+      this.loadTypesForCategory(catId);
     });
 
     if (this.systemAdmin) {
       this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
         this.loadLookups(this.normalizeTenantId(tenantId));
-        this.form.patchValue({ assetCategoryId: null, assetTypeId: null, locationId: null, responsibleUserId: null }, { emitEvent: false });
+        this.form.patchValue(
+          { assetCategoryId: null, assetTypeId: null, locationId: null, responsibleUserId: null },
+          { emitEvent: false }
+        );
+        this.resetLocationCascade();
       });
     }
   }
@@ -173,16 +181,6 @@ export class AssetDetailComponent implements OnInit {
     });
   }
 
-  loadMetadataKeys() {
-    this.metadataService.getMetadataKeys('Asset').subscribe({
-      next: (res) => {
-        this.metadataKeys = res?.result ?? [];
-        this.metadataValues = this.metadataKeys.map((k) => ({ keyId: k.id, value: '' }));
-      },
-      error: () => (this.metadataKeys = [])
-    });
-  }
-
   loadTenants() {
     this.metadataService.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
       next: (res) => {
@@ -193,26 +191,135 @@ export class AssetDetailComponent implements OnInit {
   }
 
   loadLookups(tenantId: number | null) {
-    this.categoryService.getAllActive(tenantId).subscribe({ next: (d) => (this.categories = d.filter((c) => c.isActive)) });
-    this.locationService.getAll({ pageNumber: 1, pageSize: 500, isActive: true, tenantId }).subscribe({
-      next: (d) => (this.locations = d.filter((l) => l.isActive))
-    });
-    this.metadataService.getMetadataValues({ secretKeys: ['ApplicationUser'], tenantId }).subscribe({
+    this.metadataService.getByType({ type: 'AssetCategory', tenantId }).subscribe({
       next: (res) => {
-        const list = res?.result?.metaResult?.[0]?.data ?? [];
-        this.users = list.map((u: any) => ({ id: u.id, displayName: u.displayName ?? u.name }));
+        const list: MetaDataByTypeItem[] = res?.result ?? [];
+        this.categories = list.map((c) => ({
+          id: c.id,
+          name: c.displayName ?? c.name,
+          code: '',
+          description: '',
+          isActive: true,
+          tenantId
+        }));
+      }
+    });
+
+    this.metadataService.getByType({ type: 'ApplicationUser', tenantId }).subscribe({
+      next: (res) => {
+        const list: MetaDataByTypeItem[] = res?.result ?? [];
+        this.users = list.map((u) => ({ id: u.id, displayName: u.displayName ?? u.name }));
       }
     });
   }
 
-  loadTypes(categoryId: number | null) {
+  loadTypesForCategory(categoryId: number | null) {
     if (!categoryId) {
       this.types = [];
       return;
     }
-    this.typeService.getAll({ pageNumber: 1, pageSize: 500, assetCategoryId: categoryId, isActive: true, tenantId: this.getFormTenantId() }).subscribe({
-      next: (d) => (this.types = d)
-    });
+    this.metadataService
+      .getByType({ type: 'AssetType', parentId: categoryId, tenantId: this.getFormTenantId() })
+      .subscribe({
+        next: (res) => {
+          const list: MetaDataByTypeItem[] = res?.result ?? [];
+          this.types = list.map((t) => ({
+            id: t.id,
+            name: t.displayName ?? t.name,
+            code: '',
+            assetCategoryId: categoryId,
+            description: '',
+            isActive: true,
+            tenantId: this.getFormTenantId()
+          }));
+        }
+      });
+  }
+
+  resetLocationCascade() {
+    this.locationLevels = [{ label: 'Location', options: [], selectedId: null }];
+    this.departmentOptions = [];
+    this.selectedDepartmentId = null;
+    this.form.patchValue({ locationId: null }, { emitEvent: false });
+    this.loadLocationLevel(0, null);
+  }
+
+  loadLocationLevel(levelIndex: number, parentId: number | null) {
+    this.metadataService
+      .getByType({ type: 'Location', parentId, tenantId: this.getFormTenantId() })
+      .subscribe({
+        next: (res) => {
+          const options: MetaDataByTypeItem[] = res?.result ?? [];
+          if (this.locationLevels[levelIndex]) {
+            this.locationLevels[levelIndex].options = options;
+          }
+        }
+      });
+  }
+
+  onLocationLevelChange(levelIndex: number, selectedId: number | null) {
+    this.locationLevels[levelIndex].selectedId = selectedId;
+    this.locationLevels = this.locationLevels.slice(0, levelIndex + 1);
+
+    if (selectedId == null) {
+      this.form.patchValue({ locationId: null });
+      this.departmentOptions = [];
+      this.selectedDepartmentId = null;
+      return;
+    }
+
+    this.form.patchValue({ locationId: selectedId });
+    this.loadDepartments(selectedId);
+
+    const selected = this.locationLevels[levelIndex].options.find((o) => o.id === selectedId);
+    if (selected?.hasChildren) {
+      this.locationLevels.push({ label: 'Sub-location', options: [], selectedId: null });
+      this.loadLocationLevel(levelIndex + 1, selectedId);
+    }
+  }
+
+  loadDepartments(locationId: number | null) {
+    if (!locationId) {
+      this.departmentOptions = [];
+      this.selectedDepartmentId = null;
+      return;
+    }
+    this.metadataService
+      .getByType({ type: 'Department', parentId: locationId, tenantId: this.getFormTenantId() })
+      .subscribe({
+        next: (res) => {
+          this.departmentOptions = res?.result ?? [];
+        }
+      });
+  }
+
+  async rebuildLocationCascade(locationId: number, tenantId: number | null) {
+    const chain: number[] = [];
+    let currentId: number | null = locationId;
+    while (currentId) {
+      chain.unshift(currentId);
+      const loc: Location = await firstValueFrom(this.locationService.getById(currentId));
+      currentId = loc.parentLocationId ?? null;
+    }
+
+    this.locationLevels = [];
+    for (let i = 0; i < chain.length; i++) {
+      const parentId = i === 0 ? null : chain[i - 1];
+      const level: LocationLevel = {
+        label: i === 0 ? 'Location' : 'Sub-location',
+        options: [],
+        selectedId: chain[i]
+      };
+      this.locationLevels.push(level);
+      const res = await firstValueFrom(
+        this.metadataService.getByType({ type: 'Location', parentId, tenantId })
+      );
+      level.options = res?.result ?? [];
+    }
+
+    const deepest = chain[chain.length - 1];
+    this.form.patchValue({ locationId: deepest });
+    this.loadDepartments(deepest);
   }
 
   loadAsset(id: number) {
@@ -221,7 +328,7 @@ export class AssetDetailComponent implements OnInit {
         this.pageTitle = `${asset.assetCode} — ${asset.name}`;
         this.loadedTenantId = asset.tenantId ?? null;
         this.loadLookups(asset.tenantId ?? null);
-        this.loadTypes(asset.assetCategoryId);
+        this.loadTypesForCategory(asset.assetCategoryId);
         this.form.patchValue({
           ...asset,
           installationDate: asset.installationDate ? new Date(asset.installationDate) : null,
@@ -229,10 +336,7 @@ export class AssetDetailComponent implements OnInit {
           warrantyEndDate: asset.warrantyEndDate ? new Date(asset.warrantyEndDate) : null,
           purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate) : null
         });
-        this.metadataValues = this.metadataKeys.map((k) => {
-          const existing = asset.metadata?.find((m) => m.metaDataKeyId === k.id);
-          return { keyId: k.id, value: existing?.value ?? '' };
-        });
+        this.rebuildLocationCascade(asset.locationId, asset.tenantId ?? null);
       },
       error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Asset not found' })
     });
@@ -242,12 +346,7 @@ export class AssetDetailComponent implements OnInit {
     this.submitted = true;
     if (this.form.invalid) return;
 
-    const raw = this.form.getRawValue();
-    const metadata = this.metadataValues
-      .filter((m) => m.value?.trim())
-      .map((m) => ({ metaDataKeyId: m.keyId, value: m.value.trim() }));
-
-    const payload: CreateAsset = { ...raw, metadata };
+    const payload: CreateAsset = this.form.getRawValue();
 
     const req = this.isCreateMode
       ? this.assetService.create(payload)

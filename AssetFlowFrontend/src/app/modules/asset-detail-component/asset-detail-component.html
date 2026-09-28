@@ -37,23 +37,37 @@
                 <div class="col-span-12 md:col-span-4"><input pInputText class="w-full" formControlName="serialNumber" placeholder="Serial number" /></div>
 
                 <div class="col-span-12"><h6>Location &amp; Responsibility</h6></div>
-                <div class="col-span-12 md:col-span-4">
-                    <p-select formControlName="locationId" [options]="locations" optionLabel="name" optionValue="id" placeholder="Location *" class="w-full"></p-select>
+                <div class="col-span-12 md:col-span-4" *ngFor="let level of locationLevels; let i = index">
+                    <label class="block mb-1">{{ level.label }}</label>
+                    <p-select
+                        [options]="level.options"
+                        [(ngModel)]="level.selectedId"
+                        [ngModelOptions]="{ standalone: true }"
+                        optionLabel="displayName"
+                        optionValue="id"
+                        [placeholder]="level.label + ' *'"
+                        class="w-full"
+                        (onChange)="onLocationLevelChange(i, level.selectedId)">
+                    </p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4" *ngIf="departmentOptions.length">
+                    <label class="block mb-1">Department</label>
+                    <p-select
+                        [options]="departmentOptions"
+                        [(ngModel)]="selectedDepartmentId"
+                        [ngModelOptions]="{ standalone: true }"
+                        optionLabel="displayName"
+                        optionValue="id"
+                        placeholder="Department"
+                        [showClear]="true"
+                        class="w-full">
+                    </p-select>
                 </div>
                 <div class="col-span-12 md:col-span-4">
                     <p-select formControlName="responsibleUserId" [options]="users" optionLabel="displayName" optionValue="id" placeholder="Responsible manager" [showClear]="true" class="w-full"></p-select>
                 </div>
                 <div class="col-span-12">
                     <textarea pTextarea class="w-full" formControlName="otherLocationInformation" rows="2" placeholder="Other location information"></textarea>
-                </div>
-                <div class="col-span-12" *ngIf="metadataKeys.length">
-                    <h6>Metadata</h6>
-                    <div class="grid grid-cols-12 gap-3">
-                        <div class="col-span-12 md:col-span-4" *ngFor="let key of metadataKeys; let i = index">
-                            <label class="block mb-1">{{ key.displayName || key.name }}</label>
-                            <input pInputText class="w-full" [(ngModel)]="metadataValues[i].value" [ngModelOptions]="{ standalone: true }" />
-                        </div>
-                    </div>
                 </div>
 
                 <div class="col-span-12"><h6>Operational Information</h6></div>
