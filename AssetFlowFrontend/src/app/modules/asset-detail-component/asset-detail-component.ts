@@ -18,7 +18,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { firstValueFrom } from 'rxjs';
+import { combineLatest, firstValueFrom } from 'rxjs';
 import { AssetService } from '../../services/asset-service';
 import { LocationService } from '../../services/location-service';
 import { MetadataService } from '../../services/metadata-service';
@@ -102,17 +102,27 @@ export class AssetDetailComponent implements OnInit {
       this.loadTenants();
     }
 
-    this.route.paramMap.subscribe((params) => {
+    combineLatest([this.route.data, this.route.paramMap]).subscribe(([data, params]) => {
       const idParam = params.get('id');
-      this.isCreateMode = idParam === 'new';
-      this.assetId = this.isCreateMode ? null : Number(idParam);
-      if (!this.isCreateMode && this.assetId) {
-        this.loadAsset(this.assetId);
-      } else {
+      this.isCreateMode = data['mode'] === 'create' || idParam === 'new';
+
+      if (this.isCreateMode) {
+        this.assetId = null;
         this.pageTitle = 'New Asset';
         this.loadLookups(this.getFormTenantId());
         this.resetLocationCascade();
+        return;
       }
+
+      const id = Number(idParam);
+      if (!idParam || Number.isNaN(id)) {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Invalid asset id' });
+        this.router.navigate(['/modules/assets']);
+        return;
+      }
+
+      this.assetId = id;
+      this.loadAsset(id);
     });
   }
 
@@ -356,7 +366,7 @@ export class AssetDetailComponent implements OnInit {
       next: (asset) => {
         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Asset saved' });
         if (this.isCreateMode) {
-          this.router.navigate(['/modules/assets', asset.id]);
+          this.router.navigate(['/modules/assets', asset.id], { replaceUrl: true });
         } else {
           this.loadAsset(asset.id);
         }

@@ -24,6 +24,6 @@ export const routes: Routes = [
   { path: 'asset-category', component: AssetCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetCategory.View] } },
   { path: 'asset-type', component: AssetTypeComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetType.View] } },
   { path: 'assets', component: AssetsComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Asset.View] } },
-  { path: 'assets/new', component: AssetDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Asset.Create] } },
+  { path: 'assets/new', component: AssetDetailComponent, canActivate: [PermissionGuard], data: { mode: 'create', permissions: [Permissions.Asset.Create] } },
   { path: 'assets/:id', component: AssetDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Asset.View] } },
 ];
