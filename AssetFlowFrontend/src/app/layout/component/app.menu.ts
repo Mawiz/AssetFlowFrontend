@@ -35,6 +35,11 @@ export class AppMenu implements OnInit {
             { label: 'Locations', icon: 'pi pi-fw pi-map-marker', routerLink: ['/modules/location'], visible: this.authService.hasPrefix('Location.') }
         ].filter((item) => item.visible !== false);
 
+        const assetItems: MenuItem[] = [
+            { label: 'Asset Categories', icon: 'pi pi-fw pi-box', routerLink: ['/modules/asset-category'], visible: this.authService.hasPrefix('AssetCategory.') },
+            { label: 'Asset Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/asset-type'], visible: this.authService.hasPrefix('AssetType.') }
+        ].filter((item) => item.visible !== false);
+
         this.model = [
             {
                 label: 'Home',
@@ -50,6 +55,12 @@ export class AppMenu implements OnInit {
                 ? [{
                     label: 'Location Management',
                     items: locationItems
+                }]
+                : []),
+            ...(assetItems.length
+                ? [{
+                    label: 'Asset Management',
+                    items: assetItems
                 }]
                 : []),
             {

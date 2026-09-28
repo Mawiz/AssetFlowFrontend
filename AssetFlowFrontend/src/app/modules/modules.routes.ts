@@ -6,6 +6,8 @@ import { ResourceComponent } from './resource-component/resource-component';
 import { UserComponent } from './user-component/user-component';
 import { LocationTypeComponent } from './location-type-component/location-type-component';
 import { LocationComponent } from './location-component/location-component';
+import { AssetCategoryComponent } from './asset-category-component/asset-category-component';
+import { AssetTypeComponent } from './asset-type-component/asset-type-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -17,4 +19,6 @@ export const routes: Routes = [
   { path: 'user', component: UserComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.User.List] } },
   { path: 'location-type', component: LocationTypeComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.LocationType.View] } },
   { path: 'location', component: LocationComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Location.View] } },
+  { path: 'asset-category', component: AssetCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetCategory.View] } },
+  { path: 'asset-type', component: AssetTypeComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetType.View] } },
 ];

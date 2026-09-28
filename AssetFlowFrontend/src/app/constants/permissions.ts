@@ -47,5 +47,17 @@ export const Permissions = {
     Update: 'Location.Update',
     View: 'Location.View',
     Delete: 'Location.Delete'
+  },
+  AssetCategory: {
+    Create: 'AssetCategory.Create',
+    Update: 'AssetCategory.Update',
+    View: 'AssetCategory.View',
+    Delete: 'AssetCategory.Delete'
+  },
+  AssetType: {
+    Create: 'AssetType.Create',
+    Update: 'AssetType.Update',
+    View: 'AssetType.View',
+    Delete: 'AssetType.Delete'
   }
 } as const;
