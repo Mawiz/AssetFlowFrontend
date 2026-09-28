@@ -59,5 +59,17 @@ export const Permissions = {
     Update: 'AssetType.Update',
     View: 'AssetType.View',
     Delete: 'AssetType.Delete'
+  },
+  Asset: {
+    Create: 'Asset.Create',
+    Update: 'Asset.Update',
+    View: 'Asset.View',
+    Delete: 'Asset.Delete'
+  },
+  AssetComponent: {
+    Create: 'AssetComponent.Create',
+    Update: 'AssetComponent.Update',
+    View: 'AssetComponent.View',
+    Delete: 'AssetComponent.Delete'
   }
 } as const;

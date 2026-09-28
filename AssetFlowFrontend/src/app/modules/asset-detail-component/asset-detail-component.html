@@ -1,0 +1,95 @@
+<div class="flex justify-between items-center mb-4">
+    <div>
+        <p-button icon="pi pi-arrow-left" label="Back to list" severity="secondary" [text]="true" (onClick)="backToList()"></p-button>
+        <h4 class="m-0 mt-2">{{ pageTitle }}</h4>
+    </div>
+    <p-button *appHasPermission="isCreateMode ? Permissions.Asset.Create : Permissions.Asset.Update" label="Save" icon="pi pi-check" (onClick)="save()"></p-button>
+</div>
+
+<p-tabs value="0">
+    <p-tablist>
+        <p-tab value="0">Overview</p-tab>
+        <p-tab value="1" [disabled]="isCreateMode">Components</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+        <p-tabpanel value="0">
+            <form [formGroup]="form" class="grid grid-cols-12 gap-4">
+                <div class="col-span-12"><h6>Basic Information</h6></div>
+                <div class="col-span-12 md:col-span-4" *ngIf="systemAdmin">
+                    <p-select formControlName="tenantId" [options]="tenantsForForm" optionLabel="displayName" optionValue="id" placeholder="Tenant *"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <input pInputText class="w-full" formControlName="assetCode" placeholder="Asset code *" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <input pInputText class="w-full" formControlName="name" placeholder="Asset name *" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <p-select formControlName="assetCategoryId" [options]="categories" optionLabel="name" optionValue="id" placeholder="Category *" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <p-select formControlName="assetTypeId" [options]="types" optionLabel="name" optionValue="id" placeholder="Type *" class="w-full"></p-select>
+                </div>
+
+                <div class="col-span-12"><h6>Identification</h6></div>
+                <div class="col-span-12 md:col-span-4"><input pInputText class="w-full" formControlName="manufacturer" placeholder="Manufacturer" /></div>
+                <div class="col-span-12 md:col-span-4"><input pInputText class="w-full" formControlName="model" placeholder="Model" /></div>
+                <div class="col-span-12 md:col-span-4"><input pInputText class="w-full" formControlName="serialNumber" placeholder="Serial number" /></div>
+
+                <div class="col-span-12"><h6>Location &amp; Responsibility</h6></div>
+                <div class="col-span-12 md:col-span-4">
+                    <p-select formControlName="locationId" [options]="locations" optionLabel="name" optionValue="id" placeholder="Location *" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <p-select formControlName="responsibleUserId" [options]="users" optionLabel="displayName" optionValue="id" placeholder="Responsible manager" [showClear]="true" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12">
+                    <textarea pTextarea class="w-full" formControlName="otherLocationInformation" rows="2" placeholder="Other location information"></textarea>
+                </div>
+                <div class="col-span-12" *ngIf="metadataKeys.length">
+                    <h6>Metadata</h6>
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-12 md:col-span-4" *ngFor="let key of metadataKeys; let i = index">
+                            <label class="block mb-1">{{ key.displayName || key.name }}</label>
+                            <input pInputText class="w-full" [(ngModel)]="metadataValues[i].value" [ngModelOptions]="{ standalone: true }" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-12"><h6>Operational Information</h6></div>
+                <div class="col-span-12 md:col-span-3">
+                    <p-select formControlName="status" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Status" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-3">
+                    <p-select formControlName="criticality" [options]="criticalityOptions" optionLabel="label" optionValue="value" placeholder="Criticality" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-3">
+                    <p-datepicker formControlName="installationDate" placeholder="Installation date" [showIcon]="true" class="w-full"></p-datepicker>
+                </div>
+                <div class="col-span-12 md:col-span-3 flex gap-2">
+                    <p-inputNumber formControlName="expectedLifeValue" placeholder="Expected life" class="w-full"></p-inputNumber>
+                    <p-select formControlName="expectedLifeUnit" [options]="lifeUnitOptions" optionLabel="label" optionValue="value" placeholder="Unit"></p-select>
+                </div>
+
+                <div class="col-span-12"><h6>Purchase &amp; Warranty</h6></div>
+                <div class="col-span-12 md:col-span-3"><p-datepicker formControlName="purchaseDate" placeholder="Purchase date" [showIcon]="true"></p-datepicker></div>
+                <div class="col-span-12 md:col-span-3"><p-inputNumber formControlName="purchaseCost" placeholder="Purchase cost" mode="currency" currency="USD"></p-inputNumber></div>
+                <div class="col-span-12 md:col-span-3"><input pInputText class="w-full" formControlName="supplierName" placeholder="Supplier" /></div>
+                <div class="col-span-12 md:col-span-3"><p-datepicker formControlName="warrantyStartDate" placeholder="Warranty start" [showIcon]="true"></p-datepicker></div>
+                <div class="col-span-12 md:col-span-3"><p-datepicker formControlName="warrantyEndDate" placeholder="Warranty end" [showIcon]="true"></p-datepicker></div>
+
+                <div class="col-span-12"><h6>Additional Information</h6></div>
+                <div class="col-span-12"><textarea pTextarea class="w-full" formControlName="notes" rows="3" placeholder="Notes"></textarea></div>
+                <div class="col-span-12 flex items-center gap-2">
+                    <p-checkbox formControlName="isActive" [binary]="true" inputId="assetActive"></p-checkbox>
+                    <label for="assetActive">Active</label>
+                </div>
+            </form>
+        </p-tabpanel>
+        <p-tabpanel value="1">
+            <app-asset-components-panel *ngIf="assetId" [assetId]="assetId" [tenantId]="loadedTenantId"></app-asset-components-panel>
+        </p-tabpanel>
+    </p-tabpanels>
+</p-tabs>
+
+<p-toast></p-toast>

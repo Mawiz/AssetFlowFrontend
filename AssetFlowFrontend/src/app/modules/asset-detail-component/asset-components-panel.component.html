@@ -1,0 +1,78 @@
+<p-toolbar styleClass="mb-3">
+    <ng-template #start>
+        <p-button *appHasPermission="Permissions.AssetComponent.Create" label="Add Component" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+    </ng-template>
+    <ng-template #end>
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search components..." />
+        </p-iconfield>
+    </ng-template>
+</p-toolbar>
+
+<p-table [value]="components()" dataKey="id" [rowHover]="true">
+    <ng-template #header>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Part #</th>
+            <th>Serial</th>
+            <th>Status</th>
+            <th>Installation</th>
+            <th>Running Hrs</th>
+            <th style="width: 8rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-item>
+        <tr>
+            <td>{{ item.componentCode }}</td>
+            <td>{{ item.componentName }}</td>
+            <td>{{ item.partNumber }}</td>
+            <td>{{ item.serialNumber }}</td>
+            <td>{{ statusLabel(item.currentStatus) }}</td>
+            <td>{{ item.installationLocation }}</td>
+            <td>{{ item.currentRunningHours }}</td>
+            <td>
+                <p-button *appHasPermission="Permissions.AssetComponent.Update" icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (click)="editItem(item)"></p-button>
+                <p-button *appHasPermission="Permissions.AssetComponent.Delete" icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteItem(item)"></p-button>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-drawer [(visible)]="drawerVisible" [style]="{ width: '36rem' }" header="Component">
+    <form [formGroup]="form" class="flex flex-col gap-3">
+        <input pInputText formControlName="componentCode" placeholder="Component code *" />
+        <input pInputText formControlName="componentName" placeholder="Component name *" />
+        <input pInputText formControlName="partNumber" placeholder="Part number" />
+        <input pInputText formControlName="serialNumber" placeholder="Serial number" />
+        <input pInputText formControlName="manufacturer" placeholder="Manufacturer" />
+        <input pInputText formControlName="supplierName" placeholder="Supplier" />
+        <p-datepicker formControlName="installationDate" placeholder="Installation date" [showIcon]="true"></p-datepicker>
+        <input pInputText formControlName="installationLocation" placeholder="Installation location (within asset)" />
+        <p-select formControlName="currentStatus" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Status"></p-select>
+        <div class="flex gap-2">
+            <p-inputNumber formControlName="expectedLifeValue" placeholder="Expected life"></p-inputNumber>
+            <p-select formControlName="expectedLifeUnit" [options]="lifeUnitOptions" optionLabel="label" optionValue="value" placeholder="Unit"></p-select>
+        </div>
+        <p-inputNumber formControlName="currentRunningHours" placeholder="Running hours" [minFractionDigits]="0" [maxFractionDigits]="2"></p-inputNumber>
+        <p-datepicker formControlName="warrantyStartDate" placeholder="Warranty start" [showIcon]="true"></p-datepicker>
+        <p-datepicker formControlName="warrantyEndDate" placeholder="Warranty end" [showIcon]="true"></p-datepicker>
+        <textarea pTextarea formControlName="notes" rows="3" placeholder="Notes"></textarea>
+        <div *ngFor="let key of metadataKeys; let i = index" class="flex flex-col gap-1">
+            <label>{{ key.displayName || key.name }}</label>
+            <input pInputText [(ngModel)]="metadataValues[i].value" [ngModelOptions]="{ standalone: true }" />
+        </div>
+        <div class="flex items-center gap-2">
+            <p-checkbox formControlName="isActive" [binary]="true" inputId="compActive"></p-checkbox>
+            <label for="compActive">Active</label>
+        </div>
+    </form>
+    <ng-template #footer>
+        <p-button label="Cancel" severity="secondary" (onClick)="drawerVisible = false"></p-button>
+        <p-button label="Save" (onClick)="save()"></p-button>
+    </ng-template>
+</p-drawer>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

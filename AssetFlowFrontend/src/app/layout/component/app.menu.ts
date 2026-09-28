@@ -37,7 +37,8 @@ export class AppMenu implements OnInit {
 
         const assetItems: MenuItem[] = [
             { label: 'Asset Categories', icon: 'pi pi-fw pi-box', routerLink: ['/modules/asset-category'], visible: this.authService.hasPrefix('AssetCategory.') },
-            { label: 'Asset Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/asset-type'], visible: this.authService.hasPrefix('AssetType.') }
+            { label: 'Asset Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/asset-type'], visible: this.authService.hasPrefix('AssetType.') },
+            { label: 'Assets', icon: 'pi pi-fw pi-server', routerLink: ['/modules/assets'], visible: this.authService.hasPrefix('Asset.') }
         ].filter((item) => item.visible !== false);
 
         this.model = [

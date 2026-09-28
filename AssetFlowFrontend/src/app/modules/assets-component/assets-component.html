@@ -1,0 +1,85 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+        <p-button *appHasPermission="Permissions.Asset.Create" label="New Asset" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="assets()"
+    [rows]="filter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onPage($event)"
+    (onSort)="onSort($event)"
+    dataKey="id"
+    [rowHover]="true"
+    [rowsPerPageOptions]="[10,20,30]"
+    [totalRecords]="totalRecords"
+    [customSort]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} assets">
+
+    <ng-template #caption>
+        <div class="flex justify-between items-center flex-wrap gap-2">
+            <h5 class="m-0">Assets</h5>
+            <div class="flex gap-2 flex-wrap items-center">
+                <p-select *ngIf="systemAdmin" [options]="tenantFilterOptions" [(ngModel)]="filter.tenantId" optionLabel="label" optionValue="value" placeholder="All tenants" [style]="{ minWidth: '12rem' }" (onChange)="onTenantFilterChange()"></p-select>
+                <p-select [options]="categories" [(ngModel)]="filter.assetCategoryId" optionLabel="name" optionValue="id" placeholder="All categories" [showClear]="true" [style]="{ minWidth: '12rem' }" (onChange)="onCategoryFilterChange()"></p-select>
+                <p-select [options]="typesForFilter" [(ngModel)]="filter.assetTypeId" optionLabel="name" optionValue="id" placeholder="All types" [showClear]="true" [style]="{ minWidth: '12rem' }" (onChange)="onSearch()"></p-select>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+                </p-iconfield>
+                <p-button icon="pi pi-filter" label="Filters" severity="secondary" outlined (click)="filterDialogVisible = true"></p-button>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th pSortableColumn="assetCode">Code <p-sortIcon field="assetCode"></p-sortIcon></th>
+            <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Serial</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Criticality</th>
+            <th>Manager</th>
+            <th style="width: 8rem"></th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-item>
+        <tr>
+            <td>{{ item.assetCode }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.assetCategoryName }}</td>
+            <td>{{ item.assetTypeName }}</td>
+            <td>{{ item.serialNumber }}</td>
+            <td>{{ item.locationName }}</td>
+            <td>{{ statusLabel(item.status) }}</td>
+            <td>{{ criticalityLabel(item.criticality) }}</td>
+            <td>{{ item.responsibleUserName }}</td>
+            <td>
+                <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" class="mr-2" (click)="openAsset(item)"></p-button>
+                <p-button *appHasPermission="Permissions.Asset.Delete" icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteItem(item)"></p-button>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog header="Filters" [(visible)]="filterDialogVisible" [modal]="true" [style]="{ width: '28rem' }">
+    <div class="flex flex-col gap-3">
+        <p-select [options]="locations" [(ngModel)]="filter.locationId" optionLabel="name" optionValue="id" placeholder="Location" [showClear]="true"></p-select>
+        <p-select [options]="statusOptions" [(ngModel)]="filter.status" optionLabel="label" optionValue="value" placeholder="Status"></p-select>
+        <p-select [options]="criticalityOptions" [(ngModel)]="filter.criticality" optionLabel="label" optionValue="value" placeholder="Criticality"></p-select>
+        <p-select [options]="users" [(ngModel)]="filter.responsibleUserId" optionLabel="displayName" optionValue="id" placeholder="Responsible user" [showClear]="true"></p-select>
+    </div>
+    <ng-template #footer>
+        <p-button label="Apply" (onClick)="filterDialogVisible = false; onSearch()"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

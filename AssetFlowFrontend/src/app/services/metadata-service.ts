@@ -15,4 +15,15 @@ export class MetadataService {
     getMetadataValues(payload: any): Observable<any> {
       return this.http.post<any>(`${this.apiUrl}${this.metaUrl}`, payload);
     }
+
+    getMetadataKeys(applicableEntityType?: string): Observable<any> {
+      const params = applicableEntityType
+        ? { applicableEntityType }
+        : undefined;
+      return this.http.get<any>(`${this.apiUrl}/metadata/MetaDataKeys`, { params });
+    }
+
+    getEnums(): Observable<any> {
+      return this.http.get<any>(`${this.apiUrl}/metadata/GetMetaDataEnums`);
+    }
 }
