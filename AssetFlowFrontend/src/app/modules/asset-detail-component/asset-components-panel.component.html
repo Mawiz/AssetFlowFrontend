@@ -40,34 +40,84 @@
     </ng-template>
 </p-table>
 
-<p-drawer [(visible)]="drawerVisible" [style]="{ width: '36rem' }" header="Component">
-    <form [formGroup]="form" class="flex flex-col gap-3">
-        <input pInputText formControlName="componentCode" placeholder="Component code *" />
-        <input pInputText formControlName="componentName" placeholder="Component name *" />
-        <input pInputText formControlName="partNumber" placeholder="Part number" />
-        <input pInputText formControlName="serialNumber" placeholder="Serial number" />
-        <input pInputText formControlName="manufacturer" placeholder="Manufacturer" />
-        <input pInputText formControlName="supplierName" placeholder="Supplier" />
-        <p-datepicker formControlName="installationDate" placeholder="Installation date" [showIcon]="true"></p-datepicker>
-        <input pInputText formControlName="installationLocation" placeholder="Installation location (within asset)" />
-        <p-select formControlName="currentStatus" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Status"></p-select>
-        <div class="flex gap-2">
-            <p-inputNumber formControlName="expectedLifeValue" placeholder="Expected life"></p-inputNumber>
-            <p-select formControlName="expectedLifeUnit" [options]="lifeUnitOptions" optionLabel="label" optionValue="value" placeholder="Unit"></p-select>
+<p-drawer
+    [(visible)]="drawerVisible"
+    position="right"
+    [modal]="true"
+    [style]="{ width: '400px' }"
+    [header]="isEditing ? 'Edit Component' : 'Add Component'">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="componentCode">Component code</label>
+            <input pInputText id="componentCode" formControlName="componentCode" />
+            <small *ngIf="submitted && form.controls['componentCode'].invalid" class="text-red-500">Component code is required.</small>
         </div>
-        <p-inputNumber formControlName="currentRunningHours" placeholder="Running hours" [minFractionDigits]="0" [maxFractionDigits]="2"></p-inputNumber>
-        <p-datepicker formControlName="warrantyStartDate" placeholder="Warranty start" [showIcon]="true"></p-datepicker>
-        <p-datepicker formControlName="warrantyEndDate" placeholder="Warranty end" [showIcon]="true"></p-datepicker>
-        <textarea pTextarea formControlName="notes" rows="3" placeholder="Notes"></textarea>
+        <div class="flex flex-col gap-2">
+            <label for="componentName">Component name</label>
+            <input pInputText id="componentName" formControlName="componentName" />
+            <small *ngIf="submitted && form.controls['componentName'].invalid" class="text-red-500">Component name is required.</small>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="partNumber">Part number</label>
+            <input pInputText id="partNumber" formControlName="partNumber" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="serialNumber">Serial number</label>
+            <input pInputText id="serialNumber" formControlName="serialNumber" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="manufacturer">Manufacturer</label>
+            <input pInputText id="manufacturer" formControlName="manufacturer" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="supplierName">Supplier</label>
+            <input pInputText id="supplierName" formControlName="supplierName" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="installationDate">Installation date</label>
+            <p-datepicker inputId="installationDate" formControlName="installationDate" dateFormat="yy-mm-dd" [showIcon]="true" appendTo="body"></p-datepicker>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="installationLocation">Installation location (within asset)</label>
+            <input pInputText id="installationLocation" formControlName="installationLocation" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="currentStatus">Current status</label>
+            <p-select inputId="currentStatus" formControlName="currentStatus" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Select status"></p-select>
+            <small *ngIf="submitted && form.controls['currentStatus'].invalid" class="text-red-500">Status is required.</small>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label>Expected life</label>
+            <div class="flex gap-2">
+                <p-inputNumber formControlName="expectedLifeValue" placeholder="Value" class="flex-1"></p-inputNumber>
+                <p-select formControlName="expectedLifeUnit" [options]="lifeUnitOptions" optionLabel="label" optionValue="value" placeholder="Unit" class="flex-1"></p-select>
+            </div>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="currentRunningHours">Current running hours</label>
+            <p-inputNumber inputId="currentRunningHours" formControlName="currentRunningHours" [minFractionDigits]="0" [maxFractionDigits]="2"></p-inputNumber>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="warrantyStartDate">Warranty start</label>
+            <p-datepicker inputId="warrantyStartDate" formControlName="warrantyStartDate" dateFormat="yy-mm-dd" [showIcon]="true" appendTo="body"></p-datepicker>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="warrantyEndDate">Warranty end</label>
+            <p-datepicker inputId="warrantyEndDate" formControlName="warrantyEndDate" dateFormat="yy-mm-dd" [showIcon]="true" appendTo="body"></p-datepicker>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="notes">Notes</label>
+            <textarea pTextarea id="notes" formControlName="notes" rows="3"></textarea>
+        </div>
         <div class="flex items-center gap-2">
             <p-checkbox formControlName="isActive" [binary]="true" inputId="compActive"></p-checkbox>
             <label for="compActive">Active</label>
         </div>
+        <div class="mt-2 flex justify-end gap-2">
+            <p-button label="Cancel" icon="pi pi-times" text (onClick)="drawerVisible = false"></p-button>
+            <p-button label="Save" icon="pi pi-check" (onClick)="save()"></p-button>
+        </div>
     </form>
-    <ng-template #footer>
-        <p-button label="Cancel" severity="secondary" (onClick)="drawerVisible = false"></p-button>
-        <p-button label="Save" (onClick)="save()"></p-button>
-    </ng-template>
 </p-drawer>
 
 <p-toast></p-toast>
