@@ -44,6 +44,7 @@ export class AppMenu implements OnInit {
         const sparePartItems: MenuItem[] = [
             { label: 'Parts', icon: 'pi pi-fw pi-wrench', routerLink: ['/modules/parts'], visible: this.authService.hasPrefix('Part.') },
             { label: 'Part Categories', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/part-category'], visible: this.authService.hasPrefix('PartCategory.') },
+            { label: 'Suppliers', icon: 'pi pi-fw pi-truck', routerLink: ['/modules/supplier'], visible: this.authService.hasPrefix('Supplier.') },
             { label: 'Inventory', icon: 'pi pi-fw pi-inbox', routerLink: ['/modules/part-inventory'], visible: this.authService.hasPrefix('PartInventory.') },
             { label: 'Part Transactions', icon: 'pi pi-fw pi-history', routerLink: ['/modules/part-transaction'], visible: this.authService.hasPrefix('PartTransaction.') },
             { label: 'Low Stock', icon: 'pi pi-fw pi-exclamation-triangle', routerLink: ['/modules/parts'], queryParams: { lowStock: 'true' }, visible: this.authService.hasPrefix('Part.') }

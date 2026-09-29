@@ -11,6 +11,8 @@ export interface PartInventory {
   locationName?: string;
   partSerialNumberId?: number | null;
   serialNumber?: string;
+  supplierSerialReference?: string;
+  supplierName?: string;
   quantityAvailable: number;
   quantityReserved: number;
   status: number;
@@ -24,16 +26,23 @@ export interface PartInventoryFilterDto extends ListFilterDto {
   lowStockOnly?: boolean | null;
 }
 
-export interface PartReceipt {
+export interface PartBatchReceipt {
   tenantId?: number | null;
   partId: number;
   locationId: number;
+  supplierId: number;
   quantity: number;
-  serialNumber?: string;
+  receiptMode: number;
+  supplierSerialReferences?: string[];
   receivedDate?: Date | string | null;
   warrantyStartDate?: Date | string | null;
   warrantyEndDate?: Date | string | null;
   remarks?: string;
+}
+
+export interface PartBatchReceiptResult {
+  items: PartInventory[];
+  generatedSerialNumbers: string[];
 }
 
 export interface PartTransfer {

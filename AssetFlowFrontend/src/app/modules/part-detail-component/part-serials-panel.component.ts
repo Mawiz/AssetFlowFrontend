@@ -17,7 +17,9 @@ import { MetadataService } from '@/services/metadata-service';
     <p-table [value]="rows" [paginator]="true" [rows]="10" dataKey="id">
       <ng-template #header>
         <tr>
-          <th>Serial number</th>
+          <th>Internal serial</th>
+          <th>Supplier S/N</th>
+          <th>Supplier</th>
           <th>Location</th>
           <th>Status</th>
           <th>Received</th>
@@ -28,6 +30,8 @@ import { MetadataService } from '@/services/metadata-service';
       <ng-template #body let-row>
         <tr>
           <td>{{ row.serialNumber }}</td>
+          <td>{{ row.supplierSerialReference || '—' }}</td>
+          <td>{{ row.supplierName || '—' }}</td>
           <td>{{ row.locationName || '—' }}</td>
           <td>{{ statusLabel(row.status) }}</td>
           <td>{{ row.receivedDate | date: 'mediumDate' }}</td>
@@ -46,6 +50,7 @@ import { MetadataService } from '@/services/metadata-service';
 export class PartSerialsPanelComponent implements OnChanges {
   @Input() partId: number | null = null;
   @Input() part: Part | null = null;
+  @Input() refreshToken = 0;
   rows: PartSerialNumber[] = [];
   statusLabelMap = new Map<number, string>();
 
@@ -63,11 +68,15 @@ export class PartSerialsPanelComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['partId'] && this.partId) {
-      this.serialService.filter({ pageNumber: 1, pageSize: 200, partId: this.partId, isActive: null }).subscribe({
-        next: (data) => (this.rows = data)
-      });
+    if ((changes['partId'] || changes['refreshToken']) && this.partId) {
+      this.loadRows();
     }
+  }
+
+  private loadRows() {
+    this.serialService.filter({ pageNumber: 1, pageSize: 200, partId: this.partId!, isActive: null }).subscribe({
+      next: (data) => (this.rows = data)
+    });
   }
 
   statusLabel(v: number) {

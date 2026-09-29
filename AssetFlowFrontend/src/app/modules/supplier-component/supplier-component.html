@@ -1,0 +1,74 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+        <p-button *appHasPermission="Permissions.Supplier.Create" label="New" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table #dt [value]="suppliers()" [rows]="filter.pageSize" [paginator]="true" [lazy]="true" (onPage)="onPage($event)" (onSort)="onSort($event)" [(selection)]="selectedSuppliers" dataKey="id" [rowHover]="true" [rowsPerPageOptions]="[10,20,30]" [totalRecords]="totalRecords" [customSort]="true">
+    <ng-template #caption>
+        <div class="flex justify-between items-center flex-wrap gap-2">
+            <h5 class="m-0">Suppliers</h5>
+            <div class="flex gap-2 flex-wrap items-center">
+                <p-select *ngIf="systemAdmin" [options]="tenantFilterOptions" [(ngModel)]="filter.tenantId" optionLabel="label" optionValue="value" placeholder="All tenants" (onChange)="onTenantFilterChange()"></p-select>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+                </p-iconfield>
+                <p-button icon="pi pi-filter" label="Filters" severity="secondary" outlined (click)="filterDialogVisible = true"></p-button>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th pSortableColumn="name">Name</th>
+            <th pSortableColumn="code">Code</th>
+            <th>Contact</th>
+            <th>Phone</th>
+            <th>Active</th>
+            <th style="width: 8rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-item>
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.code }}</td>
+            <td>{{ item.contactName }}</td>
+            <td>{{ item.contactPhone }}</td>
+            <td><p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'"></p-tag></td>
+            <td class="text-end">
+                <p-button *appHasPermission="Permissions.Supplier.Update" icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editItem(item)"></p-button>
+                <p-button *appHasPermission="Permissions.Supplier.Delete" icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteItem(item)"></p-button>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog header="Filters" [(visible)]="filterDialogVisible" [modal]="true" [style]="{ width: '400px' }">
+    <p-select [options]="statusOptions" [(ngModel)]="filter.isActive" optionLabel="label" optionValue="value" placeholder="Status"></p-select>
+    <ng-template #footer>
+        <p-button label="Apply" (onClick)="applyFilters()"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-drawer [(visible)]="drawerVisible" position="right" [style]="{ width: '420px' }" [header]="isEditing ? 'Edit supplier' : 'New supplier'">
+    <form [formGroup]="form" class="flex flex-col gap-3">
+        <p-select *ngIf="systemAdmin" formControlName="tenantId" [options]="tenantsForForm" optionLabel="displayName" optionValue="id" placeholder="Tenant"></p-select>
+        <input pInputText formControlName="name" placeholder="Name *" />
+        <input pInputText formControlName="code" placeholder="Code *" />
+        <textarea pTextarea formControlName="description" rows="2" placeholder="Description"></textarea>
+        <input pInputText formControlName="contactName" placeholder="Contact name" />
+        <input pInputText formControlName="contactPhone" placeholder="Contact phone" />
+        <input pInputText formControlName="contactEmail" placeholder="Contact email" />
+        <textarea pTextarea formControlName="address" rows="2" placeholder="Address"></textarea>
+        <div class="flex items-center gap-2">
+            <p-checkbox formControlName="isActive" inputId="supActive" [binary]="true"></p-checkbox>
+            <label for="supActive">Active</label>
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+            <p-button label="Cancel" text (onClick)="hideDrawer()"></p-button>
+            <p-button label="Save" (onClick)="save()"></p-button>
+        </div>
+    </form>
+</p-drawer>
+<p-toast />
+<p-confirmdialog />

@@ -15,6 +15,7 @@ import { PartsComponent } from './parts-component/parts-component';
 import { PartDetailComponent } from './part-detail-component/part-detail-component';
 import { PartInventoryComponent } from './part-inventory-component/part-inventory-component';
 import { PartTransactionComponent } from './part-transaction-component/part-transaction-component';
+import { SupplierComponent } from './supplier-component/supplier-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -37,4 +38,5 @@ export const routes: Routes = [
   { path: 'parts/:id', component: PartDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Part.View] } },
   { path: 'part-inventory', component: PartInventoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartInventory.View] } },
   { path: 'part-transaction', component: PartTransactionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartTransaction.View] } },
+  { path: 'supplier', component: SupplierComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Supplier.View] } },
 ];

@@ -95,5 +95,11 @@ export const Permissions = {
     Update: 'PartTransaction.Update',
     View: 'PartTransaction.View',
     Delete: 'PartTransaction.Delete'
+  },
+  Supplier: {
+    Create: 'Supplier.Create',
+    Update: 'Supplier.Update',
+    View: 'Supplier.View',
+    Delete: 'Supplier.Delete'
   }
 } as const;

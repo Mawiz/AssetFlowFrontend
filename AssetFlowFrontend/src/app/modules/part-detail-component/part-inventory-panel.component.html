@@ -5,9 +5,9 @@
   <ng-template #header>
     <tr>
       <th>Location</th>
-      <th>Serial</th>
-      <th>Available</th>
-      <th>Reserved</th>
+      <th>Internal serial</th>
+      <th>Supplier S/N</th>
+      <th>Supplier</th>
       <th>Status</th>
       <th style="width: 12rem"></th>
     </tr>
@@ -16,8 +16,8 @@
     <tr>
       <td>{{ row.locationName }}</td>
       <td>{{ row.serialNumber || '—' }}</td>
-      <td>{{ row.quantityAvailable }}</td>
-      <td>{{ row.quantityReserved }}</td>
+      <td>{{ row.supplierSerialReference || '—' }}</td>
+      <td>{{ row.supplierName || '—' }}</td>
       <td>{{ statusLabel(row.status) }}</td>
       <td>
         <p-button icon="pi pi-qrcode" [rounded]="true" [outlined]="true" class="mr-1" title="Print QR" (onClick)="printQr(row)" [disabled]="!row.serialNumber"></p-button>
@@ -28,20 +28,23 @@
   </ng-template>
 </p-table>
 
-<p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '32rem' }" (onHide)="stopScan()">
+<p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '36rem' }" (onHide)="stopScan()">
   <div class="flex flex-col gap-3">
     <p-select [options]="locations" [(ngModel)]="receipt.locationId" optionLabel="name" optionValue="id" placeholder="Location *"></p-select>
+    <p-select [options]="suppliers" [(ngModel)]="receipt.supplierId" optionLabel="name" optionValue="id" placeholder="Supplier *"></p-select>
+    <p-inputNumber [(ngModel)]="receipt.quantity" [min]="1" [max]="500" placeholder="Quantity *" (onInput)="onQuantityChange()"></p-inputNumber>
 
     <p-selectButton [options]="serialModeOptions" [(ngModel)]="serialMode" optionLabel="label" optionValue="value" (onChange)="onSerialModeChange()"></p-selectButton>
 
     @if (serialMode === 'auto') {
       <div class="flex flex-col gap-2">
-        <label class="font-medium">Auto-generated serial</label>
-        <div class="flex gap-2 items-center">
-          <input pInputText class="flex-1" [ngModel]="receipt.serialNumber" readonly />
-          <p-button icon="pi pi-refresh" severity="secondary" (onClick)="loadNextSerial()" title="Regenerate"></p-button>
-        </div>
-        <small class="text-color-secondary">Format: {{ year }}-0001, next available for this part.</small>
+        <label class="font-medium">Internal serials (auto)</label>
+        <ul class="m-0 pl-4 text-sm max-h-32 overflow-auto">
+          @for (s of previewSerials; track s) {
+            <li>{{ s }}</li>
+          }
+        </ul>
+        <small class="text-color-secondary">Format {{ year }}-0001 … per part; one serial per unit.</small>
       </div>
     }
 
@@ -52,16 +55,14 @@
           <video #scanVideo class="w-full max-h-48 bg-black rounded" muted playsinline></video>
           <p-button label="Stop scan" severity="danger" text (onClick)="stopScan()"></p-button>
         }
-        <label class="font-medium">Scanned / typed serial *</label>
-        <input pInputText #scanInput class="w-full" [(ngModel)]="receipt.serialNumber" placeholder="Scan QR or type serial" (keydown.enter)="onScanInputEnter()" />
-        <small class="text-color-secondary">USB scanners work in this field; press Enter after scan.</small>
-      </div>
-    }
-
-    @if (serialMode === 'manual') {
-      <div class="flex flex-col gap-2">
-        <label class="font-medium">Serial number *</label>
-        <input pInputText class="w-full" [(ngModel)]="receipt.serialNumber" placeholder="Enter unique serial" />
+        <label class="font-medium">Supplier QR / barcode ({{ scannedSupplierRefs.length }} / {{ receipt.quantity }})</label>
+        <input pInputText #scanInput class="w-full" [(ngModel)]="scanBuffer" placeholder="Scan supplier label here" (keydown.enter)="onSupplierScanEnter()" />
+        <ul class="m-0 pl-4 text-sm max-h-24 overflow-auto">
+          @for (ref of scannedSupplierRefs; track ref) {
+            <li>{{ ref }}</li>
+          }
+        </ul>
+        <small class="text-color-secondary">Each scan stores the supplier sequence only. Internal serials are generated on save.</small>
       </div>
     }
 
@@ -69,7 +70,7 @@
   </div>
   <ng-template #footer>
     <p-button label="Cancel" text (onClick)="receiptVisible = false"></p-button>
-    <p-button label="Save &amp; print QR" severity="secondary" outlined (onClick)="submitReceipt(true)" [disabled]="!receipt.serialNumber?.trim()"></p-button>
+    <p-button label="Save &amp; print labels" severity="secondary" outlined (onClick)="submitReceipt(true)"></p-button>
     <p-button label="Save" (onClick)="submitReceipt(false)"></p-button>
   </ng-template>
 </p-dialog>
@@ -77,7 +78,7 @@
 <p-dialog header="Transfer" [(visible)]="transferVisible" [modal]="true" [style]="{ width: '28rem' }">
   <div class="flex flex-col gap-3">
     <p-select [options]="locations" [(ngModel)]="transfer.toLocationId" optionLabel="name" optionValue="id" placeholder="To location *"></p-select>
-    <p-inputNumber [(ngModel)]="transfer.quantity" [min]="1" [max]="transferMaxQty" placeholder="Quantity"></p-inputNumber>
+    <p-inputNumber [(ngModel)]="transfer.quantity" [min]="1" [max]="transferMaxQty"></p-inputNumber>
     <input pInputText [(ngModel)]="transfer.remarks" placeholder="Remarks" />
   </div>
   <ng-template #footer>

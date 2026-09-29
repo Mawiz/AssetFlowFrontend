@@ -15,6 +15,9 @@ export interface PartSerialNumber {
   warrantyStartDate?: string | null;
   warrantyEndDate?: string | null;
   isActive: boolean;
+  supplierId?: number | null;
+  supplierName?: string;
+  supplierSerialReference?: string;
 }
 
 export interface UpdatePartSerialNumber {

@@ -6,7 +6,8 @@ import {
   PartAdjustment,
   PartInventory,
   PartInventoryFilterDto,
-  PartReceipt,
+  PartBatchReceipt,
+  PartBatchReceiptResult,
   PartTransfer
 } from '../model/part-inventory';
 
@@ -33,9 +34,9 @@ export class PartInventoryService {
       .pipe(map((res) => res.result));
   }
 
-  receipt(dto: PartReceipt): Observable<PartInventory> {
+  batchReceipt(dto: PartBatchReceipt): Observable<PartBatchReceiptResult> {
     return this.http
-      .post<ApiResult<PartInventory>>(`${this.apiUrl}/receipt`, dto)
+      .post<ApiResult<PartBatchReceiptResult>>(`${this.apiUrl}/batchreceipt`, dto)
       .pipe(map((res) => res.result));
   }
 

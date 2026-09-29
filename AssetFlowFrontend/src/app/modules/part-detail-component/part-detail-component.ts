@@ -66,6 +66,7 @@ export class PartDetailComponent implements OnInit {
   lifeUnitOptions: { label: string; value: number }[] = [];
   tenantsForForm: { id: number; displayName: string }[] = [];
   pageTitle = 'Part';
+  serialsRefreshToken = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -206,6 +207,13 @@ export class PartDetailComponent implements OnInit {
 
   backToList() {
     this.router.navigate(['/modules/parts']);
+  }
+
+  onInventoryChanged() {
+    this.serialsRefreshToken++;
+    if (this.partId) {
+      this.partService.getById(this.partId).subscribe({ next: (p) => (this.part = p) });
+    }
   }
 
   save() {

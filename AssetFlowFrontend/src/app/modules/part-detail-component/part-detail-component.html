@@ -77,10 +77,10 @@
             </form>
         </p-tabpanel>
         <p-tabpanel value="1">
-            <app-part-inventory-panel [partId]="partId" [part]="part"></app-part-inventory-panel>
+            <app-part-inventory-panel [partId]="partId" [part]="part" (inventoryChanged)="onInventoryChanged()"></app-part-inventory-panel>
         </p-tabpanel>
         <p-tabpanel value="2">
-            <app-part-serials-panel [partId]="partId" [part]="part"></app-part-serials-panel>
+            <app-part-serials-panel [partId]="partId" [part]="part" [refreshToken]="serialsRefreshToken"></app-part-serials-panel>
         </p-tabpanel>
         <p-tabpanel value="3">
             <app-part-transactions-panel [partId]="partId"></app-part-transactions-panel>
