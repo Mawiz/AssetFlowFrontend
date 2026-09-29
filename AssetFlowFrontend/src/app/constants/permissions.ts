@@ -71,5 +71,29 @@ export const Permissions = {
     Update: 'AssetComponent.Update',
     View: 'AssetComponent.View',
     Delete: 'AssetComponent.Delete'
+  },
+  PartCategory: {
+    Create: 'PartCategory.Create',
+    Update: 'PartCategory.Update',
+    View: 'PartCategory.View',
+    Delete: 'PartCategory.Delete'
+  },
+  Part: {
+    Create: 'Part.Create',
+    Update: 'Part.Update',
+    View: 'Part.View',
+    Delete: 'Part.Delete'
+  },
+  PartInventory: {
+    Create: 'PartInventory.Create',
+    Update: 'PartInventory.Update',
+    View: 'PartInventory.View',
+    Delete: 'PartInventory.Delete'
+  },
+  PartTransaction: {
+    Create: 'PartTransaction.Create',
+    Update: 'PartTransaction.Update',
+    View: 'PartTransaction.View',
+    Delete: 'PartTransaction.Delete'
   }
 } as const;

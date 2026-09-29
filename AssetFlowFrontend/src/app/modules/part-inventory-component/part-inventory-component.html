@@ -1,0 +1,59 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+        <h5 class="m-0">Part inventory</h5>
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    [value]="rows()"
+    [rows]="filter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onPage($event)"
+    [totalRecords]="totalRecords"
+    dataKey="id"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} inventory rows">
+
+    <ng-template #caption>
+        <div class="flex gap-2 flex-wrap items-center justify-end">
+            <p-select *ngIf="systemAdmin" [options]="tenantFilterOptions" [(ngModel)]="filter.tenantId" optionLabel="label" optionValue="value" placeholder="Tenant" (onChange)="onFilterChange()"></p-select>
+            <p-select [options]="parts" [(ngModel)]="filter.partId" optionLabel="partName" optionValue="id" placeholder="All parts" [showClear]="true" [style]="{ minWidth: '14rem' }" (onChange)="load()"></p-select>
+            <p-select [options]="locations" [(ngModel)]="filter.locationId" optionLabel="name" optionValue="id" placeholder="All locations" [showClear]="true" [style]="{ minWidth: '14rem' }" (onChange)="load()"></p-select>
+            <p-button label="Low stock" severity="warn" outlined (onClick)="filter.lowStockOnly = true; load()"></p-button>
+            <p-button label="All" severity="secondary" outlined (onClick)="filter.lowStockOnly = null; load()"></p-button>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th>Part number</th>
+            <th>Part name</th>
+            <th>Location</th>
+            <th>Serial</th>
+            <th>Available</th>
+            <th>Reserved</th>
+            <th>Status</th>
+            <th>Stock alert</th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-row>
+        <tr>
+            <td>
+                <a [routerLink]="['/modules/parts', row.partId]" class="text-primary">{{ row.partNumber }}</a>
+            </td>
+            <td>{{ row.partName }}</td>
+            <td>{{ row.locationName }}</td>
+            <td>{{ row.serialNumber || '—' }}</td>
+            <td>{{ row.quantityAvailable }}</td>
+            <td>{{ row.quantityReserved }}</td>
+            <td>{{ statusLabel(row.status) }}</td>
+            <td>
+                <p-tag *ngIf="row.isLowStock" value="Low stock" severity="warn"></p-tag>
+                <span *ngIf="!row.isLowStock">—</span>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-toast></p-toast>

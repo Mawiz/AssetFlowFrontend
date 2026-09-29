@@ -1,0 +1,68 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+        <p-button *appHasPermission="Permissions.PartTransaction.Create" label="New transaction" icon="pi pi-plus" (onClick)="openCreate()"></p-button>
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    [value]="rows()"
+    [rows]="filter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onPage($event)"
+    [totalRecords]="totalRecords"
+    dataKey="id">
+
+    <ng-template #caption>
+        <div class="flex gap-2 flex-wrap justify-end">
+            <p-select [options]="parts" [(ngModel)]="filter.partId" optionLabel="partName" optionValue="id" placeholder="All parts" [showClear]="true" (onChange)="load()"></p-select>
+            <p-select [options]="typeOptions" [(ngModel)]="filter.transactionType" optionLabel="label" optionValue="value" placeholder="All types" [showClear]="true" (onChange)="load()"></p-select>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th>Date</th>
+            <th>Part</th>
+            <th>Type</th>
+            <th>Qty</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Serial</th>
+            <th>User</th>
+            <th>Remarks</th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-row>
+        <tr>
+            <td>{{ row.transactionDate | date: 'short' }}</td>
+            <td>{{ row.partNumber }} — {{ row.partName }}</td>
+            <td>{{ typeLabel(row.transactionType) }}</td>
+            <td>{{ row.quantity }}</td>
+            <td>{{ row.fromLocationName || '—' }}</td>
+            <td>{{ row.toLocationName || '—' }}</td>
+            <td>{{ row.serialNumber || '—' }}</td>
+            <td>{{ row.performedByUserName || '—' }}</td>
+            <td>{{ row.remarks }}</td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog header="Manual transaction" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '32rem' }">
+    <form [formGroup]="form" class="flex flex-col gap-3">
+        <p-select formControlName="partId" [options]="parts" optionLabel="partName" optionValue="id" placeholder="Part *"></p-select>
+        <p-select formControlName="transactionType" [options]="typeOptions" optionLabel="label" optionValue="value" placeholder="Type *"></p-select>
+        <p-inputNumber formControlName="quantity" [min]="0.01"></p-inputNumber>
+        <p-select formControlName="fromLocationId" [options]="locations" optionLabel="name" optionValue="id" placeholder="From location" [showClear]="true"></p-select>
+        <p-select formControlName="toLocationId" [options]="locations" optionLabel="name" optionValue="id" placeholder="To location" [showClear]="true"></p-select>
+        <p-datepicker formControlName="transactionDate" [showIcon]="true" appendTo="body"></p-datepicker>
+        <input pInputText formControlName="remarks" placeholder="Remarks" />
+    </form>
+    <ng-template #footer>
+        <p-button label="Cancel" text (onClick)="dialogVisible = false"></p-button>
+        <p-button label="Save" (onClick)="save()"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>

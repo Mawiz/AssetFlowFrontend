@@ -1,0 +1,90 @@
+<p-toolbar styleClass="mb-4">
+    <ng-template #start>
+        <p-button *appHasPermission="Permissions.Part.Create" label="New Part" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+        <p-button label="Low stock" icon="pi pi-exclamation-triangle" severity="warn" outlined class="ml-2" (onClick)="showLowStockOnly()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="parts()"
+    [rows]="filter.pageSize"
+    [paginator]="true"
+    [lazy]="true"
+    (onPage)="onPage($event)"
+    (onSort)="onSort($event)"
+    dataKey="id"
+    [rowHover]="true"
+    [rowsPerPageOptions]="[10,20,30]"
+    [totalRecords]="totalRecords"
+    [customSort]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} parts">
+
+    <ng-template #caption>
+        <div class="flex justify-between items-center flex-wrap gap-2">
+            <h5 class="m-0">{{ filter.lowStockOnly ? 'Parts — Low stock' : 'Spare parts' }}</h5>
+            <div class="flex gap-2 flex-wrap items-center">
+                <p-select *ngIf="systemAdmin" [options]="tenantFilterOptions" [(ngModel)]="filter.tenantId" optionLabel="label" optionValue="value" placeholder="All tenants" [style]="{ minWidth: '12rem' }" (onChange)="onTenantFilterChange()"></p-select>
+                <p-select [options]="categories" [(ngModel)]="filter.partCategoryId" optionLabel="name" optionValue="id" placeholder="All categories" [showClear]="true" [style]="{ minWidth: '12rem' }" (onChange)="onSearch()"></p-select>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Part number, name, manufacturer..." />
+                </p-iconfield>
+                <p-button icon="pi pi-filter" label="Filters" severity="secondary" outlined (click)="filterDialogVisible = true"></p-button>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th pSortableColumn="partNumber">Part number <p-sortIcon field="partNumber"></p-sortIcon></th>
+            <th pSortableColumn="partName">Part name <p-sortIcon field="partName"></p-sortIcon></th>
+            <th>Category</th>
+            <th>Manufacturer</th>
+            <th>Supplier</th>
+            <th>Serialized</th>
+            <th>Current stock</th>
+            <th>Min stock</th>
+            <th>Status</th>
+            <th style="width: 8rem"></th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-item>
+        <tr>
+            <td>{{ item.partNumber }}</td>
+            <td>{{ item.partName }}</td>
+            <td>{{ item.partCategoryName }}</td>
+            <td>{{ item.manufacturer }}</td>
+            <td>{{ item.supplierName }}</td>
+            <td>{{ item.isSerialized ? 'Yes' : 'No' }}</td>
+            <td>{{ item.currentStock }}</td>
+            <td>{{ item.minStockLevel }}</td>
+            <td>
+                <p-tag [value]="stockStatus(item)" [severity]="item.isLowStock ? 'warn' : 'success'"></p-tag>
+            </td>
+            <td>
+                <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" class="mr-2" (click)="openPart(item)"></p-button>
+                <p-button *appHasPermission="Permissions.Part.Delete" icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteItem(item)"></p-button>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog header="Filters" [(visible)]="filterDialogVisible" [modal]="true" [style]="{ width: '28rem' }">
+    <div class="flex flex-col gap-3">
+        <p-select [options]="serializedFilterOptions" [(ngModel)]="filter.isSerialized" optionLabel="label" optionValue="value" placeholder="Serialized"></p-select>
+        <p-select [options]="statusOptions" [(ngModel)]="filter.isActive" optionLabel="label" optionValue="value" placeholder="Active status"></p-select>
+        <div class="flex items-center gap-2">
+            <p-checkbox [(ngModel)]="filter.lowStockOnly" [binary]="true" inputId="lowStock"></p-checkbox>
+            <label for="lowStock">Low stock only</label>
+        </div>
+    </div>
+    <ng-template #footer>
+        <p-button label="Clear" severity="secondary" outlined (click)="clearFilters()"></p-button>
+        <p-button label="Apply" (onClick)="applyFilters()"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

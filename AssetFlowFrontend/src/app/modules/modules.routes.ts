@@ -10,6 +10,11 @@ import { AssetCategoryComponent } from './asset-category-component/asset-categor
 import { AssetTypeComponent } from './asset-type-component/asset-type-component';
 import { AssetsComponent } from './assets-component/assets-component';
 import { AssetDetailComponent } from './asset-detail-component/asset-detail-component';
+import { PartCategoryComponent } from './part-category-component/part-category-component';
+import { PartsComponent } from './parts-component/parts-component';
+import { PartDetailComponent } from './part-detail-component/part-detail-component';
+import { PartInventoryComponent } from './part-inventory-component/part-inventory-component';
+import { PartTransactionComponent } from './part-transaction-component/part-transaction-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -26,4 +31,10 @@ export const routes: Routes = [
   { path: 'assets', component: AssetsComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Asset.View] } },
   { path: 'assets/new', component: AssetDetailComponent, canActivate: [PermissionGuard], data: { mode: 'create', permissions: [Permissions.Asset.Create] } },
   { path: 'assets/:id', component: AssetDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Asset.View] } },
+  { path: 'part-category', component: PartCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartCategory.View] } },
+  { path: 'parts', component: PartsComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Part.View] } },
+  { path: 'parts/new', component: PartDetailComponent, canActivate: [PermissionGuard], data: { mode: 'create', permissions: [Permissions.Part.Create] } },
+  { path: 'parts/:id', component: PartDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Part.View] } },
+  { path: 'part-inventory', component: PartInventoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartInventory.View] } },
+  { path: 'part-transaction', component: PartTransactionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartTransaction.View] } },
 ];

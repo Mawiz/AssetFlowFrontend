@@ -1,0 +1,91 @@
+<div class="flex justify-between items-center mb-4">
+    <div>
+        <p-button icon="pi pi-arrow-left" label="Back to list" severity="secondary" [text]="true" (onClick)="backToList()"></p-button>
+        <h4 class="m-0 mt-2">{{ pageTitle }}</h4>
+    </div>
+    <p-button *appHasPermission="isCreateMode ? Permissions.Part.Create : Permissions.Part.Update" label="Save" icon="pi pi-check" (onClick)="save()"></p-button>
+</div>
+
+<p-tabs value="0">
+    <p-tablist>
+        <p-tab value="0">Overview</p-tab>
+        <p-tab value="1" [disabled]="isCreateMode">Inventory</p-tab>
+        <p-tab value="2" [disabled]="isCreateMode">Serial numbers</p-tab>
+        <p-tab value="3" [disabled]="isCreateMode">Transactions</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+        <p-tabpanel value="0">
+            <form [formGroup]="form" class="grid grid-cols-12 gap-4">
+                <div class="col-span-12 md:col-span-4" *ngIf="systemAdmin">
+                    <label class="block mb-1">Tenant</label>
+                    <p-select formControlName="tenantId" [options]="tenantsForForm" optionLabel="displayName" optionValue="id" placeholder="Tenant *" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Part number *</label>
+                    <input pInputText class="w-full" formControlName="partNumber" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Part name *</label>
+                    <input pInputText class="w-full" formControlName="partName" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Category *</label>
+                    <p-select formControlName="partCategoryId" [options]="categories" optionLabel="name" optionValue="id" placeholder="Category" class="w-full"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Manufacturer</label>
+                    <input pInputText class="w-full" formControlName="manufacturer" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Supplier</label>
+                    <input pInputText class="w-full" formControlName="supplierName" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Unit of measure</label>
+                    <input pInputText class="w-full" formControlName="unitOfMeasure" />
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Min stock level</label>
+                    <p-inputNumber formControlName="minStockLevel" class="w-full" [min]="0"></p-inputNumber>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Max stock level</label>
+                    <p-inputNumber formControlName="maxStockLevel" class="w-full" [min]="0"></p-inputNumber>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Expected life</label>
+                    <p-inputNumber formControlName="expectedLifeValue" class="w-full" [min]="0"></p-inputNumber>
+                </div>
+                <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Life unit</label>
+                    <p-select formControlName="expectedLifeUnit" [options]="lifeUnitOptions" optionLabel="label" optionValue="value" placeholder="Unit" class="w-full" [showClear]="true"></p-select>
+                </div>
+                <div class="col-span-12">
+                    <label class="block mb-1">Description</label>
+                    <textarea pTextarea class="w-full" formControlName="description" rows="3"></textarea>
+                </div>
+                <div class="col-span-12 flex flex-wrap gap-4">
+                    <div class="flex items-center gap-2">
+                        <p-checkbox formControlName="isSerialized" inputId="isSerialized" [binary]="true"></p-checkbox>
+                        <label for="isSerialized">Serialized tracking</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <p-checkbox formControlName="isActive" inputId="isActive" [binary]="true"></p-checkbox>
+                        <label for="isActive">Active</label>
+                    </div>
+                </div>
+            </form>
+        </p-tabpanel>
+        <p-tabpanel value="1">
+            <app-part-inventory-panel [partId]="partId" [part]="part"></app-part-inventory-panel>
+        </p-tabpanel>
+        <p-tabpanel value="2">
+            <app-part-serials-panel [partId]="partId"></app-part-serials-panel>
+        </p-tabpanel>
+        <p-tabpanel value="3">
+            <app-part-transactions-panel [partId]="partId"></app-part-transactions-panel>
+        </p-tabpanel>
+    </p-tabpanels>
+</p-tabs>
+
+<p-toast></p-toast>
