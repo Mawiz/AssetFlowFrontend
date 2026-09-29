@@ -1,16 +1,28 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  ViewChild,
+  ElementRef,
+  OnDestroy
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { PartInventory } from '../../model/part-inventory';
 import { PartInventoryService } from '../../services/part-inventory-service';
+import { PartSerialNumberService } from '../../services/part-serial-number-service';
+import { PartSerialQrService } from '../../services/part-serial-qr.service';
 import { LocationService } from '../../services/location-service';
 import { Location } from '../../model/location';
 import { Part } from '../../model/part';
@@ -19,9 +31,12 @@ import { Permissions } from '@/constants/permissions';
 import { AuthService } from '@/services/auth-service';
 import { MetadataService } from '@/services/metadata-service';
 
+type SerialMode = 'auto' | 'scan' | 'manual';
+
 @Component({
   selector: 'app-part-inventory-panel',
   standalone: true,
+  templateUrl: './part-inventory-panel.component.html',
   imports: [
     CommonModule,
     FormsModule,
@@ -29,84 +44,22 @@ import { MetadataService } from '@/services/metadata-service';
     ButtonModule,
     DialogModule,
     SelectModule,
+    SelectButtonModule,
     InputTextModule,
     InputNumberModule,
     ToastModule,
     HasPermissionDirective
   ],
-  providers: [MessageService],
-  template: `
-    <div class="flex justify-end mb-3">
-      <p-button *appHasPermission="Permissions.PartInventory.Create" label="Receive stock" icon="pi pi-plus" (onClick)="openReceipt()"></p-button>
-    </div>
-    <p-table [value]="rows" [paginator]="true" [rows]="10" dataKey="id">
-      <ng-template #header>
-        <tr>
-          <th>Location</th>
-          <th>Serial</th>
-          <th>Available</th>
-          <th>Reserved</th>
-          <th>Status</th>
-          <th style="width: 10rem"></th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-row>
-        <tr>
-          <td>{{ row.locationName }}</td>
-          <td>{{ row.serialNumber || '—' }}</td>
-          <td>{{ row.quantityAvailable }}</td>
-          <td>{{ row.quantityReserved }}</td>
-          <td>{{ statusLabel(row.status) }}</td>
-          <td>
-            <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-arrow-right-arrow-left" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="openTransfer(row)"></p-button>
-            <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-sliders-h" [rounded]="true" [outlined]="true" (onClick)="openAdjust(row)"></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-
-    <p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '28rem' }">
-      <div class="flex flex-col gap-3">
-        <p-select [options]="locations" [(ngModel)]="receipt.locationId" optionLabel="name" optionValue="id" placeholder="Location *"></p-select>
-        <p-inputNumber *ngIf="!part?.isSerialized" [(ngModel)]="receipt.quantity" [min]="0.01" placeholder="Quantity"></p-inputNumber>
-        <input *ngIf="part?.isSerialized" pInputText [(ngModel)]="receipt.serialNumber" placeholder="Serial number *" />
-        <input pInputText [(ngModel)]="receipt.remarks" placeholder="Remarks" />
-      </div>
-      <ng-template #footer>
-        <p-button label="Cancel" text (onClick)="receiptVisible = false"></p-button>
-        <p-button label="Save" (onClick)="submitReceipt()"></p-button>
-      </ng-template>
-    </p-dialog>
-
-    <p-dialog header="Transfer" [(visible)]="transferVisible" [modal]="true" [style]="{ width: '28rem' }">
-      <div class="flex flex-col gap-3">
-        <p-select [options]="locations" [(ngModel)]="transfer.toLocationId" optionLabel="name" optionValue="id" placeholder="To location *"></p-select>
-        <p-inputNumber [(ngModel)]="transfer.quantity" [min]="0.01" placeholder="Quantity"></p-inputNumber>
-        <input pInputText [(ngModel)]="transfer.remarks" placeholder="Remarks" />
-      </div>
-      <ng-template #footer>
-        <p-button label="Cancel" text (onClick)="transferVisible = false"></p-button>
-        <p-button label="Transfer" (onClick)="submitTransfer()"></p-button>
-      </ng-template>
-    </p-dialog>
-
-    <p-dialog header="Adjust quantity" [(visible)]="adjustVisible" [modal]="true" [style]="{ width: '28rem' }">
-      <div class="flex flex-col gap-3">
-        <p-inputNumber [(ngModel)]="adjust.quantityChange" placeholder="Quantity change (+/-)"></p-inputNumber>
-        <input pInputText [(ngModel)]="adjust.remarks" placeholder="Reason" />
-      </div>
-      <ng-template #footer>
-        <p-button label="Cancel" text (onClick)="adjustVisible = false"></p-button>
-        <p-button label="Adjust" (onClick)="submitAdjust()"></p-button>
-      </ng-template>
-    </p-dialog>
-    <p-toast></p-toast>
-  `
+  providers: [MessageService]
 })
-export class PartInventoryPanelComponent implements OnChanges {
+export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
   readonly Permissions = Permissions;
+  readonly year = new Date().getFullYear();
+
   @Input() partId: number | null = null;
   @Input() part: Part | null = null;
+
+  @ViewChild('scanVideo') scanVideo?: ElementRef<HTMLVideoElement>;
 
   rows: PartInventory[] = [];
   locations: Location[] = [];
@@ -115,12 +68,26 @@ export class PartInventoryPanelComponent implements OnChanges {
   receiptVisible = false;
   transferVisible = false;
   adjustVisible = false;
-  receipt = { locationId: null as number | null, quantity: 1, serialNumber: '', remarks: '' };
+  receipt = { locationId: null as number | null, serialNumber: '', remarks: '' };
   transfer = { partInventoryId: 0, toLocationId: null as number | null, quantity: 1, remarks: '' };
+  transferMaxQty = 1;
   adjust = { partInventoryId: 0, quantityChange: 0, remarks: '' };
+
+  serialMode: SerialMode = 'auto';
+  serialModeOptions = [
+    { label: 'Auto', value: 'auto' as SerialMode },
+    { label: 'Scan', value: 'scan' as SerialMode },
+    { label: 'Type', value: 'manual' as SerialMode }
+  ];
+
+  scanning = false;
+  private scanReader: BrowserMultiFormatReader | null = null;
+  private scanControls: { stop: () => void } | null = null;
 
   constructor(
     private inventoryService: PartInventoryService,
+    private serialService: PartSerialNumberService,
+    private qrService: PartSerialQrService,
     private locationService: LocationService,
     private metadataService: MetadataService,
     private authService: AuthService,
@@ -139,6 +106,10 @@ export class PartInventoryPanelComponent implements OnChanges {
       this.load();
       this.loadLocations();
     }
+  }
+
+  ngOnDestroy() {
+    this.stopScan();
   }
 
   load() {
@@ -160,50 +131,156 @@ export class PartInventoryPanelComponent implements OnChanges {
   }
 
   openReceipt() {
-    this.receipt = { locationId: null, quantity: 1, serialNumber: '', remarks: '' };
+    this.receipt = { locationId: null, serialNumber: '', remarks: '' };
+    this.serialMode = 'auto';
     this.receiptVisible = true;
+    setTimeout(() => this.loadNextSerial(), 0);
   }
 
-  submitReceipt() {
-    if (!this.partId || !this.receipt.locationId) return;
-    if (this.part?.isSerialized && !this.receipt.serialNumber?.trim()) {
-      this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Serial number is required' });
-      return;
+  onSerialModeChange() {
+    this.stopScan();
+    if (this.serialMode === 'auto') {
+      this.loadNextSerial();
+    } else {
+      this.receipt.serialNumber = '';
     }
-    this.inventoryService
-      .receipt({
-        partId: this.partId,
-        locationId: this.receipt.locationId,
-        quantity: this.part?.isSerialized ? 1 : this.receipt.quantity,
-        serialNumber: this.receipt.serialNumber,
-        remarks: this.receipt.remarks,
-        tenantId: this.part?.tenantId
-      })
-      .subscribe({
-        next: () => {
-          this.receiptVisible = false;
-          this.load();
-          this.messageService.add({ severity: 'success', summary: 'Received', detail: 'Stock received' });
-        },
-        error: (err) => this.showError(err)
+  }
+
+  loadNextSerial() {
+    if (!this.partId) return;
+    const tenantId = this.part?.tenantId ?? this.authService.getTenantId();
+    this.serialService.getNextSerial(this.partId, tenantId).subscribe({
+      next: (serial) => (this.receipt.serialNumber = serial),
+      error: () =>
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Could not generate next serial' })
+    });
+  }
+
+  async startScan() {
+    this.stopScan();
+    const video = this.scanVideo?.nativeElement;
+    if (!video) return;
+
+    this.scanning = true;
+    this.scanReader = new BrowserMultiFormatReader();
+    try {
+      this.scanControls = await this.scanReader.decodeFromVideoDevice(undefined, video, (result, _err, controls) => {
+        if (result) {
+          this.receipt.serialNumber = result.getText().trim();
+          this.messageService.add({ severity: 'info', summary: 'Scanned', detail: this.receipt.serialNumber });
+          controls.stop();
+          this.scanning = false;
+          this.scanControls = null;
+        }
       });
+    } catch {
+      this.scanning = false;
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Camera',
+        detail: 'Could not access camera. Use the text field with a USB scanner or type manually.'
+      });
+    }
+  }
+
+  stopScan() {
+    this.scanControls?.stop();
+    this.scanControls = null;
+    this.scanReader = null;
+    this.scanning = false;
+  }
+
+  onScanInputEnter() {
+    this.receipt.serialNumber = this.receipt.serialNumber?.trim() ?? '';
+  }
+
+  private validateSerialBeforeSubmit(): boolean {
+    if (!this.receipt.serialNumber?.trim()) {
+      this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Serial number is required' });
+      return false;
+    }
+    if (!this.receipt.locationId) {
+      this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Location is required' });
+      return false;
+    }
+    return true;
+  }
+
+  submitReceipt(printAfter: boolean) {
+    if (!this.partId || !this.validateSerialBeforeSubmit()) return;
+
+    const serial = this.receipt.serialNumber.trim();
+    const tenantId = this.part?.tenantId ?? this.authService.getTenantId();
+
+    this.serialService.serialExists(serial, tenantId).subscribe({
+      next: (exists) => {
+        if (exists) {
+          this.messageService.add({ severity: 'error', summary: 'Duplicate', detail: 'Serial number already exists' });
+          if (this.serialMode === 'auto') this.loadNextSerial();
+          return;
+        }
+        this.inventoryService
+          .receipt({
+            partId: this.partId!,
+            locationId: this.receipt.locationId!,
+            quantity: 1,
+            serialNumber: serial,
+            remarks: this.receipt.remarks,
+            tenantId
+          })
+          .subscribe({
+            next: () => {
+              this.receiptVisible = false;
+              this.stopScan();
+              this.load();
+              this.messageService.add({ severity: 'success', summary: 'Received', detail: 'Stock received' });
+              if (printAfter) {
+                void this.qrService.printLabel({
+                  serialNumber: serial,
+                  partNumber: this.part?.partNumber,
+                  partName: this.part?.partName
+                });
+              }
+            },
+            error: (err) => this.showError(err)
+          });
+      },
+      error: (err) => this.showError(err)
+    });
+  }
+
+  printQr(row: PartInventory) {
+    if (!row.serialNumber) return;
+    void this.qrService.printLabel({
+      serialNumber: row.serialNumber,
+      partNumber: row.partNumber ?? this.part?.partNumber,
+      partName: row.partName ?? this.part?.partName
+    });
   }
 
   openTransfer(row: PartInventory) {
-    this.transfer = { partInventoryId: row.id, toLocationId: null, quantity: row.quantityAvailable, remarks: '' };
+    this.transferMaxQty = row.quantityAvailable;
+    this.transfer = {
+      partInventoryId: row.id,
+      toLocationId: null,
+      quantity: row.serialNumber ? 1 : row.quantityAvailable,
+      remarks: ''
+    };
     this.transferVisible = true;
   }
 
   submitTransfer() {
     if (!this.transfer.toLocationId) return;
-    this.inventoryService.transfer({ ...this.transfer, toLocationId: this.transfer.toLocationId, tenantId: this.part?.tenantId }).subscribe({
-      next: () => {
-        this.transferVisible = false;
-        this.load();
-        this.messageService.add({ severity: 'success', summary: 'Transferred', detail: 'Inventory transferred' });
-      },
-      error: (err) => this.showError(err)
-    });
+    this.inventoryService
+      .transfer({ ...this.transfer, toLocationId: this.transfer.toLocationId, tenantId: this.part?.tenantId })
+      .subscribe({
+        next: () => {
+          this.transferVisible = false;
+          this.load();
+          this.messageService.add({ severity: 'success', summary: 'Transferred', detail: 'Inventory transferred' });
+        },
+        error: (err) => this.showError(err)
+      });
   }
 
   openAdjust(row: PartInventory) {

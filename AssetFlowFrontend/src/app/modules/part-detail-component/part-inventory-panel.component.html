@@ -1,0 +1,99 @@
+<div class="flex justify-end mb-3">
+  <p-button *appHasPermission="Permissions.PartInventory.Create" label="Receive stock" icon="pi pi-plus" (onClick)="openReceipt()"></p-button>
+</div>
+<p-table [value]="rows" [paginator]="true" [rows]="10" dataKey="id">
+  <ng-template #header>
+    <tr>
+      <th>Location</th>
+      <th>Serial</th>
+      <th>Available</th>
+      <th>Reserved</th>
+      <th>Status</th>
+      <th style="width: 12rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-row>
+    <tr>
+      <td>{{ row.locationName }}</td>
+      <td>{{ row.serialNumber || '—' }}</td>
+      <td>{{ row.quantityAvailable }}</td>
+      <td>{{ row.quantityReserved }}</td>
+      <td>{{ statusLabel(row.status) }}</td>
+      <td>
+        <p-button icon="pi pi-qrcode" [rounded]="true" [outlined]="true" class="mr-1" title="Print QR" (onClick)="printQr(row)" [disabled]="!row.serialNumber"></p-button>
+        <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-arrow-right-arrow-left" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="openTransfer(row)"></p-button>
+        <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-sliders-h" [rounded]="true" [outlined]="true" (onClick)="openAdjust(row)"></p-button>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '32rem' }" (onHide)="stopScan()">
+  <div class="flex flex-col gap-3">
+    <p-select [options]="locations" [(ngModel)]="receipt.locationId" optionLabel="name" optionValue="id" placeholder="Location *"></p-select>
+
+    <p-selectButton [options]="serialModeOptions" [(ngModel)]="serialMode" optionLabel="label" optionValue="value" (onChange)="onSerialModeChange()"></p-selectButton>
+
+    @if (serialMode === 'auto') {
+      <div class="flex flex-col gap-2">
+        <label class="font-medium">Auto-generated serial</label>
+        <div class="flex gap-2 items-center">
+          <input pInputText class="flex-1" [ngModel]="receipt.serialNumber" readonly />
+          <p-button icon="pi pi-refresh" severity="secondary" (onClick)="loadNextSerial()" title="Regenerate"></p-button>
+        </div>
+        <small class="text-color-secondary">Format: {{ year }}-0001, next available for this part.</small>
+      </div>
+    }
+
+    @if (serialMode === 'scan') {
+      <div class="flex flex-col gap-2">
+        <p-button label="Start camera scan" icon="pi pi-camera" severity="secondary" (onClick)="startScan()" [disabled]="scanning"></p-button>
+        @if (scanning) {
+          <video #scanVideo class="w-full max-h-48 bg-black rounded" muted playsinline></video>
+          <p-button label="Stop scan" severity="danger" text (onClick)="stopScan()"></p-button>
+        }
+        <label class="font-medium">Scanned / typed serial *</label>
+        <input pInputText #scanInput class="w-full" [(ngModel)]="receipt.serialNumber" placeholder="Scan QR or type serial" (keydown.enter)="onScanInputEnter()" />
+        <small class="text-color-secondary">USB scanners work in this field; press Enter after scan.</small>
+      </div>
+    }
+
+    @if (serialMode === 'manual') {
+      <div class="flex flex-col gap-2">
+        <label class="font-medium">Serial number *</label>
+        <input pInputText class="w-full" [(ngModel)]="receipt.serialNumber" placeholder="Enter unique serial" />
+      </div>
+    }
+
+    <input pInputText [(ngModel)]="receipt.remarks" placeholder="Remarks" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" text (onClick)="receiptVisible = false"></p-button>
+    <p-button label="Save &amp; print QR" severity="secondary" outlined (onClick)="submitReceipt(true)" [disabled]="!receipt.serialNumber?.trim()"></p-button>
+    <p-button label="Save" (onClick)="submitReceipt(false)"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="Transfer" [(visible)]="transferVisible" [modal]="true" [style]="{ width: '28rem' }">
+  <div class="flex flex-col gap-3">
+    <p-select [options]="locations" [(ngModel)]="transfer.toLocationId" optionLabel="name" optionValue="id" placeholder="To location *"></p-select>
+    <p-inputNumber [(ngModel)]="transfer.quantity" [min]="1" [max]="transferMaxQty" placeholder="Quantity"></p-inputNumber>
+    <input pInputText [(ngModel)]="transfer.remarks" placeholder="Remarks" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" text (onClick)="transferVisible = false"></p-button>
+    <p-button label="Transfer" (onClick)="submitTransfer()"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="Adjust quantity" [(visible)]="adjustVisible" [modal]="true" [style]="{ width: '28rem' }">
+  <div class="flex flex-col gap-3">
+    <p-inputNumber [(ngModel)]="adjust.quantityChange" placeholder="Quantity change (+/-)"></p-inputNumber>
+    <input pInputText [(ngModel)]="adjust.remarks" placeholder="Reason" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" text (onClick)="adjustVisible = false"></p-button>
+    <p-button label="Adjust" (onClick)="submitAdjust()"></p-button>
+  </ng-template>
+</p-dialog>
+<p-toast></p-toast>

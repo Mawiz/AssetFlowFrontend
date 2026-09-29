@@ -48,4 +48,20 @@ export class PartSerialNumberService {
       .delete<ApiResult<any>>(`${this.apiUrl}/${id}`)
       .pipe(map(() => undefined));
   }
+
+  getNextSerial(partId: number, tenantId?: number | null): Observable<string> {
+    const params: Record<string, string> = { partId: String(partId) };
+    if (tenantId != null && tenantId !== 0) params['tenantId'] = String(tenantId);
+    return this.http
+      .get<ApiResult<{ serialNumber: string }>>(`${this.apiUrl}/next`, { params })
+      .pipe(map((res) => res.result.serialNumber));
+  }
+
+  serialExists(serial: string, tenantId?: number | null): Observable<boolean> {
+    const params: Record<string, string> = { serial };
+    if (tenantId != null && tenantId !== 0) params['tenantId'] = String(tenantId);
+    return this.http
+      .get<ApiResult<boolean>>(`${this.apiUrl}/exists`, { params })
+      .pipe(map((res) => res.result));
+  }
 }

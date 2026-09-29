@@ -122,7 +122,7 @@ export class PartDetailComponent implements OnInit {
       expectedLifeUnit: [null as number | null],
       minStockLevel: [0, [Validators.required, Validators.min(0)]],
       maxStockLevel: [null as number | null],
-      isSerialized: [false],
+      isSerialized: [{ value: true, disabled: true }],
       isActive: [true]
     });
 
