@@ -1,106 +1,94 @@
 <div class="flex justify-end mb-3">
   <p-button *appHasPermission="Permissions.PartInventory.Create" label="Receive stock" icon="pi pi-plus" (onClick)="openReceipt()"></p-button>
 </div>
-<p-table [value]="rows" [paginator]="true" [rows]="10" dataKey="id">
+<p-table *ngIf="!receiveOnly" [value]="rows" [paginator]="true" [rows]="10" dataKey="id">
   <ng-template #header>
     <tr>
       <th>Location</th>
-      <th>Internal serial</th>
-      <th>Supplier S/N</th>
-      <th>Supplier</th>
-      <th>Receipt txn</th>
-      <th>Status</th>
-      <th style="width: 12rem"></th>
+      <th>Total</th>
+      <th>Available</th>
+      <th>Faulty</th>
+      <th>Quarantine</th>
+      <th>Earliest expiry</th>
+      <th style="width: 6rem"></th>
     </tr>
   </ng-template>
   <ng-template #body let-row>
     <tr>
       <td>{{ row.locationName }}</td>
-      <td>{{ row.serialNumber || '—' }}</td>
-      <td>{{ row.supplierSerialReference || '—' }}</td>
-      <td>{{ row.supplierName || '—' }}</td>
-      <td>{{ row.partTransactionId ?? '—' }}</td>
-      <td>{{ statusLabel(row.status) }}</td>
+      <td>{{ row.totalQuantity }}</td>
+      <td>{{ row.availableQuantity }}</td>
+      <td>{{ row.faultyQuantity }}</td>
+      <td>{{ row.quarantineQuantity }}</td>
+      <td>{{ row.earliestExpiryDate ? (row.earliestExpiryDate | date: 'mediumDate') : '—' }}</td>
       <td>
-        <p-button icon="pi pi-qrcode" [rounded]="true" [outlined]="true" class="mr-1" title="Print QR" (onClick)="printQr(row)" [disabled]="!row.serialNumber"></p-button>
-        <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-arrow-right-arrow-left" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="openTransfer(row)"></p-button>
-        <p-button *appHasPermission="Permissions.PartInventory.Update" icon="pi pi-sliders-h" [rounded]="true" [outlined]="true" (onClick)="openAdjust(row)"></p-button>
+        <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" [routerLink]="['/modules/part-inventory', row.id]"></p-button>
       </td>
     </tr>
   </ng-template>
 </p-table>
 
-<p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '36rem' }" (onHide)="stopScan()">
+<p-dialog header="Receive stock" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '42rem' }" (onHide)="stopScan()">
   <div class="flex flex-col gap-3">
     <p-select [options]="locations" [(ngModel)]="receipt.locationId" optionLabel="name" optionValue="id" placeholder="Location *"></p-select>
-    <p-select [options]="suppliers" [(ngModel)]="receipt.supplierId" optionLabel="name" optionValue="id" placeholder="Supplier *"></p-select>
-    <p-inputNumber [(ngModel)]="receipt.quantity" [min]="1" [max]="500" placeholder="Quantity *" (onInput)="onQuantityChange()"></p-inputNumber>
+    <input pInputText [(ngModel)]="receipt.remarks" placeholder="Remarks (applies to whole receipt)" />
 
-    <p-selectButton [options]="serialModeOptions" [(ngModel)]="serialMode" optionLabel="label" optionValue="value" (onChange)="onSerialModeChange()"></p-selectButton>
+    @if (part?.isSerialized) {
+      <p-selectButton [options]="serialModeOptions" [(ngModel)]="serialMode" optionLabel="label" optionValue="value" (onChange)="onSerialModeChange()"></p-selectButton>
+    }
 
-    @if (serialMode === 'auto') {
-      <div class="flex flex-col gap-2">
-        <label class="font-medium">Internal serials (auto)</label>
-        <ul class="m-0 pl-4 text-sm max-h-32 overflow-auto">
-          @for (s of previewSerials; track s) {
-            <li>{{ s }}</li>
+    <div class="flex justify-between align-items-center">
+      <span class="font-medium">Stock batches (split by expiry / supplier)</span>
+      <p-button label="Add batch line" icon="pi pi-plus" size="small" outlined (onClick)="addReceiptLine()"></p-button>
+    </div>
+
+    @for (line of receiptLines; track $index; let idx = $index) {
+      <div class="border-1 surface-border border-round p-3 flex flex-col gap-2">
+        <div class="flex justify-between align-items-center">
+          <span class="font-medium">Line {{ idx + 1 }}</span>
+          @if (receiptLines.length > 1) {
+            <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeReceiptLine(idx)"></p-button>
           }
-        </ul>
-        <small class="text-color-secondary">Format {{ year }}-0001 … per part; one serial per unit.</small>
-      </div>
-    }
-
-    @if (serialMode === 'scan') {
-      <div class="flex flex-col gap-2">
-        <label class="font-medium">Supplier serial — scan or type (one per unit)</label>
-        <div class="flex gap-2">
-          <input pInputText class="flex-1" [(ngModel)]="scanBuffer" placeholder="Scan barcode or type and press Add" (keydown.enter)="onSupplierScanEnter()" />
-          <p-button label="Add" icon="pi pi-plus" (onClick)="onSupplierScanEnter()"></p-button>
-          <p-button label="Scan" icon="pi pi-camera" severity="secondary" (onClick)="startScan()" [disabled]="scanning"></p-button>
         </div>
-        @if (scanning) {
-          <video #scanVideo class="w-full max-h-48 bg-black rounded" muted playsinline></video>
-          <p-button label="Stop camera" severity="danger" text (onClick)="stopScan()"></p-button>
+        <p-select [options]="suppliers" [(ngModel)]="line.supplierId" optionLabel="name" optionValue="id" placeholder="Supplier *"></p-select>
+        <p-inputNumber [(ngModel)]="line.quantity" [min]="1" [max]="500" placeholder="Quantity *" (onInput)="onLineQuantityChange(idx)"></p-inputNumber>
+        <input type="date" class="p-inputtext" [(ngModel)]="line.expiryDate" placeholder="Expiry date" />
+
+        @if (part?.isSerialized && serialMode === 'auto') {
+          <ul class="m-0 pl-4 text-sm max-h-24 overflow-auto">
+            @for (s of line.previewSerials; track s) {
+              <li>{{ s }}</li>
+            }
+          </ul>
         }
-        @for (line of supplierSerialLines; track $index; let idx = $index) {
-          <div class="flex gap-2 items-center">
-            <span class="text-sm w-6">{{ idx + 1 }}.</span>
-            <input pInputText class="flex-1" [(ngModel)]="supplierSerialLines[idx]" [placeholder]="'Supplier serial ' + (idx + 1)" />
+
+        @if (part?.isSerialized && serialMode === 'scan') {
+          <div class="flex gap-2">
+            <input pInputText class="flex-1" [(ngModel)]="scanBuffer" placeholder="Scan supplier serial" (keydown.enter)="onSupplierScanEnter(idx)" />
+            <p-button label="Add" (onClick)="onSupplierScanEnter(idx)"></p-button>
+            <p-button label="Scan" icon="pi pi-camera" severity="secondary" (onClick)="startScan(idx)" [disabled]="scanning && scanLineIndex === idx"></p-button>
           </div>
+          @if (scanning && scanLineIndex === idx) {
+            <video #scanVideo class="w-full max-h-40 bg-black rounded" muted playsinline></video>
+            <p-button label="Stop camera" severity="danger" text (onClick)="stopScan()"></p-button>
+          }
+          @for (ref of line.supplierSerialLines; track $index; let sIdx = $index) {
+            <input pInputText class="w-full" [(ngModel)]="line.supplierSerialLines[sIdx]" [placeholder]="'Supplier serial ' + (sIdx + 1)" />
+          }
         }
-        <small class="text-color-secondary">Internal serials are still auto-generated. Supplier serial is stored for reference only.</small>
+
+        @if (!part?.isSerialized) {
+          <small class="text-color-secondary">Bulk quantity — no serial records.</small>
+        }
       </div>
     }
-
-    <input pInputText [(ngModel)]="receipt.remarks" placeholder="Remarks" />
   </div>
   <ng-template #footer>
     <p-button label="Cancel" text (onClick)="receiptVisible = false"></p-button>
-    <p-button label="Save &amp; print labels" severity="secondary" outlined (onClick)="submitReceipt(true)"></p-button>
+    @if (part?.isSerialized) {
+      <p-button label="Save &amp; print labels" severity="secondary" outlined (onClick)="submitReceipt(true)"></p-button>
+    }
     <p-button label="Save" (onClick)="submitReceipt(false)"></p-button>
-  </ng-template>
-</p-dialog>
-
-<p-dialog header="Transfer" [(visible)]="transferVisible" [modal]="true" [style]="{ width: '28rem' }">
-  <div class="flex flex-col gap-3">
-    <p-select [options]="locations" [(ngModel)]="transfer.toLocationId" optionLabel="name" optionValue="id" placeholder="To location *"></p-select>
-    <p-inputNumber [(ngModel)]="transfer.quantity" [min]="1" [max]="transferMaxQty"></p-inputNumber>
-    <input pInputText [(ngModel)]="transfer.remarks" placeholder="Remarks" />
-  </div>
-  <ng-template #footer>
-    <p-button label="Cancel" text (onClick)="transferVisible = false"></p-button>
-    <p-button label="Transfer" (onClick)="submitTransfer()"></p-button>
-  </ng-template>
-</p-dialog>
-
-<p-dialog header="Adjust quantity" [(visible)]="adjustVisible" [modal]="true" [style]="{ width: '28rem' }">
-  <div class="flex flex-col gap-3">
-    <p-inputNumber [(ngModel)]="adjust.quantityChange" placeholder="Quantity change (+/-)"></p-inputNumber>
-    <input pInputText [(ngModel)]="adjust.remarks" placeholder="Reason" />
-  </div>
-  <ng-template #footer>
-    <p-button label="Cancel" text (onClick)="adjustVisible = false"></p-button>
-    <p-button label="Adjust" (onClick)="submitAdjust()"></p-button>
   </ng-template>
 </p-dialog>
 <p-toast></p-toast>

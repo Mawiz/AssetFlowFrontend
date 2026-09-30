@@ -1,0 +1,135 @@
+<div *ngIf="detail" class="flex flex-col gap-4">
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="flex align-items-center gap-2">
+      <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" routerLink="/modules/part-inventory"></p-button>
+      <h4 class="m-0">{{ detail.partNumber }} — {{ detail.locationName }}</h4>
+    </div>
+    <app-part-inventory-panel
+      *ngIf="partStub"
+      [receiveOnly]="true"
+      [partId]="detail.partId"
+      [part]="partStub"
+      [defaultLocationId]="detail.locationId"
+      (inventoryChanged)="load(detail.id)"></app-part-inventory-panel>
+  </div>
+
+  <div class="grid">
+    <div class="col-12 md:col-3"><strong>Total</strong><div>{{ detail.totalQuantity }}</div></div>
+    <div class="col-12 md:col-3"><strong>Available</strong><div>{{ detail.availableQuantity }}</div></div>
+    <div class="col-12 md:col-3"><strong>Faulty</strong><div>{{ detail.faultyQuantity }}</div></div>
+    <div class="col-12 md:col-3"><strong>Quarantine</strong><div>{{ detail.quarantineQuantity }}</div></div>
+    <div class="col-12 md:col-3"><strong>Issued</strong><div>{{ detail.issuedQuantity }}</div></div>
+    <div class="col-12 md:col-3"><strong>Earliest expiry</strong><div>{{ detail.earliestExpiryDate ? (detail.earliestExpiryDate | date: 'mediumDate') : '—' }}</div></div>
+  </div>
+
+  <h5>Batches</h5>
+  <p-table [value]="detail.batches" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>Ref</th>
+        <th>Supplier</th>
+        <th>Received</th>
+        <th>Expiry</th>
+        <th>Available</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-b>
+      <tr [class.font-bold]="selectedBatch?.id === b.id">
+        <td>{{ b.batchReference }}</td>
+        <td>{{ b.supplierName || '—' }}</td>
+        <td>{{ b.receivedDate | date: 'shortDate' }}</td>
+        <td>{{ b.expiryDate ? (b.expiryDate | date: 'mediumDate') : '—' }}</td>
+        <td>{{ b.availableQuantity }}</td>
+        <td>{{ b.totalQuantity }}</td>
+        <td><p-button label="Open" size="small" (onClick)="openBatch(b)"></p-button></td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <div *ngIf="batchDetail" class="surface-border border-1 border-round p-3">
+    <h5>Batch {{ batchDetail.batchReference }}</h5>
+    <div class="flex flex-wrap gap-2 mb-3">
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Transfer" icon="pi pi-arrow-right-arrow-left" (onClick)="openOp('transfer')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Issue" icon="pi pi-sign-out" (onClick)="openOp('issue')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Return" icon="pi pi-sign-in" (onClick)="openOp('return')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Adjust" icon="pi pi-sliders-h" (onClick)="openOp('adjust')" [disabled]="detail.partIsSerialized"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Mark faulty" severity="warn" (onClick)="openOp('faulty')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Quarantine" severity="warn" (onClick)="openOp('quarantine')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Release" (onClick)="openOp('release')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Return to supplier" (onClick)="openOp('supplier')"></p-button>
+      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Scrap" severity="danger" (onClick)="openOp('scrap')"></p-button>
+    </div>
+
+    <p-table *ngIf="batchDetail.serialNumbers?.length" [value]="batchDetail.serialNumbers!" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th *ngIf="opDialog && detail.partIsSerialized"></th>
+          <th>Serial</th>
+          <th>Supplier ref</th>
+          <th>Status</th>
+          <th>Expiry</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-s>
+        <tr>
+          <td *ngIf="opDialog && detail.partIsSerialized">
+            <input type="checkbox" [checked]="selectedSerialIds.includes(s.id)" (change)="toggleSerial(s.id)" />
+          </td>
+          <td>{{ s.serialNumber }}</td>
+          <td>{{ s.supplierSerialReference || '—' }}</td>
+          <td>{{ serialLabel(s.status) }}</td>
+          <td>{{ s.expiryDate ? (s.expiryDate | date: 'mediumDate') : '—' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <h5>Transactions</h5>
+  <p-table [value]="transactions" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Qty</th>
+        <th>Batch</th>
+        <th>Serials</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Reason</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-t>
+      <tr>
+        <td>{{ t.transactionDate | date: 'short' }}</td>
+        <td>{{ txnLabel(t.transactionType) }}</td>
+        <td>{{ t.quantity }}</td>
+        <td>{{ t.batchReference || '—' }}</td>
+        <td>{{ t.serialNumbers?.join(', ') || '—' }}</td>
+        <td>{{ t.fromLocationName || '—' }}</td>
+        <td>{{ t.toLocationName || '—' }}</td>
+        <td>{{ t.reason || t.remarks || '—' }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="'Operation: ' + opType" [(visible)]="opDialog" [modal]="true" [style]="{ width: '28rem' }">
+  <div class="flex flex-col gap-3" *ngIf="!detail?.partIsSerialized || opType === 'adjust'">
+    <p-inputNumber *ngIf="opType === 'adjust'" [(ngModel)]="opQty" placeholder="Quantity change (+/-)"></p-inputNumber>
+    <p-inputNumber *ngIf="opType !== 'adjust'" [(ngModel)]="opQty" [min]="1"></p-inputNumber>
+  </div>
+  <p-select *ngIf="opType === 'transfer' || opType === 'return'" [options]="locations" [(ngModel)]="opToLocationId" optionLabel="name" optionValue="id" placeholder="To location" appendTo="body"></p-select>
+  <p-select *ngIf="opType === 'issue' || opType === 'return'" [options]="users" [(ngModel)]="opUserId" optionLabel="label" optionValue="id" placeholder="User" [showClear]="true" appendTo="body"></p-select>
+  <p-select *ngIf="opType === 'supplier'" [options]="suppliers" [(ngModel)]="opSupplierId" optionLabel="name" optionValue="id" placeholder="Supplier" appendTo="body"></p-select>
+  <input pInputText [(ngModel)]="opReason" placeholder="Reason" />
+  <textarea pTextarea [(ngModel)]="opRemarks" rows="2" placeholder="Remarks"></textarea>
+  <p *ngIf="detail?.partIsSerialized && opType !== 'adjust'" class="text-sm">Select serial(s) in the batch table while this dialog is open.</p>
+  <ng-template #footer>
+    <p-button label="Cancel" text (onClick)="opDialog = false"></p-button>
+    <p-button label="Submit" (onClick)="submitOp()"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>

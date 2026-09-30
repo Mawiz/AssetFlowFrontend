@@ -42,8 +42,6 @@ export class PartInventoryComponent implements OnInit {
   locations: Location[] = [];
   parts: Part[] = [];
   tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
-  statusLabelMap = new Map<number, string>();
-
   filter: PartInventoryFilterDto = {
     pageNumber: 1,
     pageSize: 10,
@@ -65,12 +63,6 @@ export class PartInventoryComponent implements OnInit {
 
   ngOnInit() {
     this.systemAdmin = this.authService.systemAdminPermissions();
-    this.metadataService.getEnums().subscribe({
-      next: (res) => {
-        const data = res?.result ?? res;
-        (data?.PartInventoryStatus ?? []).forEach((x: any) => this.statusLabelMap.set(x.value, x.text));
-      }
-    });
     if (this.systemAdmin) {
       this.metadataService.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
         next: (res) => {
@@ -125,7 +117,4 @@ export class PartInventoryComponent implements OnInit {
     this.load();
   }
 
-  statusLabel(v: number) {
-    return this.statusLabelMap.get(v) ?? String(v);
-  }
 }

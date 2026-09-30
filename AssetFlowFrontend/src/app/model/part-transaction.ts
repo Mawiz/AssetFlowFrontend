@@ -7,8 +7,10 @@ export interface PartTransaction {
   partId: number;
   partNumber?: string;
   partName?: string;
-  partSerialNumberId?: number | null;
-  serialNumber?: string;
+  partInventoryId?: number | null;
+  partInventoryBatchId?: number | null;
+  batchReference?: string;
+  serialNumbers?: string[];
   transactionType: number;
   quantity: number;
   fromLocationId?: number | null;
@@ -18,6 +20,11 @@ export interface PartTransaction {
   transactionDate: string;
   performedByUserId?: number | null;
   performedByUserName?: string;
+  issuedToUserId?: number | null;
+  issuedToUserName?: string;
+  returnedFromUserId?: number | null;
+  returnedFromUserName?: string;
+  reason?: string;
   remarks?: string;
   supplierId?: number | null;
   supplierName?: string;
@@ -27,16 +34,17 @@ export interface PartTransaction {
 export interface CreatePartTransaction {
   tenantId?: number | null;
   partId: number;
-  partSerialNumberId?: number | null;
   transactionType: number;
   quantity: number;
   fromLocationId?: number | null;
   toLocationId?: number | null;
   transactionDate?: Date | string;
+  reason?: string;
   remarks?: string;
 }
 
 export interface PartTransactionFilterDto extends ListFilterDto {
   partId?: number | null;
+  partInventoryId?: number | null;
   transactionType?: number | null;
 }

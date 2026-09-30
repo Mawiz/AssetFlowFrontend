@@ -18,10 +18,12 @@ import { MetadataService } from '@/services/metadata-service';
       <ng-template #header>
         <tr>
           <th>Internal serial</th>
+          <th>Batch</th>
           <th>Supplier S/N</th>
           <th>Supplier</th>
           <th>Location</th>
           <th>Status</th>
+          <th>Expiry</th>
           <th>Received</th>
           <th>Active</th>
           <th style="width: 6rem"></th>
@@ -30,10 +32,12 @@ import { MetadataService } from '@/services/metadata-service';
       <ng-template #body let-row>
         <tr>
           <td>{{ row.serialNumber }}</td>
+          <td>{{ row.batchReference || '—' }}</td>
           <td>{{ row.supplierSerialReference || '—' }}</td>
           <td>{{ row.supplierName || '—' }}</td>
           <td>{{ row.locationName || '—' }}</td>
           <td>{{ statusLabel(row.status) }}</td>
+          <td>{{ row.expiryDate ? (row.expiryDate | date: 'mediumDate') : '—' }}</td>
           <td>{{ row.receivedDate | date: 'mediumDate' }}</td>
           <td>
             <p-tag [value]="row.isActive ? 'Yes' : 'No'" [severity]="row.isActive ? 'success' : 'danger'"></p-tag>
@@ -62,6 +66,7 @@ export class PartSerialsPanelComponent implements OnChanges {
     metadataService.getEnums().subscribe({
       next: (res) => {
         const data = res?.result ?? res;
+        (data?.PartSerialStatus ?? []).forEach((x: any) => this.statusLabelMap.set(x.value, x.text));
         (data?.PartInventoryStatus ?? []).forEach((x: any) => this.statusLabelMap.set(x.value, x.text));
       }
     });

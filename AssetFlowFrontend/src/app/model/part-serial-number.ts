@@ -18,6 +18,11 @@ export interface PartSerialNumber {
   supplierId?: number | null;
   supplierName?: string;
   supplierSerialReference?: string;
+  partInventoryBatchId?: number | null;
+  batchReference?: string;
+  expiryDate?: string | null;
+  expectedLifeValue?: number | null;
+  expectedLifeUnit?: number | null;
 }
 
 export interface UpdatePartSerialNumber {
