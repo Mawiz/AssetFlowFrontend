@@ -18,7 +18,7 @@ import { MetadataService } from '@/services/metadata-service';
           <th>Qty</th>
           <th>From</th>
           <th>To</th>
-          <th>Serial</th>
+          <th>Supplier</th>
           <th>User</th>
           <th>Remarks</th>
         </tr>
@@ -30,7 +30,7 @@ import { MetadataService } from '@/services/metadata-service';
           <td>{{ row.quantity }}</td>
           <td>{{ row.fromLocationName || '—' }}</td>
           <td>{{ row.toLocationName || '—' }}</td>
-          <td>{{ row.serialNumber || '—' }}</td>
+          <td>{{ row.supplierName || '—' }}</td>
           <td>{{ row.performedByUserName || '—' }}</td>
           <td>{{ row.remarks }}</td>
         </tr>

@@ -87,10 +87,10 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
   serialMode: SerialMode = 'auto';
   serialModeOptions = [
     { label: 'Auto serial', value: 'auto' as SerialMode },
-    { label: 'Scan supplier QR', value: 'scan' as SerialMode }
+    { label: 'Supplier serial (scan/type)', value: 'scan' as SerialMode }
   ];
   previewSerials: string[] = [];
-  scannedSupplierRefs: string[] = [];
+  supplierSerialLines: string[] = [''];
   scanBuffer = '';
 
   scanning = false;
@@ -155,7 +155,7 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
   openReceipt() {
     this.receipt = { locationId: null, supplierId: null, quantity: 1, remarks: '' };
     this.serialMode = 'auto';
-    this.scannedSupplierRefs = [];
+    this.supplierSerialLines = this.buildSupplierLines(this.receipt.quantity);
     this.scanBuffer = '';
     this.receiptVisible = true;
     this.loadPreviewSerials();
@@ -163,16 +163,20 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
 
   onSerialModeChange() {
     this.stopScan();
-    this.scannedSupplierRefs = [];
+    this.supplierSerialLines = this.buildSupplierLines(this.receipt.quantity);
     this.scanBuffer = '';
     if (this.serialMode === 'auto') this.loadPreviewSerials();
   }
 
   onQuantityChange() {
     if (this.serialMode === 'auto') this.loadPreviewSerials();
-    if (this.scannedSupplierRefs.length > this.receipt.quantity) {
-      this.scannedSupplierRefs = this.scannedSupplierRefs.slice(0, this.receipt.quantity);
-    }
+    this.supplierSerialLines = this.buildSupplierLines(this.receipt.quantity, this.supplierSerialLines);
+  }
+
+  private buildSupplierLines(qty: number, existing: string[] = []): string[] {
+    const lines: string[] = [];
+    for (let i = 0; i < qty; i++) lines.push(existing[i]?.trim() ?? '');
+    return lines;
   }
 
   loadPreviewSerials() {
@@ -196,7 +200,7 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
     try {
       this.scanControls = await this.scanReader.decodeFromVideoDevice(undefined, video, (result, _err, controls) => {
         if (result) {
-          this.addSupplierScan(result.getText().trim());
+          this.addSupplierSerial(result.getText().trim());
           controls.stop();
           this.scanning = false;
           this.scanControls = null;
@@ -222,20 +226,23 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
   onSupplierScanEnter() {
     const v = this.scanBuffer?.trim();
     if (!v) return;
-    this.addSupplierScan(v);
+    this.addSupplierSerial(v);
     this.scanBuffer = '';
   }
 
-  addSupplierScan(value: string) {
-    if (this.scannedSupplierRefs.length >= this.receipt.quantity) {
-      this.messageService.add({ severity: 'warn', summary: 'Scan', detail: 'All units already scanned for this quantity.' });
+  addSupplierSerial(value: string) {
+    const idx = this.supplierSerialLines.findIndex((x) => !x?.trim());
+    const targetIdx = idx >= 0 ? idx : -1;
+    if (targetIdx < 0) {
+      this.messageService.add({ severity: 'warn', summary: 'Full', detail: 'All supplier serial lines are filled.' });
       return;
     }
-    if (this.scannedSupplierRefs.some((x) => x.toLowerCase() === value.toLowerCase())) {
-      this.messageService.add({ severity: 'warn', summary: 'Duplicate', detail: 'Supplier reference already scanned.' });
+    if (this.supplierSerialLines.some((x) => x?.trim().toLowerCase() === value.toLowerCase())) {
+      this.messageService.add({ severity: 'warn', summary: 'Duplicate', detail: 'Supplier serial already entered.' });
       return;
     }
-    this.scannedSupplierRefs = [...this.scannedSupplierRefs, value];
+    this.supplierSerialLines[targetIdx] = value;
+    this.supplierSerialLines = [...this.supplierSerialLines];
   }
 
   submitReceipt(printAfter: boolean) {
@@ -245,13 +252,23 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
     }
     if (this.receipt.quantity < 1) return;
 
-    if (this.serialMode === 'scan' && this.scannedSupplierRefs.length !== this.receipt.quantity) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Validation',
-        detail: `Scan ${this.receipt.quantity} supplier label(s) (${this.scannedSupplierRefs.length} scanned).`
-      });
-      return;
+    const supplierRefs =
+      this.serialMode === 'scan' ? this.supplierSerialLines.map((x) => x?.trim() ?? '') : [];
+
+    if (this.serialMode === 'scan') {
+      if (supplierRefs.length !== this.receipt.quantity || supplierRefs.some((x) => !x)) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Validation',
+          detail: `Enter or scan a supplier serial for each of ${this.receipt.quantity} unit(s).`
+        });
+        return;
+      }
+      const dup = new Set(supplierRefs.map((x) => x.toLowerCase()));
+      if (dup.size !== supplierRefs.length) {
+        this.messageService.add({ severity: 'warn', summary: 'Duplicate', detail: 'Supplier serials must be unique.' });
+        return;
+      }
     }
 
     const tenantId = this.part?.tenantId ?? this.authService.getTenantId();
@@ -262,7 +279,7 @@ export class PartInventoryPanelComponent implements OnChanges, OnDestroy {
         supplierId: this.receipt.supplierId,
         quantity: this.receipt.quantity,
         receiptMode: this.serialMode === 'scan' ? 1 : 0,
-        supplierSerialReferences: this.serialMode === 'scan' ? [...this.scannedSupplierRefs] : [],
+        supplierSerialReferences: supplierRefs,
         remarks: this.receipt.remarks,
         tenantId
       })

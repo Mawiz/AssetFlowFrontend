@@ -18,6 +18,7 @@ export interface PartInventory {
   status: number;
   isActive: boolean;
   isLowStock?: boolean;
+  partTransactionId?: number | null;
 }
 
 export interface PartInventoryFilterDto extends ListFilterDto {
@@ -41,6 +42,7 @@ export interface PartBatchReceipt {
 }
 
 export interface PartBatchReceiptResult {
+  receiptTransactionId: number;
   items: PartInventory[];
   generatedSerialNumbers: string[];
 }

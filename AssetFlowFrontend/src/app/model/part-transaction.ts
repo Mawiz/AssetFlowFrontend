@@ -19,6 +19,8 @@ export interface PartTransaction {
   performedByUserId?: number | null;
   performedByUserName?: string;
   remarks?: string;
+  supplierId?: number | null;
+  supplierName?: string;
   isActive: boolean;
 }
 

@@ -8,6 +8,7 @@
       <th>Internal serial</th>
       <th>Supplier S/N</th>
       <th>Supplier</th>
+      <th>Receipt txn</th>
       <th>Status</th>
       <th style="width: 12rem"></th>
     </tr>
@@ -18,6 +19,7 @@
       <td>{{ row.serialNumber || '—' }}</td>
       <td>{{ row.supplierSerialReference || '—' }}</td>
       <td>{{ row.supplierName || '—' }}</td>
+      <td>{{ row.partTransactionId ?? '—' }}</td>
       <td>{{ statusLabel(row.status) }}</td>
       <td>
         <p-button icon="pi pi-qrcode" [rounded]="true" [outlined]="true" class="mr-1" title="Print QR" (onClick)="printQr(row)" [disabled]="!row.serialNumber"></p-button>
@@ -50,19 +52,23 @@
 
     @if (serialMode === 'scan') {
       <div class="flex flex-col gap-2">
-        <p-button label="Start camera scan" icon="pi pi-camera" severity="secondary" (onClick)="startScan()" [disabled]="scanning"></p-button>
+        <label class="font-medium">Supplier serial — scan or type (one per unit)</label>
+        <div class="flex gap-2">
+          <input pInputText class="flex-1" [(ngModel)]="scanBuffer" placeholder="Scan barcode or type and press Add" (keydown.enter)="onSupplierScanEnter()" />
+          <p-button label="Add" icon="pi pi-plus" (onClick)="onSupplierScanEnter()"></p-button>
+          <p-button label="Scan" icon="pi pi-camera" severity="secondary" (onClick)="startScan()" [disabled]="scanning"></p-button>
+        </div>
         @if (scanning) {
           <video #scanVideo class="w-full max-h-48 bg-black rounded" muted playsinline></video>
-          <p-button label="Stop scan" severity="danger" text (onClick)="stopScan()"></p-button>
+          <p-button label="Stop camera" severity="danger" text (onClick)="stopScan()"></p-button>
         }
-        <label class="font-medium">Supplier QR / barcode ({{ scannedSupplierRefs.length }} / {{ receipt.quantity }})</label>
-        <input pInputText #scanInput class="w-full" [(ngModel)]="scanBuffer" placeholder="Scan supplier label here" (keydown.enter)="onSupplierScanEnter()" />
-        <ul class="m-0 pl-4 text-sm max-h-24 overflow-auto">
-          @for (ref of scannedSupplierRefs; track ref) {
-            <li>{{ ref }}</li>
-          }
-        </ul>
-        <small class="text-color-secondary">Each scan stores the supplier sequence only. Internal serials are generated on save.</small>
+        @for (line of supplierSerialLines; track $index; let idx = $index) {
+          <div class="flex gap-2 items-center">
+            <span class="text-sm w-6">{{ idx + 1 }}.</span>
+            <input pInputText class="flex-1" [(ngModel)]="supplierSerialLines[idx]" [placeholder]="'Supplier serial ' + (idx + 1)" />
+          </div>
+        }
+        <small class="text-color-secondary">Internal serials are still auto-generated. Supplier serial is stored for reference only.</small>
       </div>
     }
 
