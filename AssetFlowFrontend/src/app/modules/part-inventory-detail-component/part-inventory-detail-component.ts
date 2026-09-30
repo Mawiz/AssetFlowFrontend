@@ -137,25 +137,44 @@ export class PartInventoryDetailComponent implements OnInit {
 
   openBatch(batch: PartInventoryBatch) {
     this.selectedBatch = batch;
+    this.selectedSerialIds = [];
     this.inventoryService.getBatchById(batch.id).subscribe({
       next: (d) => (this.batchDetail = d)
     });
   }
 
+  /** Serialized parts: pick serial(s) in the batch table before opening an operation. */
+  serializedOpsNeedSelection(): boolean {
+    return !!this.detail?.partIsSerialized;
+  }
+
+  serialRowSelectable(status: number): boolean {
+    const blocked = [5, 6, 7];
+    return !blocked.includes(status);
+  }
+
   openOp(type: string) {
-    if (!this.selectedBatch) return;
+    if (!this.selectedBatch || !this.detail) return;
+    if (this.detail.partIsSerialized && type !== 'adjust' && this.selectedSerialIds.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Validation',
+        detail: 'Select at least one serial number, then choose an operation.'
+      });
+      return;
+    }
     this.opType = type;
-    this.opQty = this.detail?.partIsSerialized ? 1 : 1;
-    this.opToLocationId = this.detail?.locationId ?? null;
+    this.opQty = 1;
+    this.opToLocationId = this.detail.locationId ?? null;
     this.opUserId = null;
     this.opSupplierId = this.selectedBatch.supplierId ?? null;
     this.opReason = '';
     this.opRemarks = '';
-    this.selectedSerialIds = [];
     this.opDialog = true;
   }
 
-  toggleSerial(id: number) {
+  toggleSerial(id: number, status: number) {
+    if (!this.serialRowSelectable(status)) return;
     const idx = this.selectedSerialIds.indexOf(id);
     if (idx >= 0) this.selectedSerialIds.splice(idx, 1);
     else this.selectedSerialIds.push(id);
@@ -180,6 +199,7 @@ export class PartInventoryDetailComponent implements OnInit {
 
     const done = () => {
       this.opDialog = false;
+      this.selectedSerialIds = [];
       this.load(this.detail!.id);
       if (this.selectedBatch) this.openBatch(this.selectedBatch);
     };

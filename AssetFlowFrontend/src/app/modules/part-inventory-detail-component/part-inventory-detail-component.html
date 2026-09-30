@@ -50,22 +50,15 @@
 
   <div *ngIf="batchDetail" class="surface-border border-1 border-round p-3">
     <h5>Batch {{ batchDetail.batchReference }}</h5>
-    <div class="flex flex-wrap gap-2 mb-3">
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Transfer" icon="pi pi-arrow-right-arrow-left" (onClick)="openOp('transfer')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Issue" icon="pi pi-sign-out" (onClick)="openOp('issue')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Return" icon="pi pi-sign-in" (onClick)="openOp('return')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Adjust" icon="pi pi-sliders-h" (onClick)="openOp('adjust')" [disabled]="detail.partIsSerialized"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Mark faulty" severity="warn" (onClick)="openOp('faulty')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Quarantine" severity="warn" (onClick)="openOp('quarantine')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Release" (onClick)="openOp('release')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Return to supplier" (onClick)="openOp('supplier')"></p-button>
-      <p-button *appHasPermission="Permissions.PartInventory.Update" label="Scrap" severity="danger" (onClick)="openOp('scrap')"></p-button>
-    </div>
+    <p *ngIf="serializedOpsNeedSelection()" class="text-sm text-color-secondary mt-0 mb-2">
+      Select serial number(s) below, then choose an operation.
+      <span *ngIf="selectedSerialIds.length">({{ selectedSerialIds.length }} selected)</span>
+    </p>
 
-    <p-table *ngIf="batchDetail.serialNumbers?.length" [value]="batchDetail.serialNumbers!" dataKey="id">
+    <p-table *ngIf="batchDetail.serialNumbers?.length" [value]="batchDetail.serialNumbers!" dataKey="id" class="mb-3">
       <ng-template #header>
         <tr>
-          <th *ngIf="opDialog && detail.partIsSerialized"></th>
+          <th *ngIf="detail.partIsSerialized" style="width: 3rem">Select</th>
           <th>Serial</th>
           <th>Supplier ref</th>
           <th>Status</th>
@@ -73,9 +66,13 @@
         </tr>
       </ng-template>
       <ng-template #body let-s>
-        <tr>
-          <td *ngIf="opDialog && detail.partIsSerialized">
-            <input type="checkbox" [checked]="selectedSerialIds.includes(s.id)" (change)="toggleSerial(s.id)" />
+        <tr [class.opacity-50]="detail.partIsSerialized && !serialRowSelectable(s.status)">
+          <td *ngIf="detail.partIsSerialized">
+            <input
+              type="checkbox"
+              [disabled]="!serialRowSelectable(s.status)"
+              [checked]="selectedSerialIds.includes(s.id)"
+              (change)="toggleSerial(s.id, s.status)" />
           </td>
           <td>{{ s.serialNumber }}</td>
           <td>{{ s.supplierSerialReference || '—' }}</td>
@@ -84,6 +81,61 @@
         </tr>
       </ng-template>
     </p-table>
+
+    <div class="flex flex-wrap gap-2">
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Transfer"
+        icon="pi pi-arrow-right-arrow-left"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('transfer')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Issue"
+        icon="pi pi-sign-out"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('issue')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Return"
+        icon="pi pi-sign-in"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('return')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Adjust"
+        icon="pi pi-sliders-h"
+        (onClick)="openOp('adjust')"
+        [disabled]="detail.partIsSerialized"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Mark faulty"
+        severity="warn"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('faulty')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Quarantine"
+        severity="warn"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('quarantine')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Release"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('release')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Return to supplier"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('supplier')"></p-button>
+      <p-button
+        *appHasPermission="Permissions.PartInventory.Update"
+        label="Scrap"
+        severity="danger"
+        [disabled]="serializedOpsNeedSelection() && selectedSerialIds.length === 0"
+        (onClick)="openOp('scrap')"></p-button>
+    </div>
   </div>
 
   <h5>Transactions</h5>
@@ -121,11 +173,30 @@
     <p-inputNumber *ngIf="opType !== 'adjust'" [(ngModel)]="opQty" [min]="1"></p-inputNumber>
   </div>
   <p-select *ngIf="opType === 'transfer' || opType === 'return'" [options]="locations" [(ngModel)]="opToLocationId" optionLabel="name" optionValue="id" placeholder="To location" appendTo="body"></p-select>
-  <p-select *ngIf="opType === 'issue' || opType === 'return'" [options]="users" [(ngModel)]="opUserId" optionLabel="label" optionValue="id" placeholder="User" [showClear]="true" appendTo="body"></p-select>
+  <p-select
+    *ngIf="opType === 'issue'"
+    [options]="users"
+    [(ngModel)]="opUserId"
+    optionLabel="label"
+    optionValue="id"
+    placeholder="Issued to (optional)"
+    [showClear]="true"
+    appendTo="body"></p-select>
+  <p-select
+    *ngIf="opType === 'return'"
+    [options]="users"
+    [(ngModel)]="opUserId"
+    optionLabel="label"
+    optionValue="id"
+    placeholder="Returned from (optional)"
+    [showClear]="true"
+    appendTo="body"></p-select>
   <p-select *ngIf="opType === 'supplier'" [options]="suppliers" [(ngModel)]="opSupplierId" optionLabel="name" optionValue="id" placeholder="Supplier" appendTo="body"></p-select>
   <input pInputText [(ngModel)]="opReason" placeholder="Reason" />
   <textarea pTextarea [(ngModel)]="opRemarks" rows="2" placeholder="Remarks"></textarea>
-  <p *ngIf="detail?.partIsSerialized && opType !== 'adjust'" class="text-sm">Select serial(s) in the batch table while this dialog is open.</p>
+  <p *ngIf="detail?.partIsSerialized && opType !== 'adjust'" class="text-sm m-0">
+    {{ selectedSerialIds.length }} serial number(s) selected for this operation.
+  </p>
   <ng-template #footer>
     <p-button label="Cancel" text (onClick)="opDialog = false"></p-button>
     <p-button label="Submit" (onClick)="submitOp()"></p-button>
