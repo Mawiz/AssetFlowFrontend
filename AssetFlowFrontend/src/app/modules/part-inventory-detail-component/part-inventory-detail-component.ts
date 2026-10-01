@@ -25,6 +25,7 @@ import { MetadataService } from '@/services/metadata-service';
 import { PartTransactionService } from '../../services/part-transaction-service';
 import { PartTransaction } from '../../model/part-transaction';
 import { Part } from '../../model/part';
+import { PartSerialNumber } from '../../model/part-serial-number';
 import { PartInventoryPanelComponent } from '../part-detail-component/part-inventory-panel.component';
 
 @Component({
@@ -148,9 +149,23 @@ export class PartInventoryDetailComponent implements OnInit {
     return !!this.detail?.partIsSerialized;
   }
 
-  serialRowSelectable(status: number): boolean {
-    const blocked = [5, 6, 7];
-    return !blocked.includes(status);
+  serialRowSelectable(s: PartSerialNumber): boolean {
+    const atBatch = s.isAtOpenBatch ?? s.partInventoryBatchId === this.selectedBatch?.id;
+    if (!atBatch) return false;
+    if ([5, 6, 7].includes(s.status)) return false;
+    return s.status === 1 || s.status === 4;
+  }
+
+  serialStatusDisplay(s: PartSerialNumber): string {
+    const label = this.serialLabel(s.status);
+    const atBatch = s.isAtOpenBatch ?? s.partInventoryBatchId === this.selectedBatch?.id;
+    if (atBatch) return label;
+    const where = s.locationName || s.batchReference;
+    return where ? `${label} · Transferred (${where})` : `${label} · Transferred`;
+  }
+
+  serialRowDimmed(s: PartSerialNumber): boolean {
+    return !this.serialRowSelectable(s);
   }
 
   openOp(type: string) {
@@ -173,11 +188,11 @@ export class PartInventoryDetailComponent implements OnInit {
     this.opDialog = true;
   }
 
-  toggleSerial(id: number, status: number) {
-    if (!this.serialRowSelectable(status)) return;
-    const idx = this.selectedSerialIds.indexOf(id);
+  toggleSerial(s: PartSerialNumber) {
+    if (!this.serialRowSelectable(s)) return;
+    const idx = this.selectedSerialIds.indexOf(s.id);
     if (idx >= 0) this.selectedSerialIds.splice(idx, 1);
-    else this.selectedSerialIds.push(id);
+    else this.selectedSerialIds.push(s.id);
   }
 
   submitOp() {

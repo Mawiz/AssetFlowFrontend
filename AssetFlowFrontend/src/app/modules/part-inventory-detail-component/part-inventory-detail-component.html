@@ -55,29 +55,36 @@
       <span *ngIf="selectedSerialIds.length">({{ selectedSerialIds.length }} selected)</span>
     </p>
 
-    <p-table *ngIf="batchDetail.serialNumbers?.length" [value]="batchDetail.serialNumbers!" dataKey="id" class="mb-3">
+    <p-table *ngIf="detail.partIsSerialized" [value]="batchDetail.serialNumbers ?? []" dataKey="id" class="mb-3">
       <ng-template #header>
         <tr>
-          <th *ngIf="detail.partIsSerialized" style="width: 3rem">Select</th>
+          <th style="width: 3rem">Select</th>
           <th>Serial</th>
           <th>Supplier ref</th>
           <th>Status</th>
+          <th>Current location</th>
           <th>Expiry</th>
         </tr>
       </ng-template>
       <ng-template #body let-s>
-        <tr [class.opacity-50]="detail.partIsSerialized && !serialRowSelectable(s.status)">
-          <td *ngIf="detail.partIsSerialized">
+        <tr [class.opacity-50]="serialRowDimmed(s)">
+          <td>
             <input
               type="checkbox"
-              [disabled]="!serialRowSelectable(s.status)"
+              [disabled]="!serialRowSelectable(s)"
               [checked]="selectedSerialIds.includes(s.id)"
-              (change)="toggleSerial(s.id, s.status)" />
+              (change)="toggleSerial(s)" />
           </td>
           <td>{{ s.serialNumber }}</td>
           <td>{{ s.supplierSerialReference || '—' }}</td>
-          <td>{{ serialLabel(s.status) }}</td>
+          <td>{{ serialStatusDisplay(s) }}</td>
+          <td>{{ s.locationName || '—' }}</td>
           <td>{{ s.expiryDate ? (s.expiryDate | date: 'mediumDate') : '—' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6" class="text-center text-color-secondary">No serial numbers recorded for this batch yet.</td>
         </tr>
       </ng-template>
     </p-table>

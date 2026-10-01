@@ -19,7 +19,10 @@ export interface PartSerialNumber {
   supplierName?: string;
   supplierSerialReference?: string;
   partInventoryBatchId?: number | null;
+  originPartInventoryBatchId?: number | null;
   batchReference?: string;
+  /** Present on batch detail API: serial still on this batch row for operations. */
+  isAtOpenBatch?: boolean;
   expiryDate?: string | null;
   expectedLifeValue?: number | null;
   expectedLifeUnit?: number | null;
