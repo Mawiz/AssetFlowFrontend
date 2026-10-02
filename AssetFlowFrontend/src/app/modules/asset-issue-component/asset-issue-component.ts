@@ -29,6 +29,8 @@ import { readPagedList } from '../../utils/paged-list';
 import { TenantDto } from '../../model/tenant';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments';
+import { WorkOrderService } from '../../services/work-order-service';
+import { Router } from '@angular/router';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -93,7 +95,9 @@ export class AssetIssueComponent implements OnInit {
     private authService: AuthService,
     private messages: MessageService,
     private fb: FormBuilder,
-    private http: HttpClient
+    private http: HttpClient,
+    private workOrderService: WorkOrderService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -472,6 +476,31 @@ export class AssetIssueComponent implements OnInit {
   get canEditActive(): boolean {
     if (!this.activeIssue) return false;
     return this.activeIssue.status !== 3 && this.activeIssue.status !== 4;
+  }
+
+  get canCreateWorkOrder(): boolean {
+    return !!this.activeIssue && !this.activeIssue.workOrderId;
+  }
+
+  createWorkOrderFromIssue() {
+    if (!this.activeIssue) return;
+    const tenantId = this.systemAdmin ? this.normalizeTenantId(this.activeIssue.tenantId) : this.getFixedTenantId();
+    this.workOrderService
+      .createFromIssue({
+        tenantId,
+        assetIssueId: this.activeIssue.id,
+        title: this.activeIssue.description?.slice(0, 200),
+        description: this.activeIssue.description
+      })
+      .subscribe({
+        next: (wo) => {
+          this.messages.add({ severity: 'success', summary: 'Work Order', detail: wo.workOrderNumber + ' created' });
+          this.activeIssue = { ...this.activeIssue!, workOrderId: wo.id };
+          this.router.navigate(['/modules/work-orders']);
+        },
+        error: (e) =>
+          this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Could not create work order' })
+      });
   }
 
   get issueStatusChangeOptions(): { label: string; value: number }[] {

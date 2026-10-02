@@ -1,0 +1,210 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #end>
+    <div class="flex flex-wrap gap-2 align-items-center">
+      <p-checkbox [(ngModel)]="myAssignmentsOnly" [binary]="true" inputId="myWo" (onChange)="onFilterChange()" />
+      <label for="myWo" class="mr-2">My assignments</label>
+    </div>
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 15, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Work Orders</h5>
+      <div class="flex gap-2 flex-wrap items-center">
+        <p-select
+          *ngIf="systemAdmin"
+          [options]="tenantFilterOptions"
+          [(ngModel)]="filter.tenantId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All tenants"
+          [style]="{ minWidth: '12rem' }"
+          (onChange)="onFilterChange()" />
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filter.status"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Status"
+          [style]="{ minWidth: '10rem' }"
+          (onChange)="onFilterChange()" />
+        <p-select
+          [options]="sourceOptions"
+          [(ngModel)]="filter.sourceType"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Source"
+          [style]="{ minWidth: '10rem' }"
+          (onChange)="onFilterChange()" />
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+        </p-iconfield>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template #header>
+    <tr>
+      <th>WO #</th>
+      <th>Source</th>
+      <th>Asset</th>
+      <th>Issue / PM</th>
+      <th>Priority</th>
+      <th>Engineer</th>
+      <th>Status</th>
+      <th>Created</th>
+      <th>Due</th>
+      <th style="width: 6rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-row>
+    <tr>
+      <td>
+        <a class="cursor-pointer text-primary" (click)="openDetail(row)">{{ row.workOrderNumber }}</a>
+      </td>
+      <td>{{ labelSource(row.sourceType) }}</td>
+      <td>{{ row.assetCode }} — {{ row.assetName }}</td>
+      <td>{{ row.issueNumber || row.maintenanceScheduleName || '—' }}</td>
+      <td>{{ labelPriority(row.priority) }}</td>
+      <td>{{ row.assignedToUserName || '—' }}</td>
+      <td><p-tag [value]="labelStatus(row.status)" [severity]="statusSeverity(row.status)" /></td>
+      <td>{{ row.createdOn | date: 'mediumDate' }}</td>
+      <td>{{ row.dueDate ? (row.dueDate | date: 'mediumDate') : '—' }}</td>
+      <td class="text-end">
+        <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" (onClick)="openDetail(row)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer
+  [(visible)]="detailVisible"
+  position="right"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  header="Work Order"
+  (onHide)="hideDetail()">
+  <ng-container *ngIf="active as wo">
+    <div class="flex flex-col gap-4">
+      <div>
+        <h4 class="m-0">{{ wo.workOrderNumber }} — {{ wo.title }}</h4>
+        <p-tag [value]="labelStatus(wo.status)" [severity]="statusSeverity(wo.status)" />
+      </div>
+
+      <div class="text-sm flex flex-col gap-1">
+        <div><strong>Asset:</strong> {{ wo.assetCode }} — {{ wo.assetName }}</div>
+        <div><strong>Location:</strong> {{ wo.locationDisplayPath }}</div>
+        <div *ngIf="wo.issueNumber"><strong>Issue:</strong> {{ wo.issueNumber }} — {{ wo.issueDescription }}</div>
+        <div *ngIf="wo.maintenanceScheduleName"><strong>PM:</strong> {{ wo.maintenanceScheduleName }} ({{ wo.maintenanceTypeName }})</div>
+      </div>
+
+      <div *appHasPermission="Permissions.WorkOrder.Assign" class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Assignment</label>
+        <p-select
+          [(ngModel)]="assignToUserId"
+          [options]="engineers"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Engineer"
+          appendTo="body"
+          styleClass="w-full" />
+        <textarea pTextarea [(ngModel)]="actionRemarks" rows="2" placeholder="Remarks"></textarea>
+        <div class="flex gap-2">
+          <p-button *appHasPermission="Permissions.WorkOrder.Assign" label="Assign" (onClick)="doAssign(false)" />
+          <p-button *appHasPermission="Permissions.WorkOrder.Reassign" label="Reassign" [outlined]="true" (onClick)="doAssign(true)" />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 border-t pt-3">
+        <p-button *appHasPermission="Permissions.WorkOrder.Accept" label="Accept" size="small" (onClick)="doAccept()" />
+        <p-button *appHasPermission="Permissions.WorkOrder.Start" label="Start" size="small" (onClick)="doStart()" />
+        <p-button *appHasPermission="Permissions.WorkOrder.Pause" label="Pause" size="small" [outlined]="true" (onClick)="doPause()" />
+        <p-button *appHasPermission="Permissions.WorkOrder.Pause" label="Waiting for parts" size="small" [outlined]="true" (onClick)="doWaitingForParts()" />
+        <p-button *appHasPermission="Permissions.WorkOrder.Resume" label="Resume" size="small" [outlined]="true" (onClick)="doResume()" />
+      </div>
+
+      <div class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Diagnosis</label>
+        <input pInputText [(ngModel)]="diagnosisForm.initialProblem" placeholder="Initial problem" />
+        <textarea pTextarea [(ngModel)]="diagnosisForm.diagnosis" rows="2" placeholder="Diagnosis"></textarea>
+        <textarea pTextarea [(ngModel)]="diagnosisForm.rootCause" rows="2" placeholder="Root cause"></textarea>
+        <textarea pTextarea [(ngModel)]="diagnosisForm.actionTaken" rows="2" placeholder="Action taken"></textarea>
+        <p-button label="Save diagnosis" (onClick)="saveDiagnosis()" />
+      </div>
+
+      <div class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Complete</label>
+        <textarea pTextarea [(ngModel)]="completeForm.workPerformed" rows="2" placeholder="Work performed"></textarea>
+        <textarea pTextarea [(ngModel)]="completeForm.finalResult" rows="2" placeholder="Final result"></textarea>
+        <p-select
+          [(ngModel)]="completeForm.assetStatusAfterWork"
+          [options]="assetStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Asset status after work"
+          appendTo="body"
+          styleClass="w-full" />
+        <p-button *appHasPermission="Permissions.WorkOrder.Complete" label="Complete (await approval)" (onClick)="doComplete()" />
+      </div>
+
+      <div *appHasPermission="Permissions.WorkOrder.Approve" class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Manager approval</label>
+        <textarea pTextarea [(ngModel)]="approveForm.approvalRemarks" rows="2"></textarea>
+        <div class="flex items-center gap-2">
+          <p-checkbox [(ngModel)]="approveForm.restoreAssetOperational" [binary]="true" inputId="restoreOp" />
+          <label for="restoreOp">Restore asset to Operational</label>
+        </div>
+        <div class="flex gap-2">
+          <p-button label="Approve" (onClick)="doApprove()" />
+          <p-button *appHasPermission="Permissions.WorkOrder.Reject" label="Reject" severity="danger" [outlined]="true" (onClick)="doReject()" />
+        </div>
+        <textarea pTextarea [(ngModel)]="rejectReason" rows="2" placeholder="Rejection reason"></textarea>
+        <p-button *appHasPermission="Permissions.WorkOrder.Reopen" label="Reopen (from rejected)" [outlined]="true" (onClick)="doReopen()" />
+      </div>
+
+      <div class="border-t pt-3">
+        <label class="font-semibold block mb-2">Attachments</label>
+        <p-fileUpload mode="basic" chooseLabel="Add file" [multiple]="true" (onSelect)="uploadFile($event)" />
+        <ul class="list-none pl-0 mt-2">
+          <li *ngFor="let att of wo.attachments" class="flex justify-between gap-2 text-sm mb-1">
+            <span>{{ att.fileName }}</span>
+            <p-button icon="pi pi-download" size="small" [rounded]="true" [outlined]="true" (onClick)="downloadAttachment(att.id, att.fileName)" />
+          </li>
+        </ul>
+      </div>
+
+      <div class="border-t pt-3">
+        <label class="font-semibold block mb-2">Timeline</label>
+        <p-timeline [value]="timelineEvents()" align="left">
+          <ng-template #content let-event>
+            <div class="text-sm">
+              <div class="font-semibold">{{ event.status }}</div>
+              <div class="text-color-secondary">{{ event.date | date: 'medium' }}</div>
+              <div>{{ event.description }}</div>
+            </div>
+          </ng-template>
+        </p-timeline>
+      </div>
+
+      <div class="text-xs text-color-secondary border-t pt-2">
+        <div *ngIf="wo.assignedAt">Assigned: {{ wo.assignedAt | date: 'medium' }}</div>
+        <div *ngIf="wo.acceptedAt">Accepted: {{ wo.acceptedAt | date: 'medium' }}</div>
+        <div *ngIf="wo.startedAt">Started: {{ wo.startedAt | date: 'medium' }}</div>
+        <div *ngIf="wo.completedAt">Completed: {{ wo.completedAt | date: 'medium' }}</div>
+        <div *ngIf="wo.closedAt">Closed: {{ wo.closedAt | date: 'medium' }}</div>
+      </div>
+    </div>
+  </ng-container>
+</p-drawer>
+
+<p-toast />

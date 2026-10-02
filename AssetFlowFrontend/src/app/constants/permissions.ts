@@ -137,5 +137,22 @@ export const Permissions = {
     Update: 'AssetIssue.Update',
     View: 'AssetIssue.View',
     Delete: 'AssetIssue.Delete'
+  },
+  WorkOrder: {
+    View: 'WorkOrder.View',
+    Create: 'WorkOrder.Create',
+    Update: 'WorkOrder.Update',
+    Delete: 'WorkOrder.Delete',
+    Assign: 'WorkOrder.Assign',
+    Reassign: 'WorkOrder.Reassign',
+    Accept: 'WorkOrder.Accept',
+    Start: 'WorkOrder.Start',
+    Pause: 'WorkOrder.Pause',
+    Resume: 'WorkOrder.Resume',
+    Complete: 'WorkOrder.Complete',
+    Approve: 'WorkOrder.Approve',
+    Reject: 'WorkOrder.Reject',
+    Reopen: 'WorkOrder.Reopen',
+    Cancel: 'WorkOrder.Cancel'
   }
 } as const;

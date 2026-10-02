@@ -22,6 +22,8 @@ import { MetadataService } from '@/services/metadata-service';
 import { AuthService } from '@/services/auth-service';
 import { readPagedList } from '../../utils/paged-list';
 import { TenantDto } from '../../model/tenant';
+import { WorkOrderService } from '../../services/work-order-service';
+import { Router } from '@angular/router';
 
 type PmTagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -77,7 +79,9 @@ export class PreventiveMaintenanceComponent implements OnInit {
     private service: PreventiveMaintenanceService,
     private metadata: MetadataService,
     private authService: AuthService,
-    private messages: MessageService
+    private messages: MessageService,
+    private workOrderService: WorkOrderService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -200,6 +204,30 @@ export class PreventiveMaintenanceComponent implements OnInit {
 
   selectionOptions(item: ExecuteChecklistRow) {
     return (item.options ?? []).map((o) => ({ label: o, value: o }));
+  }
+
+  createWorkOrderFromPm(row: PreventiveMaintenanceOccurrence) {
+    if (row.workOrderId) {
+      this.messages.add({ severity: 'warn', summary: 'Work Order', detail: 'A work order is already linked to this occurrence.' });
+      return;
+    }
+    const tenantId = this.systemAdmin ? row.tenantId : this.authService.getTenantId();
+    this.workOrderService
+      .createFromOccurrence({
+        tenantId: tenantId ?? undefined,
+        preventiveMaintenanceOccurrenceId: row.id,
+        title: row.scheduleName,
+        description: row.scheduleName
+      })
+      .subscribe({
+        next: (wo) => {
+          this.messages.add({ severity: 'success', summary: 'Work Order', detail: wo.workOrderNumber + ' created' });
+          this.load();
+          this.router.navigate(['/modules/work-orders']);
+        },
+        error: (e) =>
+          this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Could not create work order' })
+      });
   }
 
   startPm() {

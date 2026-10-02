@@ -47,6 +47,7 @@ export class AppMenu implements OnInit {
             { label: 'Checklists', icon: 'pi pi-fw pi-list-check', routerLink: ['/modules/maintenance-checklists'], visible: this.authService.hasPrefix('MaintenanceChecklist.') },
             { label: 'Maintenance Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/maintenance-types'], visible: this.authService.hasPrefix('MaintenanceType.') },
             { label: 'Maintenance Calendar', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-calendar'], visible: this.authService.hasPrefix('PreventiveMaintenance.') },
+            { label: 'Work Orders', icon: 'pi pi-fw pi-briefcase', routerLink: ['/modules/work-orders'], visible: this.authService.hasPrefix('WorkOrder.') },
             { label: 'Issues / Breakdowns', icon: 'pi pi-fw pi-exclamation-circle', routerLink: ['/modules/issues'], visible: this.authService.hasPrefix('AssetIssue.') },
             { label: 'Issue Categories', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/issue-categories'], visible: this.authService.hasPrefix('IssueCategory.') }
         ].filter((item) => item.visible !== false);

@@ -89,6 +89,7 @@ export interface PreventiveMaintenanceOccurrence {
   dueOperatingHours?: number | null;
   dueCycles?: number | null;
   status: number;
+  workOrderId?: number | null;
   startedAt?: string | null;
   completedAt?: string | null;
   remarks?: string;

@@ -24,6 +24,7 @@ import { PreventiveMaintenanceComponent } from './preventive-maintenance-compone
 import { MaintenanceCalendarComponent } from './maintenance-calendar-component/maintenance-calendar-component';
 import { IssueCategoryComponent } from './issue-category-component/issue-category-component';
 import { AssetIssueComponent } from './asset-issue-component/asset-issue-component';
+import { WorkOrderComponent } from './work-order-component/work-order-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -55,4 +56,5 @@ export const routes: Routes = [
   { path: 'maintenance-calendar', component: MaintenanceCalendarComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
   { path: 'issue-categories', component: IssueCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.IssueCategory.View] } },
   { path: 'issues', component: AssetIssueComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetIssue.View] } },
+  { path: 'work-orders', component: WorkOrderComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkOrder.View] } },
 ];

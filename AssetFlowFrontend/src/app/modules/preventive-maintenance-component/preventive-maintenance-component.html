@@ -78,7 +78,15 @@
       <td>
         <p-tag [value]="statusLabel(r.status)" [severity]="severity(r.status)" />
       </td>
-      <td class="text-end">
+      <td class="text-end flex gap-1 justify-end">
+        <ng-container *ngIf="!r.workOrderId">
+          <p-button
+            *appHasPermission="Permissions.WorkOrder.Create"
+            icon="pi pi-briefcase"
+            [rounded]="true"
+            [outlined]="true"
+            (onClick)="createWorkOrderFromPm(r)" />
+        </ng-container>
         <p-button
           *ngIf="r.status !== 4 && r.status !== 6"
           icon="pi pi-external-link"

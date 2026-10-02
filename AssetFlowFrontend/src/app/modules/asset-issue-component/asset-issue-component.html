@@ -268,7 +268,13 @@
         <textarea pTextarea [(ngModel)]="statusRemarks" rows="2" placeholder="Remarks (optional)"></textarea>
         <p-button label="Update Status" icon="pi pi-check" (onClick)="applyStatusChange()" />
       </div>
-      <div class="flex justify-end gap-2">
+      <div class="flex justify-end gap-2 flex-wrap">
+        <p-button
+          *appHasPermission="Permissions.WorkOrder.Create"
+          label="Create Work Order"
+          icon="pi pi-briefcase"
+          [style.display]="canCreateWorkOrder ? '' : 'none'"
+          (onClick)="createWorkOrderFromIssue()" />
         <p-button
           *appHasPermission="Permissions.AssetIssue.Update"
           label="Edit"

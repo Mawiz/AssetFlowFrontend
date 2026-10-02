@@ -1,0 +1,354 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
+import { ToolbarModule } from 'primeng/toolbar';
+import { ToastModule } from 'primeng/toast';
+import { SelectModule } from 'primeng/select';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
+import { DrawerModule } from 'primeng/drawer';
+import { TagModule } from 'primeng/tag';
+import { TimelineModule } from 'primeng/timeline';
+import { CheckboxModule } from 'primeng/checkbox';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { FileUploadModule } from 'primeng/fileupload';
+import { MessageService } from 'primeng/api';
+import { WorkOrderService } from '../../services/work-order-service';
+import { UserService } from '../../services/user-service';
+import { WorkOrder, WorkOrderFilter } from '../../model/work-order';
+import { HasPermissionDirective } from '@/directives/has-permission.directive';
+import { Permissions } from '@/constants/permissions';
+import { MetadataService } from '@/services/metadata-service';
+import { AuthService } from '@/services/auth-service';
+import { readPagedList } from '../../utils/paged-list';
+import { TenantDto } from '../../model/tenant';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments';
+import { Observable } from 'rxjs';
+
+type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+
+@Component({
+  selector: 'app-work-order-component',
+  standalone: true,
+  templateUrl: './work-order-component.html',
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    TableModule,
+    ButtonModule,
+    ToolbarModule,
+    ToastModule,
+    SelectModule,
+    InputTextModule,
+    TextareaModule,
+    DrawerModule,
+    TagModule,
+    TimelineModule,
+    CheckboxModule,
+    IconFieldModule,
+    InputIconModule,
+    FileUploadModule,
+    HasPermissionDirective
+  ],
+  providers: [MessageService]
+})
+export class WorkOrderComponent implements OnInit {
+  Permissions = Permissions;
+  rows = signal<WorkOrder[]>([]);
+  totalRecords = 0;
+  filter: WorkOrderFilter = { pageNumber: 1, pageSize: 15, searchText: '', tenantId: null };
+  systemAdmin = false;
+  tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
+  statusOptions: { label: string; value: number | null }[] = [{ label: 'All', value: null }];
+  sourceOptions: { label: string; value: number | null }[] = [{ label: 'All sources', value: null }];
+  priorityOptions: { label: string; value: number }[] = [];
+  assetStatusOptions: { label: string; value: number }[] = [];
+  statusMap = new Map<number, string>();
+  sourceMap = new Map<number, string>();
+  priorityMap = new Map<number, string>();
+  engineers: { label: string; value: number }[] = [];
+
+  detailVisible = false;
+  active: WorkOrder | null = null;
+  actionRemarks = '';
+  assignToUserId: number | null = null;
+  diagnosisForm = {
+    initialProblem: '',
+    diagnosis: '',
+    rootCause: '',
+    actionTaken: '',
+    finalResult: '',
+    remarks: ''
+  };
+  completeForm = { workPerformed: '', finalResult: '', remarks: '', assetStatusAfterWork: null as number | null };
+  approveForm = { approvalRemarks: '', restoreAssetOperational: true };
+  rejectReason = '';
+  myAssignmentsOnly = false;
+
+  constructor(
+    private service: WorkOrderService,
+    private userService: UserService,
+    private metadata: MetadataService,
+    private authService: AuthService,
+    private messages: MessageService,
+    private http: HttpClient
+  ) {}
+
+  ngOnInit() {
+    this.systemAdmin = this.authService.systemAdminPermissions();
+    if (this.systemAdmin) this.loadTenants();
+    this.metadata.getEnums().subscribe((res: unknown) => {
+      const data = (res as { result?: unknown })?.result ?? res;
+      const enums = data as Record<string, { text: string; value: number }[]>;
+      (enums?.['WorkOrderStatus'] ?? []).forEach((x) => {
+        this.statusMap.set(x.value, x.text);
+        this.statusOptions.push({ label: x.text, value: x.value });
+      });
+      (enums?.['WorkOrderSourceType'] ?? []).forEach((x) => {
+        this.sourceMap.set(x.value, x.text);
+        this.sourceOptions.push({ label: x.text, value: x.value });
+      });
+      this.priorityOptions = (enums?.['IssuePriority'] ?? []).map((x) => ({ label: x.text, value: x.value }));
+      this.assetStatusOptions = (enums?.['AssetStatus'] ?? []).map((x) => ({ label: x.text, value: x.value }));
+      enums?.['IssuePriority']?.forEach((x) => this.priorityMap.set(x.value, x.text));
+    });
+    this.loadEngineers();
+    this.load();
+  }
+
+  loadTenants() {
+    this.metadata.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
+      next: (res) => {
+        const tenants = res.result?.metaResult[0]?.data || [];
+        this.tenantFilterOptions = [
+          { label: 'All tenants', value: null },
+          ...tenants.map((t: TenantDto) => ({
+            label: (t as { displayName?: string }).displayName || t.companyName || String(t.id),
+            value: t.id
+          }))
+        ];
+      }
+    });
+  }
+
+  loadEngineers() {
+    const tenantId = this.systemAdmin ? this.filter.tenantId : this.authService.getTenantId();
+    this.userService.filter({ pageNumber: 1, pageSize: 200, tenantId: tenantId ?? null, isActive: true }).subscribe({
+      next: (page) => {
+        const { rows } = readPagedList<any>(page?.result ?? page);
+        this.engineers = rows.map((u: any) => ({
+          label: u.fullName || u.userName || String(u.id),
+          value: u.id
+        }));
+      }
+    });
+  }
+
+  load() {
+    this.filter.myAssignmentsOnly = this.myAssignmentsOnly || undefined;
+    this.service.filter(this.filter).subscribe({
+      next: (page) => {
+        const { rows, total } = readPagedList<WorkOrder>(page);
+        this.rows.set(rows);
+        this.totalRecords = total;
+      }
+    });
+  }
+
+  onSearch() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  onFilterChange() {
+    this.filter.pageNumber = 1;
+    this.loadEngineers();
+    this.load();
+  }
+
+  openDetail(row: WorkOrder) {
+    this.service.getById(row.id).subscribe((wo) => {
+      this.active = wo;
+      this.patchForms(wo);
+      this.detailVisible = true;
+    });
+  }
+
+  patchForms(wo: WorkOrder) {
+    this.assignToUserId = wo.assignedToUserId ?? null;
+    this.diagnosisForm = {
+      initialProblem: wo.diagnosis?.initialProblem ?? wo.issueDescription ?? '',
+      diagnosis: wo.diagnosis?.diagnosis ?? '',
+      rootCause: wo.diagnosis?.rootCause ?? '',
+      actionTaken: wo.diagnosis?.actionTaken ?? '',
+      finalResult: wo.diagnosis?.finalResult ?? wo.finalResult ?? '',
+      remarks: wo.diagnosis?.remarks ?? ''
+    };
+    this.completeForm = {
+      workPerformed: wo.workPerformed ?? '',
+      finalResult: wo.finalResult ?? '',
+      remarks: wo.remarks ?? '',
+      assetStatusAfterWork: wo.assetStatusAfterWork ?? null
+    };
+  }
+
+  refreshActive() {
+    if (!this.active) return;
+    this.service.getById(this.active.id).subscribe((wo) => {
+      this.active = wo;
+      this.patchForms(wo);
+      this.load();
+    });
+  }
+
+  hideDetail() {
+    this.detailVisible = false;
+    this.active = null;
+  }
+
+  runAction(call: () => Observable<WorkOrder>, success: string) {
+    if (!this.active) return;
+    call().subscribe({
+      next: () => {
+        this.messages.add({ severity: 'success', summary: 'Success', detail: success });
+        this.refreshActive();
+      },
+      error: (e) => this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Action failed' })
+    });
+  }
+
+  doAssign(reassign: boolean) {
+    if (!this.active || !this.assignToUserId) return;
+    const dto = { id: this.active.id, assignedToUserId: this.assignToUserId, remarks: this.actionRemarks };
+    this.runAction(() => (reassign ? this.service.reassign(dto) : this.service.assign(dto)), reassign ? 'Reassigned' : 'Assigned');
+  }
+
+  doAccept() {
+    if (!this.active) return;
+    this.runAction(() => this.service.accept({ id: this.active!.id, remarks: this.actionRemarks }), 'Accepted');
+  }
+
+  doStart() {
+    if (!this.active) return;
+    this.runAction(() => this.service.start({ id: this.active!.id, remarks: this.actionRemarks }), 'Work started');
+  }
+
+  doPause() {
+    if (!this.active) return;
+    this.runAction(() => this.service.pause({ id: this.active!.id, remarks: this.actionRemarks }), 'Paused');
+  }
+
+  doWaitingForParts() {
+    if (!this.active) return;
+    this.runAction(() => this.service.waitingForParts({ id: this.active!.id, remarks: this.actionRemarks }), 'Waiting for parts');
+  }
+
+  doResume() {
+    if (!this.active) return;
+    this.runAction(() => this.service.resume({ id: this.active!.id, remarks: this.actionRemarks }), 'Resumed');
+  }
+
+  saveDiagnosis() {
+    if (!this.active) return;
+    this.runAction(
+      () =>
+        this.service.upsertDiagnosis({
+          workOrderId: this.active!.id,
+          ...this.diagnosisForm
+        }),
+      'Diagnosis saved'
+    );
+  }
+
+  doComplete() {
+    if (!this.active) return;
+    this.runAction(() => this.service.complete({ id: this.active!.id, ...this.completeForm }), 'Submitted for approval');
+  }
+
+  doApprove() {
+    if (!this.active) return;
+    this.runAction(
+      () =>
+        this.service.approve({
+          id: this.active!.id,
+          approvalRemarks: this.approveForm.approvalRemarks,
+          restoreAssetOperational: this.approveForm.restoreAssetOperational
+        }),
+      'Approved and closed'
+    );
+  }
+
+  doReject() {
+    if (!this.active) return;
+    this.runAction(() => this.service.reject({ id: this.active!.id, rejectionReason: this.rejectReason }), 'Rejected');
+  }
+
+  doReopen() {
+    if (!this.active) return;
+    this.runAction(() => this.service.reopen({ id: this.active!.id, remarks: this.actionRemarks }), 'Reopened');
+  }
+
+  uploadFile(event: { files: File[] }) {
+    if (!this.active) return;
+    for (const file of event.files) {
+      this.service.uploadAttachment(this.active.id, file).subscribe({
+        next: () => this.refreshActive(),
+        error: () => this.messages.add({ severity: 'error', summary: 'Upload failed', detail: file.name })
+      });
+    }
+  }
+
+  downloadAttachment(id: number, fileName: string) {
+    const url = `${environment.apiUrl}/workorder/attachments/${id}/download`;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    });
+  }
+
+  timelineEvents() {
+    if (!this.active?.statusHistory?.length) return [];
+    return this.active.statusHistory.map((h) => ({
+      status: this.labelStatus(h.toStatus),
+      date: h.changedAt,
+      description: `${h.changedByUserName || 'User'}: ${h.remarks || ''}`
+    }));
+  }
+
+  labelStatus(v: number): string {
+    return this.statusMap.get(v) ?? String(v);
+  }
+
+  labelSource(v: number): string {
+    return this.sourceMap.get(v) ?? String(v);
+  }
+
+  labelPriority(v: number): string {
+    return this.priorityMap.get(v) ?? String(v);
+  }
+
+  statusSeverity(status: number): TagSeverity {
+    if (status === 13) return 'success';
+    if (status === 12 || status === 10) return 'secondary';
+    if (status === 6 || status === 7) return 'warn';
+    if (status === 8) return 'info';
+    return 'info';
+  }
+
+  onPage(event: { page?: number; rows?: number; first?: number }) {
+    this.filter.pageNumber = event.page != null ? event.page + 1 : Math.floor((event.first ?? 0) / (event.rows ?? 15)) + 1;
+    this.filter.pageSize = event.rows ?? 15;
+    this.load();
+  }
+}
