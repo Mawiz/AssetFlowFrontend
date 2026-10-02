@@ -125,5 +125,17 @@ export const Permissions = {
     Update: 'PreventiveMaintenance.Update',
     Complete: 'PreventiveMaintenance.Complete',
     Generate: 'PreventiveMaintenance.Generate'
+  },
+  IssueCategory: {
+    Create: 'IssueCategory.Create',
+    Update: 'IssueCategory.Update',
+    View: 'IssueCategory.View',
+    Delete: 'IssueCategory.Delete'
+  },
+  AssetIssue: {
+    Create: 'AssetIssue.Create',
+    Update: 'AssetIssue.Update',
+    View: 'AssetIssue.View',
+    Delete: 'AssetIssue.Delete'
   }
 } as const;

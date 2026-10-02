@@ -1,0 +1,126 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button
+      *appHasPermission="Permissions.IssueCategory.Create"
+      label="New"
+      icon="pi pi-plus"
+      severity="secondary"
+      (onClick)="openNew()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 20, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Issue Categories</h5>
+      <div class="flex gap-2 flex-wrap items-center">
+        <p-select
+          *ngIf="systemAdmin"
+          [options]="tenantFilterOptions"
+          [(ngModel)]="filter.tenantId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All tenants"
+          [style]="{ minWidth: '12rem' }"
+          (onChange)="onTenantFilterChange()" />
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+        </p-iconfield>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template #header>
+    <tr>
+      <th>Code</th>
+      <th>Name</th>
+      <th *ngIf="systemAdmin">Tenant</th>
+      <th>Sort</th>
+      <th>Active</th>
+      <th style="width: 8rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr>
+      <td>{{ item.code }}</td>
+      <td>{{ item.name }}</td>
+      <td *ngIf="systemAdmin">{{ item.tenantName || '-' }}</td>
+      <td>{{ item.sortOrder }}</td>
+      <td>
+        <p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" />
+      </td>
+      <td class="text-end">
+        <p-button
+          *appHasPermission="Permissions.IssueCategory.Update"
+          icon="pi pi-pencil"
+          class="mr-2"
+          [rounded]="true"
+          [outlined]="true"
+          (onClick)="editItem(item)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer
+  [(visible)]="drawerVisible"
+  position="right"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '400px' }"
+  [header]="isEditing ? 'Edit Issue Category' : 'Create Issue Category'">
+  <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+      <label for="icTenant">Tenant</label>
+      <p-select
+        inputId="icTenant"
+        formControlName="tenantId"
+        [options]="tenantsForForm"
+        optionLabel="displayName"
+        optionValue="id"
+        placeholder="Select tenant"
+        appendTo="body"
+        styleClass="w-full" />
+      <small *ngIf="submitted && form.controls['tenantId'].invalid" class="text-red-500">Tenant is required.</small>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="icCode">Code</label>
+      <input pInputText id="icCode" formControlName="code" />
+      <small *ngIf="submitted && form.controls['code'].invalid" class="text-red-500">Code is required.</small>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="icName">Name</label>
+      <input pInputText id="icName" formControlName="name" />
+      <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">Name is required.</small>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="icDescription">Description</label>
+      <textarea pTextarea id="icDescription" formControlName="description" rows="3"></textarea>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="icSort">Sort order</label>
+      <p-inputNumber inputId="icSort" formControlName="sortOrder" styleClass="w-full" />
+    </div>
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" inputId="icActive" [binary]="true"></p-checkbox>
+      <label for="icActive">Active</label>
+    </div>
+    <div class="mt-4 flex justify-end gap-2">
+      <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDrawer()" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="save()" />
+    </div>
+  </form>
+</p-drawer>
+
+<p-toast />

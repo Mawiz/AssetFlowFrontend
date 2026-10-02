@@ -46,7 +46,9 @@ export class AppMenu implements OnInit {
             { label: 'Maintenance Schedules', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-schedules'], visible: this.authService.hasPrefix('MaintenanceSchedule.') },
             { label: 'Checklists', icon: 'pi pi-fw pi-list-check', routerLink: ['/modules/maintenance-checklists'], visible: this.authService.hasPrefix('MaintenanceChecklist.') },
             { label: 'Maintenance Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/maintenance-types'], visible: this.authService.hasPrefix('MaintenanceType.') },
-            { label: 'Maintenance Calendar', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-calendar'], visible: this.authService.hasPrefix('PreventiveMaintenance.') }
+            { label: 'Maintenance Calendar', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-calendar'], visible: this.authService.hasPrefix('PreventiveMaintenance.') },
+            { label: 'Issues / Breakdowns', icon: 'pi pi-fw pi-exclamation-circle', routerLink: ['/modules/issues'], visible: this.authService.hasPrefix('AssetIssue.') },
+            { label: 'Issue Categories', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/issue-categories'], visible: this.authService.hasPrefix('IssueCategory.') }
         ].filter((item) => item.visible !== false);
 
         const sparePartItems: MenuItem[] = [

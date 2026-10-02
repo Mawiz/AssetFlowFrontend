@@ -22,6 +22,8 @@ import { MaintenanceChecklistComponent } from './maintenance-checklist-component
 import { MaintenanceScheduleComponent } from './maintenance-schedule-component/maintenance-schedule-component';
 import { PreventiveMaintenanceComponent } from './preventive-maintenance-component/preventive-maintenance-component';
 import { MaintenanceCalendarComponent } from './maintenance-calendar-component/maintenance-calendar-component';
+import { IssueCategoryComponent } from './issue-category-component/issue-category-component';
+import { AssetIssueComponent } from './asset-issue-component/asset-issue-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -51,4 +53,6 @@ export const routes: Routes = [
   { path: 'maintenance-schedules', component: MaintenanceScheduleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.MaintenanceSchedule.View] } },
   { path: 'preventive-maintenance', component: PreventiveMaintenanceComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
   { path: 'maintenance-calendar', component: MaintenanceCalendarComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
+  { path: 'issue-categories', component: IssueCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.IssueCategory.View] } },
+  { path: 'issues', component: AssetIssueComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetIssue.View] } },
 ];
