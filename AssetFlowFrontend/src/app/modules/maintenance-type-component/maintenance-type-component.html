@@ -1,41 +1,100 @@
 <p-toolbar styleClass="mb-4">
   <ng-template #start>
-    <p-button *appHasPermission="Permissions.MaintenanceType.Create" label="New" icon="pi pi-plus" (onClick)="openNew()" />
+    <p-button
+      *appHasPermission="Permissions.MaintenanceType.Create"
+      label="New"
+      icon="pi pi-plus"
+      severity="secondary"
+      (onClick)="openNew()" />
   </ng-template>
 </p-toolbar>
 
-<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 20, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
   <ng-template #caption>
-    <div class="grid align-items-center">
-      <div class="col-12 md:col-6"><h5 class="m-0">Maintenance Types</h5></div>
-      <div class="col-12 md:col-6 text-right">
-        <input pInputText [(ngModel)]="filter.searchText" placeholder="Search..." (keydown.enter)="load()" />
-        <p-button icon="pi pi-search" class="ml-2" (onClick)="load()" />
-      </div>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Maintenance Types</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+      </p-iconfield>
     </div>
   </ng-template>
   <ng-template #header>
-    <tr><th>Code</th><th>Name</th><th>Sort</th><th>Active</th><th></th></tr>
-  </ng-template>
-  <ng-template #body let-r>
     <tr>
-      <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.sortOrder }}</td><td>{{ r.isActive ? 'Yes' : 'No' }}</td>
-      <td><p-button *appHasPermission="Permissions.MaintenanceType.Update" icon="pi pi-pencil" [text]="true" (onClick)="openEdit(r)" /></td>
+      <th>Code</th>
+      <th>Name</th>
+      <th>Sort</th>
+      <th>Active</th>
+      <th style="width: 8rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr>
+      <td>{{ item.code }}</td>
+      <td>{{ item.name }}</td>
+      <td>{{ item.sortOrder }}</td>
+      <td>
+        <p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" />
+      </td>
+      <td class="text-end">
+        <p-button
+          *appHasPermission="Permissions.MaintenanceType.Update"
+          icon="pi pi-pencil"
+          class="mr-2"
+          [rounded]="true"
+          [outlined]="true"
+          (onClick)="editItem(item)" />
+      </td>
     </tr>
   </ng-template>
 </p-table>
 
-<p-drawer [(visible)]="drawerVisible" header="Maintenance Type" [style]="{ width: '24rem' }">
-  <div class="grid formgrid p-fluid">
-    <div class="field col-12"><label>Code</label><input pInputText [(ngModel)]="editModel.code" /></div>
-    <div class="field col-12"><label>Name</label><input pInputText [(ngModel)]="editModel.name" /></div>
-    <div class="field col-12"><label>Description</label><textarea pTextarea rows="3" [(ngModel)]="editModel.description"></textarea></div>
-    <div class="field col-12"><label>Sort order</label><p-inputNumber [(ngModel)]="editModel.sortOrder" /></div>
-    <div class="field col-12">
-      <p-checkbox inputId="mtActive" [binary]="true" [(ngModel)]="editModel.isActive"></p-checkbox>
-      <label for="mtActive" class="ml-2">Active</label>
+<p-drawer
+  [(visible)]="drawerVisible"
+  position="right"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '400px' }"
+  [header]="isEditing ? 'Edit Maintenance Type' : 'Create Maintenance Type'">
+  <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2">
+      <label for="mtCode">Code</label>
+      <input pInputText id="mtCode" formControlName="code" />
+      <small *ngIf="submitted && form.controls['code'].invalid" class="text-red-500">Code is required.</small>
     </div>
-  </div>
-  <div class="text-right mt-3"><p-button label="Save" (onClick)="save()" /></div>
+    <div class="flex flex-col gap-2">
+      <label for="mtName">Name</label>
+      <input pInputText id="mtName" formControlName="name" />
+      <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">Name is required.</small>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="mtDescription">Description</label>
+      <textarea pTextarea id="mtDescription" formControlName="description" rows="3"></textarea>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label for="mtSort">Sort order</label>
+      <p-inputNumber inputId="mtSort" formControlName="sortOrder" styleClass="w-full" />
+    </div>
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" inputId="mtActive" [binary]="true"></p-checkbox>
+      <label for="mtActive">Active</label>
+    </div>
+    <div class="mt-4 flex justify-end gap-2">
+      <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDrawer()" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="save()" />
+    </div>
+  </form>
 </p-drawer>
+
 <p-toast />

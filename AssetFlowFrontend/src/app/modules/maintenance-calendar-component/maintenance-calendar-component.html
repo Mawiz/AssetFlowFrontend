@@ -1,15 +1,33 @@
-<h5>Maintenance Calendar (next 90 days)</h5>
-<p-table [value]="rows()" sortField="start" [sortOrder]="1">
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <h5 class="m-0">Maintenance Calendar (next 90 days)</h5>
+  </ng-template>
+  <ng-template #end>
+    <p-button label="Open PM list" icon="pi pi-list" [outlined]="true" routerLink="/modules/preventive-maintenance" />
+  </ng-template>
+</p-toolbar>
+
+<p-table [value]="rows()" sortField="start" [sortOrder]="1" [rowHover]="true" dataKey="id">
   <ng-template #header>
-    <tr><th>Date</th><th>Event</th><th>Asset</th><th>Status</th><th></th></tr>
+    <tr>
+      <th pSortableColumn="start">Date <p-sortIcon field="start" /></th>
+      <th>Event</th>
+      <th>Asset</th>
+      <th>Status</th>
+      <th style="width: 8rem"></th>
+    </tr>
   </ng-template>
   <ng-template #body let-r>
     <tr>
-      <td>{{ r.start | date:'mediumDate' }}</td>
+      <td>{{ r.start | date: 'mediumDate' }}</td>
       <td>{{ r.title }}</td>
       <td>{{ r.assetCode }}</td>
-      <td>{{ statusLabel(r.status) }}</td>
-      <td><a routerLink="/modules/preventive-maintenance">Open PM</a></td>
+      <td>
+        <p-tag [value]="statusLabel(r.status)" [severity]="severity(r.status)" />
+      </td>
+      <td class="text-end">
+        <p-button icon="pi pi-external-link" label="PM" [rounded]="true" [outlined]="true" routerLink="/modules/preventive-maintenance" />
+      </td>
     </tr>
   </ng-template>
 </p-table>

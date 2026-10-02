@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +13,9 @@ import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { MessageService } from 'primeng/api';
 import { MaintenanceScheduleService } from '../../services/maintenance-schedule-service';
 import { MaintenanceTypeService } from '../../services/maintenance-type-service';
@@ -32,6 +36,7 @@ import { Asset } from '../../model/asset';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     TableModule,
     ButtonModule,
     ToolbarModule,
@@ -43,6 +48,9 @@ import { Asset } from '../../model/asset';
     InputNumberModule,
     DatePickerModule,
     CheckboxModule,
+    TagModule,
+    IconFieldModule,
+    InputIconModule,
     HasPermissionDirective
   ],
   providers: [MessageService]
@@ -53,7 +61,9 @@ export class MaintenanceScheduleComponent implements OnInit {
   totalRecords = 0;
   filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '' };
   drawerVisible = false;
-  editModel: any = { intervalValue: 1, generationHorizonDays: 90, isActive: true, recurrenceType: 3, startDate: new Date() };
+  isEditing = false;
+  submitted = false;
+  form!: FormGroup;
   recurrenceTypes: { label: string; value: number }[] = [];
   weekDays = [
     { label: 'Sunday', value: 0 },
@@ -74,13 +84,16 @@ export class MaintenanceScheduleComponent implements OnInit {
     private typeService: MaintenanceTypeService,
     private checklistService: MaintenanceChecklistService,
     private metadata: MetadataService,
-    private messages: MessageService
+    private messages: MessageService,
+    private fb: FormBuilder
   ) {}
 
   ngOnInit() {
-    this.metadata.getEnums().subscribe((res: any) => {
-      const data = res?.result ?? res;
-      this.recurrenceTypes = (data?.MaintenanceRecurrenceType ?? []).map((x: any) => ({ label: x.text, value: x.value }));
+    this.initForm();
+    this.metadata.getEnums().subscribe((res: unknown) => {
+      const data = (res as { result?: unknown })?.result ?? res;
+      const enums = data as Record<string, { text: string; value: number }[]>;
+      this.recurrenceTypes = (enums?.['MaintenanceRecurrenceType'] ?? []).map((x) => ({ label: x.text, value: x.value }));
     });
     this.assetService.filter({ pageNumber: 1, pageSize: 500, isActive: true }).subscribe((a) => {
       const { rows } = readPagedList<Asset>(a);
@@ -91,14 +104,40 @@ export class MaintenanceScheduleComponent implements OnInit {
     this.load();
   }
 
-  get isWeekly() {
-    return this.editModel.recurrenceType === 2;
+  initForm() {
+    this.form = this.fb.group({
+      id: [null],
+      assetId: [null, Validators.required],
+      name: ['', Validators.required],
+      maintenanceTypeId: [null, Validators.required],
+      maintenanceChecklistId: [null],
+      recurrenceType: [3, Validators.required],
+      intervalValue: [1, [Validators.required, Validators.min(1)]],
+      dayOfWeek: [null],
+      startDate: [new Date(), Validators.required],
+      endDate: [null],
+      nextDueOperatingHours: [null],
+      nextDueCycles: [null],
+      description: [''],
+      isActive: [true],
+      generationHorizonDays: [90]
+    });
   }
-  get isMeterHours() {
-    return this.editModel.recurrenceType === 8;
+
+  get recurrenceType(): number {
+    return this.form.get('recurrenceType')?.value;
   }
-  get isMeterCycles() {
-    return this.editModel.recurrenceType === 9;
+
+  get isWeekly(): boolean {
+    return this.recurrenceType === 2;
+  }
+
+  get isMeterHours(): boolean {
+    return this.recurrenceType === 8;
+  }
+
+  get isMeterCycles(): boolean {
+    return this.recurrenceType === 9;
   }
 
   load() {
@@ -111,26 +150,56 @@ export class MaintenanceScheduleComponent implements OnInit {
     });
   }
 
+  onSearch() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
   openNew() {
-    this.editModel = { intervalValue: 1, generationHorizonDays: 90, isActive: true, recurrenceType: 3, startDate: new Date() };
+    this.isEditing = false;
+    this.submitted = false;
+    this.form.reset({
+      intervalValue: 1,
+      generationHorizonDays: 90,
+      isActive: true,
+      recurrenceType: 3,
+      startDate: new Date()
+    });
     this.drawerVisible = true;
   }
 
-  openEdit(row: MaintenanceSchedule) {
+  editItem(row: MaintenanceSchedule) {
+    this.isEditing = true;
+    this.submitted = false;
     this.service.getById(row.id).subscribe((s) => {
-      this.editModel = { ...s, startDate: s.startDate ? new Date(s.startDate) : new Date(), endDate: s.endDate ? new Date(s.endDate) : null };
+      this.form.patchValue({
+        ...s,
+        startDate: s.startDate ? new Date(s.startDate) : new Date(),
+        endDate: s.endDate ? new Date(s.endDate) : null
+      });
       this.drawerVisible = true;
     });
   }
 
+  hideDrawer() {
+    this.drawerVisible = false;
+    this.submitted = false;
+  }
+
   save() {
-    const payload = { ...this.editModel };
+    this.submitted = true;
+    if (this.isWeekly && this.form.get('dayOfWeek')?.value == null) {
+      this.messages.add({ severity: 'warn', summary: 'Validation', detail: 'Weekday is required for weekly schedules.' });
+      return;
+    }
+    if (this.form.invalid) return;
+    const payload = { ...this.form.getRawValue() };
     const obs = payload.id ? this.service.update(payload) : this.service.create(payload);
     obs.subscribe({
       next: () => {
-        this.drawerVisible = false;
+        this.hideDrawer();
         this.load();
-        this.messages.add({ severity: 'success', summary: 'Saved' });
+        this.messages.add({ severity: 'success', summary: 'Saved', detail: 'Maintenance schedule saved successfully' });
       },
       error: (e) => this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Save failed' })
     });
@@ -140,9 +209,9 @@ export class MaintenanceScheduleComponent implements OnInit {
     this.service.setActive(row.id, !row.isActive).subscribe(() => this.load());
   }
 
-  onPage(e: { first?: number; rows?: number }) {
-    this.filter.pageNumber = Math.floor((e.first ?? 0) / (e.rows ?? 10)) + 1;
-    this.filter.pageSize = e.rows ?? 10;
+  onPage(event: { page?: number; rows?: number; first?: number }) {
+    this.filter.pageNumber = event.page != null ? event.page + 1 : Math.floor((event.first ?? 0) / (event.rows ?? 10)) + 1;
+    this.filter.pageSize = event.rows ?? 10;
     this.load();
   }
 }

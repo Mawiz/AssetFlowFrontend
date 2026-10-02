@@ -1,45 +1,205 @@
 <p-toolbar styleClass="mb-4">
   <ng-template #start>
-    <p-button *appHasPermission="Permissions.MaintenanceSchedule.Create" label="New schedule" icon="pi pi-plus" (onClick)="openNew()" />
+    <p-button
+      *appHasPermission="Permissions.MaintenanceSchedule.Create"
+      label="New"
+      icon="pi pi-plus"
+      severity="secondary"
+      (onClick)="openNew()" />
   </ng-template>
 </p-toolbar>
 
-<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
-  <ng-template #header>
-    <tr><th>Asset</th><th>Schedule</th><th>Type</th><th>Frequency</th><th>Next due</th><th>Active</th><th></th></tr>
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 20, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Maintenance Schedules</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+      </p-iconfield>
+    </div>
   </ng-template>
-  <ng-template #body let-r>
+  <ng-template #header>
     <tr>
-      <td>{{ r.assetCode }}</td><td>{{ r.name }}</td><td>{{ r.maintenanceTypeName }}</td><td>{{ r.frequencyDisplay }}</td>
-      <td>{{ r.nextDueDate ? (r.nextDueDate | date:'mediumDate') : (r.nextDueOperatingHours ?? r.nextDueCycles ?? '—') }}</td>
-      <td>{{ r.isActive ? 'Yes' : 'No' }}</td>
+      <th>Asset</th>
+      <th>Schedule</th>
+      <th>Type</th>
+      <th>Frequency</th>
+      <th>Next due</th>
+      <th>Checklist</th>
+      <th>Active</th>
+      <th style="width: 10rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr>
+      <td>{{ item.assetCode }}</td>
+      <td>{{ item.name }}</td>
+      <td>{{ item.maintenanceTypeName }}</td>
+      <td>{{ item.frequencyDisplay }}</td>
+      <td>{{ item.nextDueDate ? (item.nextDueDate | date: 'mediumDate') : (item.nextDueOperatingHours ?? item.nextDueCycles ?? '—') }}</td>
+      <td>{{ item.checklistName || '—' }}</td>
       <td>
-        <p-button icon="pi pi-pencil" [text]="true" (onClick)="openEdit(r)" />
-        <p-button [label]="r.isActive ? 'Deactivate' : 'Activate'" [text]="true" (onClick)="toggleActive(r)" />
+        <p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" />
+      </td>
+      <td class="text-end">
+        <p-button
+          *appHasPermission="Permissions.MaintenanceSchedule.Update"
+          icon="pi pi-pencil"
+          class="mr-2"
+          [rounded]="true"
+          [outlined]="true"
+          (onClick)="editItem(item)" />
+        <p-button
+          *appHasPermission="Permissions.MaintenanceSchedule.Update"
+          [icon]="item.isActive ? 'pi pi-ban' : 'pi pi-check'"
+          [rounded]="true"
+          [outlined]="true"
+          [severity]="item.isActive ? 'warn' : 'success'"
+          (onClick)="toggleActive(item)" />
       </td>
     </tr>
   </ng-template>
 </p-table>
 
-<p-drawer [(visible)]="drawerVisible" header="Maintenance Schedule" [style]="{ width: '32rem' }">
-  <div class="grid formgrid p-fluid">
-    <div class="field col-12"><label>Asset</label><p-select [options]="assets" [(ngModel)]="editModel.assetId" optionLabel="label" optionValue="value" appendTo="body" /></div>
-    <div class="field col-12"><label>Schedule name</label><input pInputText [(ngModel)]="editModel.name" /></div>
-    <div class="field col-12"><label>Maintenance type</label><p-select [options]="types" [(ngModel)]="editModel.maintenanceTypeId" optionLabel="label" optionValue="value" appendTo="body" /></div>
-    <div class="field col-12"><label>Checklist</label><p-select [options]="checklists" [(ngModel)]="editModel.maintenanceChecklistId" optionLabel="label" optionValue="value" [showClear]="true" appendTo="body" /></div>
-    <div class="field col-12"><label>Frequency</label><p-select [options]="recurrenceTypes" [(ngModel)]="editModel.recurrenceType" optionLabel="label" optionValue="value" appendTo="body" /></div>
-    <div class="field col-12 md:col-6"><label>Interval</label><p-inputNumber [(ngModel)]="editModel.intervalValue" [min]="1" /></div>
-    <div class="field col-12 md:col-6" *ngIf="isWeekly"><label>Weekday</label><p-select [options]="weekDays" [(ngModel)]="editModel.dayOfWeek" optionLabel="label" optionValue="value" appendTo="body" /></div>
-    <div class="field col-12 md:col-6"><label>Start date</label><p-datepicker [(ngModel)]="editModel.startDate" appendTo="body" /></div>
-    <div class="field col-12 md:col-6"><label>End date</label><p-datepicker [(ngModel)]="editModel.endDate" appendTo="body" [showClear]="true" /></div>
-    <div class="field col-12" *ngIf="isMeterHours"><label>Next due operating hours</label><p-inputNumber [(ngModel)]="editModel.nextDueOperatingHours" /></div>
-    <div class="field col-12" *ngIf="isMeterCycles"><label>Next due cycles</label><p-inputNumber [(ngModel)]="editModel.nextDueCycles" /></div>
-    <div class="field col-12"><label>Description</label><textarea pTextarea rows="2" [(ngModel)]="editModel.description"></textarea></div>
-    <div class="field col-12">
-      <p-checkbox inputId="msActive" [binary]="true" [(ngModel)]="editModel.isActive"></p-checkbox>
-      <label for="msActive" class="ml-2">Active</label>
+<p-drawer
+  [(visible)]="drawerVisible"
+  position="right"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '480px' }"
+  [header]="isEditing ? 'Edit Maintenance Schedule' : 'Create Maintenance Schedule'">
+  <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2">
+      <label for="msAsset">Asset</label>
+      <p-select
+        inputId="msAsset"
+        formControlName="assetId"
+        [options]="assets"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select asset"
+        appendTo="body"
+        styleClass="w-full" />
+      <small *ngIf="submitted && form.controls['assetId'].invalid" class="text-red-500">Asset is required.</small>
     </div>
-  </div>
-  <div class="text-right mt-3"><p-button label="Save" (onClick)="save()" /></div>
+
+    <div class="flex flex-col gap-2">
+      <label for="msName">Schedule name</label>
+      <input pInputText id="msName" formControlName="name" />
+      <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">Schedule name is required.</small>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="msType">Maintenance type</label>
+        <p-select
+          inputId="msType"
+          formControlName="maintenanceTypeId"
+          [options]="types"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select type"
+          appendTo="body"
+          styleClass="w-full" />
+        <small *ngIf="submitted && form.controls['maintenanceTypeId'].invalid" class="text-red-500">Maintenance type is required.</small>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label for="msChecklist">Checklist</label>
+        <p-select
+          inputId="msChecklist"
+          formControlName="maintenanceChecklistId"
+          [options]="checklists"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Optional"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="msFrequency">Frequency</label>
+        <p-select
+          inputId="msFrequency"
+          formControlName="recurrenceType"
+          [options]="recurrenceTypes"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select frequency"
+          appendTo="body"
+          styleClass="w-full" />
+        <small *ngIf="submitted && form.controls['recurrenceType'].invalid" class="text-red-500">Frequency is required.</small>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label for="msInterval">Interval</label>
+        <p-inputNumber inputId="msInterval" formControlName="intervalValue" [min]="1" styleClass="w-full" />
+        <small *ngIf="submitted && form.controls['intervalValue'].invalid" class="text-red-500">Interval must be at least 1.</small>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2" *ngIf="isWeekly">
+      <label for="msWeekday">Weekday</label>
+      <p-select
+        inputId="msWeekday"
+        formControlName="dayOfWeek"
+        [options]="weekDays"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select weekday"
+        appendTo="body"
+        styleClass="w-full" />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="msStart">Start date</label>
+        <p-datepicker inputId="msStart" formControlName="startDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body" styleClass="w-full" />
+        <small *ngIf="submitted && form.controls['startDate'].invalid" class="text-red-500">Start date is required.</small>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label for="msEnd">End date</label>
+        <p-datepicker inputId="msEnd" formControlName="endDate" dateFormat="dd/mm/yy" [showIcon]="true" [showClear]="true" appendTo="body" styleClass="w-full" />
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2" *ngIf="isMeterHours">
+      <label for="msHours">Next due operating hours</label>
+      <p-inputNumber inputId="msHours" formControlName="nextDueOperatingHours" styleClass="w-full" />
+    </div>
+    <div class="flex flex-col gap-2" *ngIf="isMeterCycles">
+      <label for="msCycles">Next due cycles</label>
+      <p-inputNumber inputId="msCycles" formControlName="nextDueCycles" styleClass="w-full" />
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label for="msDescription">Description</label>
+      <textarea pTextarea id="msDescription" formControlName="description" rows="3"></textarea>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" inputId="msActive" [binary]="true"></p-checkbox>
+      <label for="msActive">Active</label>
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDrawer()" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="save()" />
+    </div>
+  </form>
 </p-drawer>
+
 <p-toast />

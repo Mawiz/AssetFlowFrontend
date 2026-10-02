@@ -1,17 +1,32 @@
-<h6>Preventive Maintenance</h6>
-<ng-container *ngIf="summary as s">
-  <p *ngIf="s.nextOccurrence as next">Next: {{ next.maintenanceTypeName }} — {{ next.dueDate | date: 'mediumDate' }}</p>
-  <p-table [value]="s.activeSchedules">
-    <ng-template #header>
-      <tr><th>Schedule</th><th>Frequency</th><th>Next due</th></tr>
-    </ng-template>
-    <ng-template #body let-row>
-      <tr>
-        <td>{{ row.name }}</td>
-        <td>{{ row.frequencyDisplay }}</td>
-        <td>{{ row.nextDueDate | date: 'mediumDate' }}</td>
-      </tr>
-    </ng-template>
-  </p-table>
-</ng-container>
-<a *ngIf="assetId" routerLink="/modules/maintenance-schedules" [queryParams]="{ assetId: assetId }">View schedules</a>
+<div class="flex flex-col gap-3">
+  <h6 class="m-0">Preventive Maintenance</h6>
+  <ng-container *ngIf="summary as s">
+    <p *ngIf="s.nextOccurrence as next" class="m-0">
+      Next: <strong>{{ next.maintenanceTypeName }}</strong> — {{ next.dueDate | date: 'mediumDate' }}
+    </p>
+    <p-table [value]="s.activeSchedules" [rowHover]="true">
+      <ng-template #header>
+        <tr>
+          <th>Schedule</th>
+          <th>Frequency</th>
+          <th>Next due</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.name }}</td>
+          <td>{{ row.frequencyDisplay }}</td>
+          <td>{{ row.nextDueDate | date: 'mediumDate' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </ng-container>
+  <p-button
+    *ngIf="assetId"
+    label="View schedules"
+    icon="pi pi-calendar"
+    [outlined]="true"
+    size="small"
+    routerLink="/modules/maintenance-schedules"
+    [queryParams]="{ assetId: assetId }" />
+</div>

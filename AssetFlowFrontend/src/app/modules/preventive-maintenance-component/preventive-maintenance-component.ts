@@ -11,6 +11,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DrawerModule } from 'primeng/drawer';
 import { TagModule } from 'primeng/tag';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { MessageService } from 'primeng/api';
 import { PreventiveMaintenanceService } from '../../services/preventive-maintenance-service';
 import { PreventiveMaintenanceOccurrence, PreventiveMaintenanceFilter } from '../../model/maintenance';
@@ -49,6 +51,8 @@ interface ExecuteChecklistRow {
     InputNumberModule,
     DrawerModule,
     TagModule,
+    IconFieldModule,
+    InputIconModule,
     HasPermissionDirective
   ],
   providers: [MessageService]
@@ -88,6 +92,38 @@ export class PreventiveMaintenanceComponent implements OnInit {
     });
   }
 
+  onSearch() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  onFilterChange() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  clearQuickFilters() {
+    this.filter.overdueOnly = false;
+    this.filter.upcomingOnly = false;
+    this.filter.status = null;
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  setOverdueFilter() {
+    this.filter.overdueOnly = true;
+    this.filter.upcomingOnly = false;
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  setUpcomingFilter() {
+    this.filter.upcomingOnly = true;
+    this.filter.overdueOnly = false;
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
   generate() {
     this.service.generate({}).subscribe({
       next: (r) => {
@@ -105,6 +141,7 @@ export class PreventiveMaintenanceComponent implements OnInit {
     if (v === 5) return 'danger';
     if (v === 2) return 'warn';
     if (v === 4) return 'success';
+    if (v === 6) return 'secondary';
     return 'info';
   }
 
@@ -157,9 +194,9 @@ export class PreventiveMaintenanceComponent implements OnInit {
     });
   }
 
-  onPage(e: { first?: number; rows?: number }) {
-    this.filter.pageNumber = Math.floor((e.first ?? 0) / (e.rows ?? 15)) + 1;
-    this.filter.pageSize = e.rows ?? 15;
+  onPage(event: { page?: number; rows?: number; first?: number }) {
+    this.filter.pageNumber = event.page != null ? event.page + 1 : Math.floor((event.first ?? 0) / (event.rows ?? 15)) + 1;
+    this.filter.pageSize = event.rows ?? 15;
     this.load();
   }
 }

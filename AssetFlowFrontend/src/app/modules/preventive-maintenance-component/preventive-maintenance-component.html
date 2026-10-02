@@ -1,51 +1,166 @@
 <p-toolbar styleClass="mb-4">
   <ng-template #start>
-    <p-button *appHasPermission="Permissions.PreventiveMaintenance.Generate" label="Generate PM" icon="pi pi-sync" (onClick)="generate()" />
+    <p-button
+      *appHasPermission="Permissions.PreventiveMaintenance.Generate"
+      label="Generate PM"
+      icon="pi pi-sync"
+      severity="secondary"
+      (onClick)="generate()" />
   </ng-template>
   <ng-template #end>
-    <p-select [options]="statusOptions" [(ngModel)]="filter.status" optionLabel="label" optionValue="value" placeholder="Status" (onChange)="load()" appendTo="body" />
-    <p-button label="Overdue" [outlined]="true" class="ml-2" (onClick)="filter.overdueOnly = true; filter.upcomingOnly = false; load()" />
-    <p-button label="Upcoming" [outlined]="true" class="ml-2" (onClick)="filter.upcomingOnly = true; filter.overdueOnly = false; load()" />
+    <div class="flex flex-wrap align-items-center gap-2">
+      <p-select
+        [options]="statusOptions"
+        [(ngModel)]="filter.status"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Status"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="min-w-[12rem]" />
+      <p-button label="All" [outlined]="true" (onClick)="clearQuickFilters()" />
+      <p-button label="Overdue" [outlined]="true" (onClick)="setOverdueFilter()" />
+      <p-button label="Upcoming" [outlined]="true" (onClick)="setUpcomingFilter()" />
+    </div>
   </ng-template>
 </p-toolbar>
 
-<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
-  <ng-template #caption><h5 class="m-0">Preventive Maintenance</h5></ng-template>
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 15, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Preventive Maintenance</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+      </p-iconfield>
+    </div>
+  </ng-template>
   <ng-template #header>
-    <tr><th>Asset</th><th>Maintenance</th><th>Due</th><th>Status</th><th></th></tr>
+    <tr>
+      <th>Asset</th>
+      <th>Schedule</th>
+      <th>Maintenance type</th>
+      <th>Scheduled</th>
+      <th>Due</th>
+      <th>Status</th>
+      <th style="width: 8rem"></th>
+    </tr>
   </ng-template>
   <ng-template #body let-r>
     <tr>
       <td>{{ r.assetCode }} — {{ r.assetName }}</td>
-      <td>{{ r.maintenanceTypeName }}<br /><small>{{ r.scheduleName }}</small></td>
-      <td>{{ r.dueDate | date:'mediumDate' }}</td>
-      <td><p-tag [value]="statusLabel(r.status)" [severity]="severity(r.status)" /></td>
+      <td>{{ r.scheduleName || '—' }}</td>
+      <td>{{ r.maintenanceTypeName }}</td>
+      <td>{{ r.scheduledDate ? (r.scheduledDate | date: 'mediumDate') : '—' }}</td>
+      <td>{{ r.dueDate | date: 'mediumDate' }}</td>
       <td>
-        <p-button *ngIf="r.status !== 4 && r.status !== 6" label="Open" [text]="true" (onClick)="openExecute(r)" />
+        <p-tag [value]="statusLabel(r.status)" [severity]="severity(r.status)" />
+      </td>
+      <td class="text-end">
+        <p-button
+          *ngIf="r.status !== 4 && r.status !== 6"
+          icon="pi pi-external-link"
+          label="Open"
+          [rounded]="true"
+          [outlined]="true"
+          (onClick)="openExecute(r)" />
       </td>
     </tr>
   </ng-template>
 </p-table>
 
-<p-drawer [(visible)]="executeVisible" header="PM execution" [style]="{ width: '32rem' }">
+<p-drawer
+  [(visible)]="executeVisible"
+  position="right"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '480px' }"
+  header="PM execution">
   <ng-container *ngIf="activeOccurrence">
-    <p><strong>{{ activeOccurrence.assetCode }}</strong> — {{ activeOccurrence.maintenanceTypeName }}</p>
-    <p>Due: {{ activeOccurrence.dueDate | date:'mediumDate' }} · {{ statusLabel(activeOccurrence.status) }}</p>
-    <p-button *ngIf="activeOccurrence.status !== 3 && activeOccurrence.status !== 4" label="Start" icon="pi pi-play" (onClick)="startPm()" styleClass="mb-3" />
-    <div *ngFor="let item of executeItems" class="field col-12 mb-2">
-      <label>{{ item.itemText }}<span *ngIf="item.isRequired"> *</span></label>
-      <ng-container [ngSwitch]="item.responseType">
-        <p-select *ngSwitchCase="1" [options]="[{label:'Pass',value:'Pass'},{label:'Fail',value:'Fail'}]" [(ngModel)]="item.responseValue" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" />
-        <p-select *ngSwitchCase="2" [options]="[{label:'Yes',value:'Yes'},{label:'No',value:'No'}]" [(ngModel)]="item.responseValue" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" />
-        <input *ngSwitchCase="3" pInputText class="w-full" [(ngModel)]="item.responseValue" />
-        <p-inputNumber *ngSwitchCase="4" styleClass="w-full" [(ngModel)]="item.numericValue" />
-        <p-select *ngSwitchCase="5" [options]="selectionOptions(item)" [(ngModel)]="item.responseValue" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" />
-      </ng-container>
-    </div>
-    <textarea pTextarea rows="3" class="w-full" [(ngModel)]="completeRemarks" placeholder="Remarks"></textarea>
-    <div class="text-right mt-3">
-      <p-button *appHasPermission="Permissions.PreventiveMaintenance.Complete" label="Complete" (onClick)="submitComplete()" />
+    <div class="flex flex-col gap-4">
+      <div>
+        <p class="m-0 font-semibold">{{ activeOccurrence.assetCode }} — {{ activeOccurrence.assetName }}</p>
+        <p class="m-0 mt-1 text-color-secondary">{{ activeOccurrence.maintenanceTypeName }} · {{ activeOccurrence.scheduleName }}</p>
+        <div class="flex flex-wrap align-items-center gap-2 mt-2">
+          <span>Due: {{ activeOccurrence.dueDate | date: 'mediumDate' }}</span>
+          <p-tag [value]="statusLabel(activeOccurrence.status)" [severity]="severity(activeOccurrence.status)" />
+        </div>
+      </div>
+
+      <p-button
+        *ngIf="activeOccurrence.status !== 3 && activeOccurrence.status !== 4"
+        label="Start"
+        icon="pi pi-play"
+        (onClick)="startPm()" />
+
+      <div class="flex flex-col gap-3">
+        <div *ngFor="let item of executeItems; let i = index" class="flex flex-col gap-2">
+          <label [for]="'pmResp' + i">
+            {{ item.itemText }}
+            <span *ngIf="item.isRequired" class="text-red-500">*</span>
+          </label>
+          <ng-container [ngSwitch]="item.responseType">
+            <p-select
+              *ngSwitchCase="1"
+              [inputId]="'pmResp' + i"
+              [options]="[
+                { label: 'Pass', value: 'Pass' },
+                { label: 'Fail', value: 'Fail' }
+              ]"
+              [(ngModel)]="item.responseValue"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              styleClass="w-full" />
+            <p-select
+              *ngSwitchCase="2"
+              [inputId]="'pmResp' + i"
+              [options]="[
+                { label: 'Yes', value: 'Yes' },
+                { label: 'No', value: 'No' }
+              ]"
+              [(ngModel)]="item.responseValue"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              styleClass="w-full" />
+            <input *ngSwitchCase="3" pInputText [id]="'pmResp' + i" class="w-full" [(ngModel)]="item.responseValue" />
+            <p-inputNumber *ngSwitchCase="4" [inputId]="'pmResp' + i" styleClass="w-full" [(ngModel)]="item.numericValue" />
+            <p-select
+              *ngSwitchCase="5"
+              [inputId]="'pmResp' + i"
+              [options]="selectionOptions(item)"
+              [(ngModel)]="item.responseValue"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              styleClass="w-full" />
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="pmRemarks">Remarks</label>
+        <textarea pTextarea id="pmRemarks" rows="3" class="w-full" [(ngModel)]="completeRemarks" placeholder="Completion remarks"></textarea>
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <p-button label="Close" icon="pi pi-times" text (onClick)="executeVisible = false" />
+        <p-button *appHasPermission="Permissions.PreventiveMaintenance.Complete" label="Complete" icon="pi pi-check" (onClick)="submitComplete()" />
+      </div>
     </div>
   </ng-container>
 </p-drawer>
+
 <p-toast />

@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -10,10 +11,15 @@ import { TextareaModule } from 'primeng/textarea';
 import { DrawerModule } from 'primeng/drawer';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { TagModule } from 'primeng/tag';
+import { CardModule } from 'primeng/card';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { MessageService } from 'primeng/api';
 import { MaintenanceChecklistService } from '../../services/maintenance-checklist-service';
 import { MaintenanceTypeService } from '../../services/maintenance-type-service';
-import { MaintenanceChecklist, MaintenanceChecklistItem } from '../../model/maintenance';
+import { MaintenanceChecklist, MaintenanceChecklistItem, MaintenanceChecklistItemOption } from '../../model/maintenance';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { MetadataService } from '@/services/metadata-service';
@@ -27,6 +33,7 @@ import { readPagedList } from '../../utils/paged-list';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     TableModule,
     ButtonModule,
     ToolbarModule,
@@ -36,17 +43,25 @@ import { readPagedList } from '../../utils/paged-list';
     DrawerModule,
     SelectModule,
     CheckboxModule,
+    InputNumberModule,
+    TagModule,
+    CardModule,
+    IconFieldModule,
+    InputIconModule,
     HasPermissionDirective
   ],
   providers: [MessageService]
 })
 export class MaintenanceChecklistComponent implements OnInit {
   Permissions = Permissions;
+  readonly selectionResponseType = 5;
   rows = signal<MaintenanceChecklist[]>([]);
   totalRecords = 0;
   filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '' };
   drawerVisible = false;
-  editModel: Partial<MaintenanceChecklist> & { items: MaintenanceChecklistItem[] } = { isActive: true, items: [] };
+  isEditing = false;
+  submitted = false;
+  form!: FormGroup;
   maintenanceTypes: { label: string; value: number }[] = [];
   responseTypes: { label: string; value: number }[] = [];
 
@@ -54,16 +69,68 @@ export class MaintenanceChecklistComponent implements OnInit {
     private service: MaintenanceChecklistService,
     private typeService: MaintenanceTypeService,
     private metadata: MetadataService,
-    private messages: MessageService
+    private messages: MessageService,
+    private fb: FormBuilder
   ) {}
 
   ngOnInit() {
-    this.metadata.getEnums().subscribe((res: any) => {
-      const data = res?.result ?? res;
-      this.responseTypes = (data?.ChecklistResponseType ?? []).map((x: any) => ({ label: x.text, value: x.value }));
+    this.initForm();
+    this.metadata.getEnums().subscribe((res: unknown) => {
+      const data = (res as { result?: unknown })?.result ?? res;
+      const enums = data as Record<string, { text: string; value: number }[]>;
+      this.responseTypes = (enums?.['ChecklistResponseType'] ?? []).map((x) => ({ label: x.text, value: x.value }));
     });
     this.typeService.getAll().subscribe((t) => (this.maintenanceTypes = t.map((x) => ({ label: x.name, value: x.id }))));
     this.load();
+  }
+
+  initForm() {
+    this.form = this.fb.group({
+      id: [null],
+      name: ['', Validators.required],
+      code: ['', Validators.required],
+      description: [''],
+      maintenanceTypeId: [null],
+      isActive: [true],
+      items: this.fb.array([])
+    });
+  }
+
+  get items(): FormArray {
+    return this.form.get('items') as FormArray;
+  }
+
+  itemOptions(itemIndex: number): FormArray {
+    return this.items.at(itemIndex).get('options') as FormArray;
+  }
+
+  isSelectionType(itemIndex: number): boolean {
+    return this.items.at(itemIndex).get('responseType')?.value === this.selectionResponseType;
+  }
+
+  createOptionGroup(opt?: MaintenanceChecklistItemOption) {
+    return this.fb.group({
+      id: [opt?.id ?? null],
+      optionText: [opt?.optionText ?? '', Validators.required],
+      sortOrder: [opt?.sortOrder ?? 1],
+      isActive: [opt?.isActive ?? true]
+    });
+  }
+
+  createItemGroup(item?: MaintenanceChecklistItem) {
+    const options = this.fb.array(
+      (item?.options?.length ? item.options : []).map((o) => this.createOptionGroup(o))
+    );
+    return this.fb.group({
+      id: [item?.id ?? null],
+      itemText: [item?.itemText ?? '', Validators.required],
+      description: [item?.description ?? ''],
+      responseType: [item?.responseType ?? 1, Validators.required],
+      isRequired: [item?.isRequired ?? true],
+      sortOrder: [item?.sortOrder ?? 1],
+      isActive: [item?.isActive ?? true],
+      options
+    });
   }
 
   load() {
@@ -76,56 +143,97 @@ export class MaintenanceChecklistComponent implements OnInit {
     });
   }
 
+  onSearch() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
+  clearItems() {
+    while (this.items.length) {
+      this.items.removeAt(0);
+    }
+  }
+
   openNew() {
-    this.editModel = { isActive: true, items: [this.newItem(1)] };
+    this.isEditing = false;
+    this.submitted = false;
+    this.form.reset({ isActive: true });
+    this.clearItems();
+    this.addItem();
     this.drawerVisible = true;
   }
 
   openEdit(row: MaintenanceChecklist) {
+    this.isEditing = true;
+    this.submitted = false;
     this.service.getById(row.id).subscribe((c) => {
-      this.editModel = { ...c, items: c.items?.length ? [...c.items] : [this.newItem(1)] };
+      this.form.patchValue({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        description: c.description,
+        maintenanceTypeId: c.maintenanceTypeId,
+        isActive: c.isActive
+      });
+      this.clearItems();
+      const list = c.items?.length ? c.items : [this.emptyItem(1)];
+      list.forEach((it) => this.items.push(this.createItemGroup(it)));
       this.drawerVisible = true;
     });
   }
 
-  newItem(sort: number): MaintenanceChecklistItem {
+  emptyItem(sort: number): MaintenanceChecklistItem {
     return { itemText: '', responseType: 1, isRequired: true, sortOrder: sort, isActive: true, options: [] };
   }
 
   addItem() {
-    this.editModel.items.push(this.newItem(this.editModel.items.length + 1));
+    this.items.push(this.createItemGroup(this.emptyItem(this.items.length + 1)));
   }
 
-  addOption(item: MaintenanceChecklistItem) {
-    if (!item.options) item.options = [];
-    item.options.push({ optionText: '', sortOrder: item.options.length + 1, isActive: true });
+  removeItem(index: number) {
+    if (this.items.length <= 1) return;
+    this.items.removeAt(index);
+  }
+
+  addOption(itemIndex: number) {
+    const opts = this.itemOptions(itemIndex);
+    opts.push(this.createOptionGroup({ optionText: '', sortOrder: opts.length + 1, isActive: true }));
+  }
+
+  removeOption(itemIndex: number, optionIndex: number) {
+    this.itemOptions(itemIndex).removeAt(optionIndex);
+  }
+
+  hideDrawer() {
+    this.drawerVisible = false;
+    this.submitted = false;
   }
 
   save() {
+    this.submitted = true;
+    if (this.form.invalid) return;
+    const raw = this.form.getRawValue();
     const payload = {
-      id: this.editModel.id,
-      tenantId: this.editModel.tenantId,
-      name: this.editModel.name,
-      code: this.editModel.code,
-      description: this.editModel.description,
-      maintenanceTypeId: this.editModel.maintenanceTypeId,
-      isActive: this.editModel.isActive,
-      items: this.editModel.items
+      ...raw,
+      items: raw.items.map((it: MaintenanceChecklistItem & { options?: MaintenanceChecklistItemOption[] }) => ({
+        ...it,
+        options: it.responseType === this.selectionResponseType ? it.options : []
+      }))
     };
-    const obs = this.editModel.id ? this.service.update(payload) : this.service.create(payload);
+    const obs = payload.id ? this.service.update(payload) : this.service.create(payload);
     obs.subscribe({
       next: () => {
-        this.drawerVisible = false;
+        this.hideDrawer();
         this.load();
-        this.messages.add({ severity: 'success', summary: 'Saved' });
+        this.messages.add({ severity: 'success', summary: 'Saved', detail: 'Checklist saved successfully' });
       },
       error: (e) => this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Save failed' })
     });
   }
 
-  onPage(e: { first?: number; rows?: number }) {
-    this.filter.pageNumber = Math.floor((e.first ?? 0) / (e.rows ?? 10)) + 1;
-    this.filter.pageSize = e.rows ?? 10;
+  onPage(event: { page?: number; rows?: number; first?: number }) {
+    this.filter.pageNumber = event.page != null ? event.page + 1 : Math.floor((event.first ?? 0) / (event.rows ?? 10)) + 1;
+    this.filter.pageSize = event.rows ?? 10;
     this.load();
   }
 }

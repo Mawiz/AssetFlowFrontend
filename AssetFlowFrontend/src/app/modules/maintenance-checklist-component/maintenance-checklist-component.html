@@ -1,43 +1,184 @@
 <p-toolbar styleClass="mb-4">
   <ng-template #start>
-    <p-button *appHasPermission="Permissions.MaintenanceChecklist.Create" label="New" icon="pi pi-plus" (onClick)="openNew()" />
+    <p-button
+      *appHasPermission="Permissions.MaintenanceChecklist.Create"
+      label="New"
+      icon="pi pi-plus"
+      severity="secondary"
+      (onClick)="openNew()" />
   </ng-template>
 </p-toolbar>
 
-<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
-  <ng-template #caption><h5 class="m-0">Maintenance Checklists</h5></ng-template>
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  [rowHover]="true"
+  [rowsPerPageOptions]="[10, 20, 30]"
+  (onPage)="onPage($event)"
+  dataKey="id">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Maintenance Checklists</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+      </p-iconfield>
+    </div>
+  </ng-template>
   <ng-template #header>
-    <tr><th>Code</th><th>Name</th><th>Type</th><th>Ver</th><th></th></tr>
+    <tr>
+      <th>Code</th>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Version</th>
+      <th>Active</th>
+      <th style="width: 8rem"></th>
+    </tr>
   </ng-template>
   <ng-template #body let-r>
     <tr>
-      <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.maintenanceTypeName || '—' }}</td><td>{{ r.version }}</td>
-      <td><p-button icon="pi pi-pencil" [text]="true" (onClick)="openEdit(r)" /></td>
+      <td>{{ r.code }}</td>
+      <td>{{ r.name }}</td>
+      <td>{{ r.maintenanceTypeName || '—' }}</td>
+      <td>{{ r.version }}</td>
+      <td>
+        <p-tag [value]="r.isActive ? 'Active' : 'Inactive'" [severity]="r.isActive ? 'success' : 'danger'" />
+      </td>
+      <td class="text-end">
+        <p-button
+          *appHasPermission="Permissions.MaintenanceChecklist.Update"
+          icon="pi pi-pencil"
+          [rounded]="true"
+          [outlined]="true"
+          (onClick)="openEdit(r)" />
+      </td>
     </tr>
   </ng-template>
 </p-table>
 
-<p-drawer [(visible)]="drawerVisible" header="Checklist" [style]="{ width: '36rem' }">
-  <div class="grid formgrid p-fluid">
-    <div class="field col-12 md:col-6"><label>Code</label><input pInputText [(ngModel)]="editModel.code" /></div>
-    <div class="field col-12 md:col-6"><label>Name</label><input pInputText [(ngModel)]="editModel.name" /></div>
-    <div class="field col-12"><label>Maintenance type</label>
-      <p-select [options]="maintenanceTypes" [(ngModel)]="editModel.maintenanceTypeId" optionLabel="label" optionValue="value" [showClear]="true" appendTo="body" />
+<p-drawer
+  [(visible)]="drawerVisible"
+  position="right"
+  [modal]="true"
+  [blockScroll]="true"
+  [closeOnEscape]="true"
+  [showCloseIcon]="true"
+  [style]="{ width: '520px' }"
+  [header]="isEditing ? 'Edit Checklist' : 'Create Checklist'">
+  <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="clCode">Code</label>
+        <input pInputText id="clCode" formControlName="code" />
+        <small *ngIf="submitted && form.controls['code'].invalid" class="text-red-500">Code is required.</small>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label for="clName">Name</label>
+        <input pInputText id="clName" formControlName="name" />
+        <small *ngIf="submitted && form.controls['name'].invalid" class="text-red-500">Name is required.</small>
+      </div>
     </div>
-    <div class="field col-12"><label>Description</label><textarea pTextarea rows="2" [(ngModel)]="editModel.description"></textarea></div>
-  </div>
-  <h6>Items</h6>
-  <div *ngFor="let item of editModel.items; let i = index" class="surface-border border-1 border-round p-2 mb-2">
-    <input pInputText class="w-full mb-2" [(ngModel)]="item.itemText" placeholder="Item text" />
-    <p-select [options]="responseTypes" [(ngModel)]="item.responseType" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full mb-2" />
-    <p-checkbox [inputId]="'req-' + i" [binary]="true" [(ngModel)]="item.isRequired"></p-checkbox>
-    <label [for]="'req-' + i" class="ml-2">Required</label>
-    <div *ngIf="item.responseType === 5" class="mt-2">
-      <p-button label="Add option" size="small" (onClick)="addOption(item)" />
-      <div *ngFor="let opt of item.options ?? []" class="mt-1"><input pInputText [(ngModel)]="opt.optionText" placeholder="Option" /></div>
+
+    <div class="flex flex-col gap-2">
+      <label for="clType">Maintenance type</label>
+      <p-select
+        inputId="clType"
+        formControlName="maintenanceTypeId"
+        [options]="maintenanceTypes"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Optional"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="w-full" />
     </div>
-  </div>
-  <p-button label="Add item" icon="pi pi-plus" [outlined]="true" (onClick)="addItem()" />
-  <div class="text-right mt-3"><p-button label="Save" (onClick)="save()" /></div>
+
+    <div class="flex flex-col gap-2">
+      <label for="clDescription">Description</label>
+      <textarea pTextarea id="clDescription" formControlName="description" rows="3"></textarea>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" inputId="clActive" [binary]="true"></p-checkbox>
+      <label for="clActive">Active</label>
+    </div>
+
+    <div>
+      <label class="font-semibold mb-2 block">Checklist items</label>
+      <div formArrayName="items">
+        <ng-container *ngFor="let _ of items.controls; let i = index">
+          <p-card class="p-card-sm mb-3">
+            <div [formGroupName]="i" class="flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <strong>Item {{ i + 1 }}</strong>
+                <p-button icon="pi pi-times" severity="danger" text size="small" (onClick)="removeItem(i)" [disabled]="items.length <= 1" />
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label [for]="'clItemText' + i">Item text</label>
+                <input pInputText [id]="'clItemText' + i" formControlName="itemText" />
+                <small *ngIf="submitted && items.at(i).get('itemText')?.invalid" class="text-red-500">Item text is required.</small>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label [for]="'clItemDesc' + i">Description</label>
+                <textarea pTextarea [id]="'clItemDesc' + i" formControlName="description" rows="2"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label [for]="'clResp' + i">Response type</label>
+                  <p-select
+                    [inputId]="'clResp' + i"
+                    formControlName="responseType"
+                    [options]="responseTypes"
+                    optionLabel="label"
+                    optionValue="value"
+                    appendTo="body"
+                    styleClass="w-full" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label [for]="'clSort' + i">Sort order</label>
+                  <p-inputNumber [inputId]="'clSort' + i" formControlName="sortOrder" styleClass="w-full" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <p-checkbox formControlName="isRequired" [inputId]="'clReq' + i" [binary]="true"></p-checkbox>
+                  <label [for]="'clReq' + i">Required</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <p-checkbox formControlName="isActive" [inputId]="'clItemActive' + i" [binary]="true"></p-checkbox>
+                  <label [for]="'clItemActive' + i">Active</label>
+                </div>
+              </div>
+
+              <div *ngIf="isSelectionType(i)" class="flex flex-col gap-2">
+                <label class="font-semibold">Options</label>
+                <div formArrayName="options">
+                  <div *ngFor="let __ of itemOptions(i).controls; let j = index" [formGroupName]="j" class="flex gap-2 mb-2 items-start">
+                    <input pInputText class="flex-1" formControlName="optionText" placeholder="Option text" />
+                    <p-button icon="pi pi-times" severity="danger" text size="small" (onClick)="removeOption(i, j)" />
+                  </div>
+                </div>
+                <p-button label="Add option" icon="pi pi-plus" text size="small" (onClick)="addOption(i)" />
+              </div>
+            </div>
+          </p-card>
+        </ng-container>
+      </div>
+      <p-button label="Add item" icon="pi pi-plus" text (onClick)="addItem()" />
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDrawer()" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="save()" />
+    </div>
+  </form>
 </p-drawer>
+
 <p-toast />
