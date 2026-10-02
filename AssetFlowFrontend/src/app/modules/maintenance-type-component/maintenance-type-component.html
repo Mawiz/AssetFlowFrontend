@@ -53,7 +53,7 @@
     <tr>
       <td>{{ item.code }}</td>
       <td>{{ item.name }}</td>
-      <td *ngIf="systemAdmin">{{ item.tenantId ?? '—' }}</td>
+      <td *ngIf="systemAdmin">{{ item.tenantName || '-' }}</td>
       <td>{{ item.sortOrder }}</td>
       <td>
         <p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" />

@@ -55,7 +55,7 @@
   <ng-template #body let-item>
     <tr>
       <td>{{ item.assetCode }}</td>
-      <td *ngIf="systemAdmin">{{ item.tenantId ?? '—' }}</td>
+      <td *ngIf="systemAdmin">{{ item.tenantName || '-' }}</td>
       <td>{{ item.name }}</td>
       <td>{{ item.maintenanceTypeName }}</td>
       <td>{{ item.frequencyDisplay }}</td>

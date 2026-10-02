@@ -55,7 +55,7 @@
       <td>{{ r.code }}</td>
       <td>{{ r.name }}</td>
       <td>{{ r.maintenanceTypeName || '—' }}</td>
-      <td *ngIf="systemAdmin">{{ r.tenantId ?? '—' }}</td>
+      <td *ngIf="systemAdmin">{{ r.tenantName || '-' }}</td>
       <td>{{ r.version }}</td>
       <td>
         <p-tag [value]="r.isActive ? 'Active' : 'Inactive'" [severity]="r.isActive ? 'success' : 'danger'" />

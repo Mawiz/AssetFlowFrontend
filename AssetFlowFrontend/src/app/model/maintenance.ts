@@ -3,6 +3,7 @@ import { ListFilterDto } from './list-filter';
 export interface MaintenanceType {
   id: number;
   tenantId?: number | null;
+  tenantName?: string;
   name: string;
   code: string;
   description?: string;
@@ -31,6 +32,7 @@ export interface MaintenanceChecklistItem {
 export interface MaintenanceChecklist {
   id: number;
   tenantId?: number | null;
+  tenantName?: string;
   name: string;
   code: string;
   description?: string;
@@ -44,6 +46,7 @@ export interface MaintenanceChecklist {
 export interface MaintenanceSchedule {
   id: number;
   tenantId?: number | null;
+  tenantName?: string;
   assetId: number;
   assetCode?: string;
   assetName?: string;
@@ -71,6 +74,8 @@ export interface MaintenanceSchedule {
 
 export interface PreventiveMaintenanceOccurrence {
   id: number;
+  tenantId?: number | null;
+  tenantName?: string;
   maintenanceScheduleId: number;
   scheduleName?: string;
   assetId: number;
