@@ -279,15 +279,34 @@ export class MaintenanceChecklistComponent implements OnInit {
     this.submitted = true;
     if (this.form.invalid) return;
     const raw = this.form.getRawValue();
-    const payload = {
-      ...raw,
+    const items = (raw.items ?? []).map((it: MaintenanceChecklistItem & { options?: MaintenanceChecklistItemOption[] }) => ({
+      id: it.id ?? 0,
+      itemText: it.itemText,
+      description: it.description ?? '',
+      responseType: it.responseType,
+      isRequired: it.isRequired,
+      sortOrder: it.sortOrder,
+      isActive: it.isActive,
+      options:
+        it.responseType === this.selectionResponseType
+          ? (it.options ?? []).map((o) => ({
+              id: o.id ?? 0,
+              optionText: o.optionText,
+              sortOrder: o.sortOrder,
+              isActive: o.isActive ?? true
+            }))
+          : []
+    }));
+    const base = {
       tenantId: this.systemAdmin ? this.normalizeTenantId(raw.tenantId) : this.getFixedTenantId(),
-      items: raw.items.map((it: MaintenanceChecklistItem & { options?: MaintenanceChecklistItemOption[] }) => ({
-        ...it,
-        options: it.responseType === this.selectionResponseType ? it.options : []
-      }))
+      name: raw.name,
+      code: raw.code,
+      description: raw.description ?? '',
+      maintenanceTypeId: raw.maintenanceTypeId,
+      isActive: raw.isActive,
+      items
     };
-    const obs = payload.id ? this.service.update(payload) : this.service.create(payload);
+    const obs = raw.id ? this.service.update({ ...base, id: raw.id }) : this.service.create(base);
     obs.subscribe({
       next: () => {
         this.hideDrawer();
