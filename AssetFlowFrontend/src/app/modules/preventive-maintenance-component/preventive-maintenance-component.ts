@@ -191,7 +191,8 @@ export class PreventiveMaintenanceComponent implements OnInit {
         isRequired: i.isRequired,
         options: i.options,
         responseValue: '',
-        numericValue: null
+        numericValue: null,
+        remarks: ''
       }));
       this.executeVisible = true;
     });
@@ -215,11 +216,16 @@ export class PreventiveMaintenanceComponent implements OnInit {
     if (!this.activeOccurrence) return;
     const checklistResponses = this.executeItems.map((i) => ({
       occurrenceChecklistItemId: i.id,
-      responseValue: i.responseValue,
+      responseValue: i.responseValue?.trim() || null,
       numericValue: i.numericValue,
-      remarks: i.remarks
+      remarks: i.remarks?.trim() || null
     }));
-    this.service.complete({ occurrenceId: this.activeOccurrence.id, remarks: this.completeRemarks, checklistResponses }).subscribe({
+    const completionRemarks = this.completeRemarks?.trim();
+    this.service.complete({
+      occurrenceId: this.activeOccurrence.id,
+      remarks: completionRemarks || null,
+      checklistResponses
+    }).subscribe({
       next: () => {
         this.executeVisible = false;
         this.load();

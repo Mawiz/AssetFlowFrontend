@@ -160,12 +160,21 @@
               appendTo="body"
               styleClass="w-full" />
           </ng-container>
+          <div class="flex flex-col gap-2 mt-1">
+            <label [for]="'pmItemRemarks' + i" class="text-sm text-color-secondary">Item remarks (optional)</label>
+            <input
+              pInputText
+              [id]="'pmItemRemarks' + i"
+              class="w-full"
+              [(ngModel)]="item.remarks"
+              placeholder="Optional notes for this item" />
+          </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-2">
-        <label for="pmRemarks">Remarks</label>
-        <textarea pTextarea id="pmRemarks" rows="3" class="w-full" [(ngModel)]="completeRemarks" placeholder="Completion remarks"></textarea>
+        <label for="pmRemarks">Completion remarks (optional)</label>
+        <textarea pTextarea id="pmRemarks" rows="3" class="w-full" [(ngModel)]="completeRemarks" placeholder="Optional overall completion notes"></textarea>
       </div>
 
       <div class="mt-4 flex justify-end gap-2">

@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import {
   AssetPreventiveMaintenanceSummary,
   CalendarOccurrence,
+  CompletePreventiveMaintenanceDto,
   PreventiveMaintenanceFilter,
   PreventiveMaintenanceOccurrence
 } from '../model/maintenance';
@@ -31,7 +32,7 @@ export class PreventiveMaintenanceService {
     return this.http.post<ApiResult<PreventiveMaintenanceOccurrence>>(`${this.apiUrl}/${id}/start`, {}).pipe(map((r) => r.result));
   }
 
-  complete(dto: { occurrenceId: number; remarks?: string; checklistResponses: unknown[] }) {
+  complete(dto: CompletePreventiveMaintenanceDto) {
     return this.http.post<ApiResult<PreventiveMaintenanceOccurrence>>(`${this.apiUrl}/complete`, dto).pipe(map((r) => r.result));
   }
 

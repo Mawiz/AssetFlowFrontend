@@ -110,6 +110,19 @@ export interface PreventiveMaintenanceOccurrenceChecklistItem {
   };
 }
 
+export interface SubmitChecklistResponseDto {
+  occurrenceChecklistItemId: number;
+  responseValue?: string | null;
+  numericValue?: number | null;
+  remarks?: string | null;
+}
+
+export interface CompletePreventiveMaintenanceDto {
+  occurrenceId: number;
+  remarks?: string | null;
+  checklistResponses: SubmitChecklistResponseDto[];
+}
+
 export interface PreventiveMaintenanceFilter extends ListFilterDto {
   assetId?: number | null;
   maintenanceScheduleId?: number | null;
