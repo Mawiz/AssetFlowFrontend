@@ -1,0 +1,15 @@
+<h5>Maintenance Calendar (next 90 days)</h5>
+<p-table [value]="rows()" sortField="start" [sortOrder]="1">
+  <ng-template #header>
+    <tr><th>Date</th><th>Event</th><th>Asset</th><th>Status</th><th></th></tr>
+  </ng-template>
+  <ng-template #body let-r>
+    <tr>
+      <td>{{ r.start | date:'mediumDate' }}</td>
+      <td>{{ r.title }}</td>
+      <td>{{ r.assetCode }}</td>
+      <td>{{ statusLabel(r.status) }}</td>
+      <td><a routerLink="/modules/preventive-maintenance">Open PM</a></td>
+    </tr>
+  </ng-template>
+</p-table>

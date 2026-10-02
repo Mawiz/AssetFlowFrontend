@@ -31,6 +31,7 @@ import { AuthService } from '@/services/auth-service';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { AssetComponentsPanelComponent } from './asset-components-panel.component';
+import { AssetPmPanelComponent } from './asset-pm-panel.component';
 
 interface LocationLevel {
   label: string;
@@ -58,7 +59,8 @@ interface LocationLevel {
     InputNumberModule,
     ToastModule,
     HasPermissionDirective,
-    AssetComponentsPanelComponent
+    AssetComponentsPanelComponent,
+    AssetPmPanelComponent
   ],
   providers: [MessageService]
 })

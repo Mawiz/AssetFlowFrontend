@@ -1,0 +1,45 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button *appHasPermission="Permissions.MaintenanceSchedule.Create" label="New schedule" icon="pi pi-plus" (onClick)="openNew()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
+  <ng-template #header>
+    <tr><th>Asset</th><th>Schedule</th><th>Type</th><th>Frequency</th><th>Next due</th><th>Active</th><th></th></tr>
+  </ng-template>
+  <ng-template #body let-r>
+    <tr>
+      <td>{{ r.assetCode }}</td><td>{{ r.name }}</td><td>{{ r.maintenanceTypeName }}</td><td>{{ r.frequencyDisplay }}</td>
+      <td>{{ r.nextDueDate ? (r.nextDueDate | date:'mediumDate') : (r.nextDueOperatingHours ?? r.nextDueCycles ?? '—') }}</td>
+      <td>{{ r.isActive ? 'Yes' : 'No' }}</td>
+      <td>
+        <p-button icon="pi pi-pencil" [text]="true" (onClick)="openEdit(r)" />
+        <p-button [label]="r.isActive ? 'Deactivate' : 'Activate'" [text]="true" (onClick)="toggleActive(r)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer [(visible)]="drawerVisible" header="Maintenance Schedule" [style]="{ width: '32rem' }">
+  <div class="grid formgrid p-fluid">
+    <div class="field col-12"><label>Asset</label><p-select [options]="assets" [(ngModel)]="editModel.assetId" optionLabel="label" optionValue="value" appendTo="body" /></div>
+    <div class="field col-12"><label>Schedule name</label><input pInputText [(ngModel)]="editModel.name" /></div>
+    <div class="field col-12"><label>Maintenance type</label><p-select [options]="types" [(ngModel)]="editModel.maintenanceTypeId" optionLabel="label" optionValue="value" appendTo="body" /></div>
+    <div class="field col-12"><label>Checklist</label><p-select [options]="checklists" [(ngModel)]="editModel.maintenanceChecklistId" optionLabel="label" optionValue="value" [showClear]="true" appendTo="body" /></div>
+    <div class="field col-12"><label>Frequency</label><p-select [options]="recurrenceTypes" [(ngModel)]="editModel.recurrenceType" optionLabel="label" optionValue="value" appendTo="body" /></div>
+    <div class="field col-12 md:col-6"><label>Interval</label><p-inputNumber [(ngModel)]="editModel.intervalValue" [min]="1" /></div>
+    <div class="field col-12 md:col-6" *ngIf="isWeekly"><label>Weekday</label><p-select [options]="weekDays" [(ngModel)]="editModel.dayOfWeek" optionLabel="label" optionValue="value" appendTo="body" /></div>
+    <div class="field col-12 md:col-6"><label>Start date</label><p-datepicker [(ngModel)]="editModel.startDate" appendTo="body" /></div>
+    <div class="field col-12 md:col-6"><label>End date</label><p-datepicker [(ngModel)]="editModel.endDate" appendTo="body" [showClear]="true" /></div>
+    <div class="field col-12" *ngIf="isMeterHours"><label>Next due operating hours</label><p-inputNumber [(ngModel)]="editModel.nextDueOperatingHours" /></div>
+    <div class="field col-12" *ngIf="isMeterCycles"><label>Next due cycles</label><p-inputNumber [(ngModel)]="editModel.nextDueCycles" /></div>
+    <div class="field col-12"><label>Description</label><textarea pTextarea rows="2" [(ngModel)]="editModel.description"></textarea></div>
+    <div class="field col-12">
+      <p-checkbox inputId="msActive" [binary]="true" [(ngModel)]="editModel.isActive"></p-checkbox>
+      <label for="msActive" class="ml-2">Active</label>
+    </div>
+  </div>
+  <div class="text-right mt-3"><p-button label="Save" (onClick)="save()" /></div>
+</p-drawer>
+<p-toast />

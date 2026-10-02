@@ -41,6 +41,14 @@ export class AppMenu implements OnInit {
             { label: 'Assets', icon: 'pi pi-fw pi-server', routerLink: ['/modules/assets'], visible: this.authService.hasPrefix('Asset.') }
         ].filter((item) => item.visible !== false);
 
+        const maintenanceItems: MenuItem[] = [
+            { label: 'Preventive Maintenance', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/modules/preventive-maintenance'], visible: this.authService.hasPrefix('PreventiveMaintenance.') },
+            { label: 'Maintenance Schedules', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-schedules'], visible: this.authService.hasPrefix('MaintenanceSchedule.') },
+            { label: 'Checklists', icon: 'pi pi-fw pi-list-check', routerLink: ['/modules/maintenance-checklists'], visible: this.authService.hasPrefix('MaintenanceChecklist.') },
+            { label: 'Maintenance Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/maintenance-types'], visible: this.authService.hasPrefix('MaintenanceType.') },
+            { label: 'Maintenance Calendar', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-calendar'], visible: this.authService.hasPrefix('PreventiveMaintenance.') }
+        ].filter((item) => item.visible !== false);
+
         const sparePartItems: MenuItem[] = [
             { label: 'Parts', icon: 'pi pi-fw pi-wrench', routerLink: ['/modules/parts'], visible: this.authService.hasPrefix('Part.') },
             { label: 'Part Categories', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/part-category'], visible: this.authService.hasPrefix('PartCategory.') },
@@ -77,6 +85,12 @@ export class AppMenu implements OnInit {
                 ? [{
                     label: 'Spare Parts',
                     items: sparePartItems
+                }]
+                : []),
+            ...(maintenanceItems.length
+                ? [{
+                    label: 'Maintenance',
+                    items: maintenanceItems
                 }]
                 : []),
             {

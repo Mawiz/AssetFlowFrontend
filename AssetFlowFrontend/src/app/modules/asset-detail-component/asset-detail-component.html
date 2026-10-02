@@ -10,6 +10,7 @@
     <p-tablist>
         <p-tab value="0">Overview</p-tab>
         <p-tab value="1" [disabled]="isCreateMode">Components</p-tab>
+        <p-tab value="2" [disabled]="isCreateMode">Preventive Maintenance</p-tab>
     </p-tablist>
     <p-tabpanels>
         <p-tabpanel value="0">
@@ -102,6 +103,9 @@
         </p-tabpanel>
         <p-tabpanel value="1">
             <app-asset-components-panel *ngIf="assetId" [assetId]="assetId" [tenantId]="loadedTenantId"></app-asset-components-panel>
+        </p-tabpanel>
+        <p-tabpanel value="2">
+            <app-asset-pm-panel *ngIf="assetId" [assetId]="assetId"></app-asset-pm-panel>
         </p-tabpanel>
     </p-tabpanels>
 </p-tabs>

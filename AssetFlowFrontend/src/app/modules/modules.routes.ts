@@ -17,6 +17,11 @@ import { PartInventoryComponent } from './part-inventory-component/part-inventor
 import { PartInventoryDetailComponent } from './part-inventory-detail-component/part-inventory-detail-component';
 import { PartTransactionComponent } from './part-transaction-component/part-transaction-component';
 import { SupplierComponent } from './supplier-component/supplier-component';
+import { MaintenanceTypeComponent } from './maintenance-type-component/maintenance-type-component';
+import { MaintenanceChecklistComponent } from './maintenance-checklist-component/maintenance-checklist-component';
+import { MaintenanceScheduleComponent } from './maintenance-schedule-component/maintenance-schedule-component';
+import { PreventiveMaintenanceComponent } from './preventive-maintenance-component/preventive-maintenance-component';
+import { MaintenanceCalendarComponent } from './maintenance-calendar-component/maintenance-calendar-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -41,4 +46,9 @@ export const routes: Routes = [
   { path: 'part-inventory/:id', component: PartInventoryDetailComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartInventory.View] } },
   { path: 'part-transaction', component: PartTransactionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PartTransaction.View] } },
   { path: 'supplier', component: SupplierComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Supplier.View] } },
+  { path: 'maintenance-types', component: MaintenanceTypeComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.MaintenanceType.View] } },
+  { path: 'maintenance-checklists', component: MaintenanceChecklistComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.MaintenanceChecklist.View] } },
+  { path: 'maintenance-schedules', component: MaintenanceScheduleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.MaintenanceSchedule.View] } },
+  { path: 'preventive-maintenance', component: PreventiveMaintenanceComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
+  { path: 'maintenance-calendar', component: MaintenanceCalendarComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
 ];

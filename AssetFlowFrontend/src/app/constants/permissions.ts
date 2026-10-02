@@ -101,5 +101,29 @@ export const Permissions = {
     Update: 'Supplier.Update',
     View: 'Supplier.View',
     Delete: 'Supplier.Delete'
+  },
+  MaintenanceType: {
+    Create: 'MaintenanceType.Create',
+    Update: 'MaintenanceType.Update',
+    View: 'MaintenanceType.View',
+    Delete: 'MaintenanceType.Delete'
+  },
+  MaintenanceChecklist: {
+    Create: 'MaintenanceChecklist.Create',
+    Update: 'MaintenanceChecklist.Update',
+    View: 'MaintenanceChecklist.View',
+    Delete: 'MaintenanceChecklist.Delete'
+  },
+  MaintenanceSchedule: {
+    Create: 'MaintenanceSchedule.Create',
+    Update: 'MaintenanceSchedule.Update',
+    View: 'MaintenanceSchedule.View',
+    Delete: 'MaintenanceSchedule.Delete'
+  },
+  PreventiveMaintenance: {
+    View: 'PreventiveMaintenance.View',
+    Update: 'PreventiveMaintenance.Update',
+    Complete: 'PreventiveMaintenance.Complete',
+    Generate: 'PreventiveMaintenance.Generate'
   }
 } as const;

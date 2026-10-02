@@ -1,0 +1,43 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button *appHasPermission="Permissions.MaintenanceChecklist.Create" label="New" icon="pi pi-plus" (onClick)="openNew()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table [value]="rows()" [lazy]="true" [paginator]="true" [rows]="filter.pageSize" [totalRecords]="totalRecords" (onPage)="onPage($event)">
+  <ng-template #caption><h5 class="m-0">Maintenance Checklists</h5></ng-template>
+  <ng-template #header>
+    <tr><th>Code</th><th>Name</th><th>Type</th><th>Ver</th><th></th></tr>
+  </ng-template>
+  <ng-template #body let-r>
+    <tr>
+      <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.maintenanceTypeName || '—' }}</td><td>{{ r.version }}</td>
+      <td><p-button icon="pi pi-pencil" [text]="true" (onClick)="openEdit(r)" /></td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer [(visible)]="drawerVisible" header="Checklist" [style]="{ width: '36rem' }">
+  <div class="grid formgrid p-fluid">
+    <div class="field col-12 md:col-6"><label>Code</label><input pInputText [(ngModel)]="editModel.code" /></div>
+    <div class="field col-12 md:col-6"><label>Name</label><input pInputText [(ngModel)]="editModel.name" /></div>
+    <div class="field col-12"><label>Maintenance type</label>
+      <p-select [options]="maintenanceTypes" [(ngModel)]="editModel.maintenanceTypeId" optionLabel="label" optionValue="value" [showClear]="true" appendTo="body" />
+    </div>
+    <div class="field col-12"><label>Description</label><textarea pTextarea rows="2" [(ngModel)]="editModel.description"></textarea></div>
+  </div>
+  <h6>Items</h6>
+  <div *ngFor="let item of editModel.items; let i = index" class="surface-border border-1 border-round p-2 mb-2">
+    <input pInputText class="w-full mb-2" [(ngModel)]="item.itemText" placeholder="Item text" />
+    <p-select [options]="responseTypes" [(ngModel)]="item.responseType" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full mb-2" />
+    <p-checkbox [inputId]="'req-' + i" [binary]="true" [(ngModel)]="item.isRequired"></p-checkbox>
+    <label [for]="'req-' + i" class="ml-2">Required</label>
+    <div *ngIf="item.responseType === 5" class="mt-2">
+      <p-button label="Add option" size="small" (onClick)="addOption(item)" />
+      <div *ngFor="let opt of item.options ?? []" class="mt-1"><input pInputText [(ngModel)]="opt.optionText" placeholder="Option" /></div>
+    </div>
+  </div>
+  <p-button label="Add item" icon="pi pi-plus" [outlined]="true" (onClick)="addItem()" />
+  <div class="text-right mt-3"><p-button label="Save" (onClick)="save()" /></div>
+</p-drawer>
+<p-toast />

@@ -1,0 +1,17 @@
+<h6>Preventive Maintenance</h6>
+<ng-container *ngIf="summary as s">
+  <p *ngIf="s.nextOccurrence as next">Next: {{ next.maintenanceTypeName }} — {{ next.dueDate | date: 'mediumDate' }}</p>
+  <p-table [value]="s.activeSchedules">
+    <ng-template #header>
+      <tr><th>Schedule</th><th>Frequency</th><th>Next due</th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.name }}</td>
+        <td>{{ row.frequencyDisplay }}</td>
+        <td>{{ row.nextDueDate | date: 'mediumDate' }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</ng-container>
+<a *ngIf="assetId" routerLink="/modules/maintenance-schedules" [queryParams]="{ assetId: assetId }">View schedules</a>
