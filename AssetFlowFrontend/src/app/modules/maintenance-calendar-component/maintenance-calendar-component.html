@@ -3,7 +3,18 @@
     <h5 class="m-0">Maintenance Calendar (next 90 days)</h5>
   </ng-template>
   <ng-template #end>
-    <p-button label="Open PM list" icon="pi pi-list" [outlined]="true" routerLink="/modules/preventive-maintenance" />
+    <div class="flex gap-2 flex-wrap items-center">
+      <p-select
+        *ngIf="systemAdmin"
+        [options]="tenantFilterOptions"
+        [(ngModel)]="filter.tenantId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="All tenants"
+        [style]="{ minWidth: '12rem' }"
+        (onChange)="onTenantFilterChange()" />
+      <p-button label="Open PM list" icon="pi pi-list" [outlined]="true" routerLink="/modules/preventive-maintenance" />
+    </div>
   </ng-template>
 </p-toolbar>
 

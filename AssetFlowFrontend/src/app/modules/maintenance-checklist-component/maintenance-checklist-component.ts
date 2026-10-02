@@ -23,8 +23,10 @@ import { MaintenanceChecklist, MaintenanceChecklistItem, MaintenanceChecklistIte
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { MetadataService } from '@/services/metadata-service';
+import { AuthService } from '@/services/auth-service';
 import { ListFilterDto } from '../../model/list-filter';
 import { readPagedList } from '../../utils/paged-list';
+import { TenantDto } from '../../model/tenant';
 
 @Component({
   selector: 'app-maintenance-checklist-component',
@@ -57,11 +59,14 @@ export class MaintenanceChecklistComponent implements OnInit {
   readonly selectionResponseType = 5;
   rows = signal<MaintenanceChecklist[]>([]);
   totalRecords = 0;
-  filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '' };
+  filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '', tenantId: null };
   drawerVisible = false;
   isEditing = false;
   submitted = false;
   form!: FormGroup;
+  systemAdmin = false;
+  tenantsForForm: { id: number; displayName: string }[] = [];
+  tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
   maintenanceTypes: { label: string; value: number }[] = [];
   responseTypes: { label: string; value: number }[] = [];
 
@@ -69,24 +74,30 @@ export class MaintenanceChecklistComponent implements OnInit {
     private service: MaintenanceChecklistService,
     private typeService: MaintenanceTypeService,
     private metadata: MetadataService,
+    private authService: AuthService,
     private messages: MessageService,
     private fb: FormBuilder
   ) {}
 
   ngOnInit() {
+    this.systemAdmin = this.authService.systemAdminPermissions();
     this.initForm();
     this.metadata.getEnums().subscribe((res: unknown) => {
       const data = (res as { result?: unknown })?.result ?? res;
       const enums = data as Record<string, { text: string; value: number }[]>;
       this.responseTypes = (enums?.['ChecklistResponseType'] ?? []).map((x) => ({ label: x.text, value: x.value }));
     });
-    this.typeService.getAll().subscribe((t) => (this.maintenanceTypes = t.map((x) => ({ label: x.name, value: x.id }))));
+    if (this.systemAdmin) {
+      this.loadTenants();
+    }
+    this.loadMaintenanceTypes(this.getFormTenantId());
     this.load();
   }
 
   initForm() {
     this.form = this.fb.group({
       id: [null],
+      tenantId: [this.systemAdmin ? null : this.getFixedTenantId(), this.systemAdmin ? Validators.required : []],
       name: ['', Validators.required],
       code: ['', Validators.required],
       description: [''],
@@ -94,6 +105,58 @@ export class MaintenanceChecklistComponent implements OnInit {
       isActive: [true],
       items: this.fb.array([])
     });
+    if (this.systemAdmin) {
+      this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
+        this.form.patchValue({ maintenanceTypeId: null }, { emitEvent: false });
+        this.loadMaintenanceTypes(this.normalizeTenantId(tenantId));
+      });
+    }
+  }
+
+  private getFixedTenantId(): number | null {
+    const t = this.authService.getTenantId();
+    return t == null || t === 0 ? null : t;
+  }
+
+  private normalizeTenantId(tenantId: number | null | undefined): number | null {
+    return tenantId == null || tenantId === 0 ? null : tenantId;
+  }
+
+  getFormTenantId(): number | null {
+    if (!this.systemAdmin) return this.getFixedTenantId();
+    return this.normalizeTenantId(this.form?.get('tenantId')?.value);
+  }
+
+  loadTenants() {
+    this.metadata.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
+      next: (res) => {
+        const tenants = res.result?.metaResult[0]?.data || [];
+        this.tenantsForForm = tenants.map((t: TenantDto) => ({
+          id: t.id,
+          displayName: (t as { displayName?: string }).displayName || t.companyName || String(t.id)
+        }));
+        this.tenantFilterOptions = [
+          { label: 'All tenants', value: null },
+          ...tenants.map((t: TenantDto) => ({
+            label: (t as { displayName?: string }).displayName || t.companyName || String(t.id),
+            value: t.id
+          }))
+        ];
+      }
+    });
+  }
+
+  loadMaintenanceTypes(tenantId: number | null) {
+    if (this.systemAdmin && tenantId == null) {
+      this.maintenanceTypes = [];
+      return;
+    }
+    this.typeService.getAll(tenantId ?? undefined).subscribe((t) => (this.maintenanceTypes = t.map((x) => ({ label: x.name, value: x.id }))));
+  }
+
+  onTenantFilterChange() {
+    this.filter.pageNumber = 1;
+    this.load();
   }
 
   get items(): FormArray {
@@ -157,9 +220,10 @@ export class MaintenanceChecklistComponent implements OnInit {
   openNew() {
     this.isEditing = false;
     this.submitted = false;
-    this.form.reset({ isActive: true });
+    this.form.reset({ tenantId: this.systemAdmin ? null : this.getFixedTenantId(), isActive: true });
     this.clearItems();
     this.addItem();
+    this.loadMaintenanceTypes(this.getFormTenantId());
     this.drawerVisible = true;
   }
 
@@ -169,12 +233,14 @@ export class MaintenanceChecklistComponent implements OnInit {
     this.service.getById(row.id).subscribe((c) => {
       this.form.patchValue({
         id: c.id,
+        tenantId: this.normalizeTenantId(c.tenantId),
         name: c.name,
         code: c.code,
         description: c.description,
         maintenanceTypeId: c.maintenanceTypeId,
         isActive: c.isActive
       });
+      this.loadMaintenanceTypes(this.normalizeTenantId(c.tenantId));
       this.clearItems();
       const list = c.items?.length ? c.items : [this.emptyItem(1)];
       list.forEach((it) => this.items.push(this.createItemGroup(it)));
@@ -215,6 +281,7 @@ export class MaintenanceChecklistComponent implements OnInit {
     const raw = this.form.getRawValue();
     const payload = {
       ...raw,
+      tenantId: this.systemAdmin ? this.normalizeTenantId(raw.tenantId) : this.getFixedTenantId(),
       items: raw.items.map((it: MaintenanceChecklistItem & { options?: MaintenanceChecklistItemOption[] }) => ({
         ...it,
         options: it.responseType === this.selectionResponseType ? it.options : []

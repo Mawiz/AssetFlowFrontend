@@ -19,7 +19,9 @@ import { PreventiveMaintenanceOccurrence, PreventiveMaintenanceFilter } from '..
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { MetadataService } from '@/services/metadata-service';
+import { AuthService } from '@/services/auth-service';
 import { readPagedList } from '../../utils/paged-list';
+import { TenantDto } from '../../model/tenant';
 
 type PmTagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -61,7 +63,9 @@ export class PreventiveMaintenanceComponent implements OnInit {
   Permissions = Permissions;
   rows = signal<PreventiveMaintenanceOccurrence[]>([]);
   totalRecords = 0;
-  filter: PreventiveMaintenanceFilter = { pageNumber: 1, pageSize: 15, searchText: '' };
+  filter: PreventiveMaintenanceFilter = { pageNumber: 1, pageSize: 15, searchText: '', tenantId: null };
+  systemAdmin = false;
+  tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
   statusOptions: { label: string; value: number | null }[] = [{ label: 'All', value: null }];
   statusMap = new Map<number, string>();
   executeVisible = false;
@@ -69,9 +73,18 @@ export class PreventiveMaintenanceComponent implements OnInit {
   completeRemarks = '';
   executeItems: ExecuteChecklistRow[] = [];
 
-  constructor(private service: PreventiveMaintenanceService, private metadata: MetadataService, private messages: MessageService) {}
+  constructor(
+    private service: PreventiveMaintenanceService,
+    private metadata: MetadataService,
+    private authService: AuthService,
+    private messages: MessageService
+  ) {}
 
   ngOnInit() {
+    this.systemAdmin = this.authService.systemAdminPermissions();
+    if (this.systemAdmin) {
+      this.loadTenants();
+    }
     this.metadata.getEnums().subscribe((res: any) => {
       const data = res?.result ?? res;
       (data?.PreventiveMaintenanceOccurrenceStatus ?? []).forEach((x: any) => {
@@ -124,8 +137,30 @@ export class PreventiveMaintenanceComponent implements OnInit {
     this.load();
   }
 
+  loadTenants() {
+    this.metadata.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
+      next: (res) => {
+        const tenants = res.result?.metaResult[0]?.data || [];
+        this.tenantFilterOptions = [
+          { label: 'All tenants', value: null },
+          ...tenants.map((t: TenantDto) => ({
+            label: (t as { displayName?: string }).displayName || t.companyName || String(t.id),
+            value: t.id
+          }))
+        ];
+      }
+    });
+  }
+
+  onTenantFilterChange() {
+    this.filter.pageNumber = 1;
+    this.load();
+  }
+
   generate() {
-    this.service.generate({}).subscribe({
+    const dto =
+      this.systemAdmin && this.filter.tenantId != null ? { tenantId: this.filter.tenantId } : {};
+    this.service.generate(dto).subscribe({
       next: (r) => {
         this.messages.add({ severity: 'info', summary: 'Generation', detail: `Created ${r?.createdCount ?? 0} occurrence(s)` });
         this.load();

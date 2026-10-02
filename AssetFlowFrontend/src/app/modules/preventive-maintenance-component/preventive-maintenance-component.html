@@ -38,15 +38,27 @@
   <ng-template #caption>
     <div class="flex justify-between items-center flex-wrap gap-2">
       <h5 class="m-0">Preventive Maintenance</h5>
-      <p-iconfield>
+      <div class="flex gap-2 flex-wrap items-center">
+        <p-select
+          *ngIf="systemAdmin"
+          [options]="tenantFilterOptions"
+          [(ngModel)]="filter.tenantId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All tenants"
+          [style]="{ minWidth: '12rem' }"
+          (onChange)="onTenantFilterChange()" />
+        <p-iconfield>
         <p-inputicon styleClass="pi pi-search" />
         <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
       </p-iconfield>
+      </div>
     </div>
   </ng-template>
   <ng-template #header>
     <tr>
       <th>Asset</th>
+      <th *ngIf="systemAdmin">Tenant</th>
       <th>Schedule</th>
       <th>Maintenance type</th>
       <th>Scheduled</th>
@@ -58,6 +70,7 @@
   <ng-template #body let-r>
     <tr>
       <td>{{ r.assetCode }} — {{ r.assetName }}</td>
+      <td *ngIf="systemAdmin">{{ r.tenantId ?? '—' }}</td>
       <td>{{ r.scheduleName || '—' }}</td>
       <td>{{ r.maintenanceTypeName }}</td>
       <td>{{ r.scheduledDate ? (r.scheduledDate | date: 'mediumDate') : '—' }}</td>

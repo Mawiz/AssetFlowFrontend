@@ -25,9 +25,11 @@ import { MaintenanceSchedule } from '../../model/maintenance';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { MetadataService } from '@/services/metadata-service';
+import { AuthService } from '@/services/auth-service';
 import { ListFilterDto } from '../../model/list-filter';
 import { readPagedList } from '../../utils/paged-list';
 import { Asset } from '../../model/asset';
+import { TenantDto } from '../../model/tenant';
 
 @Component({
   selector: 'app-maintenance-schedule-component',
@@ -59,11 +61,14 @@ export class MaintenanceScheduleComponent implements OnInit {
   Permissions = Permissions;
   rows = signal<MaintenanceSchedule[]>([]);
   totalRecords = 0;
-  filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '' };
+  filter: ListFilterDto = { pageNumber: 1, pageSize: 10, searchText: '', tenantId: null };
   drawerVisible = false;
   isEditing = false;
   submitted = false;
   form!: FormGroup;
+  systemAdmin = false;
+  tenantsForForm: { id: number; displayName: string }[] = [];
+  tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
   recurrenceTypes: { label: string; value: number }[] = [];
   weekDays = [
     { label: 'Sunday', value: 0 },
@@ -84,29 +89,30 @@ export class MaintenanceScheduleComponent implements OnInit {
     private typeService: MaintenanceTypeService,
     private checklistService: MaintenanceChecklistService,
     private metadata: MetadataService,
+    private authService: AuthService,
     private messages: MessageService,
     private fb: FormBuilder
   ) {}
 
   ngOnInit() {
+    this.systemAdmin = this.authService.systemAdminPermissions();
     this.initForm();
     this.metadata.getEnums().subscribe((res: unknown) => {
       const data = (res as { result?: unknown })?.result ?? res;
       const enums = data as Record<string, { text: string; value: number }[]>;
       this.recurrenceTypes = (enums?.['MaintenanceRecurrenceType'] ?? []).map((x) => ({ label: x.text, value: x.value }));
     });
-    this.assetService.filter({ pageNumber: 1, pageSize: 500, isActive: true }).subscribe((a) => {
-      const { rows } = readPagedList<Asset>(a);
-      this.assets = rows.map((x) => ({ label: `${x.assetCode} — ${x.name}`, value: x.id }));
-    });
-    this.typeService.getAll().subscribe((t) => (this.types = t.map((x) => ({ label: x.name, value: x.id }))));
-    this.checklistService.getAll().subscribe((c) => (this.checklists = c.map((x) => ({ label: x.name, value: x.id }))));
+    if (this.systemAdmin) {
+      this.loadTenants();
+    }
+    this.loadDependents(this.getFormTenantId());
     this.load();
   }
 
   initForm() {
     this.form = this.fb.group({
       id: [null],
+      tenantId: [this.systemAdmin ? null : this.getFixedTenantId(), this.systemAdmin ? Validators.required : []],
       assetId: [null, Validators.required],
       name: ['', Validators.required],
       maintenanceTypeId: [null, Validators.required],
@@ -122,6 +128,66 @@ export class MaintenanceScheduleComponent implements OnInit {
       isActive: [true],
       generationHorizonDays: [90]
     });
+    if (this.systemAdmin) {
+      this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
+        this.form.patchValue({ assetId: null, maintenanceTypeId: null, maintenanceChecklistId: null }, { emitEvent: false });
+        this.loadDependents(this.normalizeTenantId(tenantId));
+      });
+    }
+  }
+
+  private getFixedTenantId(): number | null {
+    const t = this.authService.getTenantId();
+    return t == null || t === 0 ? null : t;
+  }
+
+  private normalizeTenantId(tenantId: number | null | undefined): number | null {
+    return tenantId == null || tenantId === 0 ? null : tenantId;
+  }
+
+  getFormTenantId(): number | null {
+    if (!this.systemAdmin) return this.getFixedTenantId();
+    return this.normalizeTenantId(this.form?.get('tenantId')?.value);
+  }
+
+  loadTenants() {
+    this.metadata.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
+      next: (res) => {
+        const tenants = res.result?.metaResult[0]?.data || [];
+        this.tenantsForForm = tenants.map((t: TenantDto) => ({
+          id: t.id,
+          displayName: (t as { displayName?: string }).displayName || t.companyName || String(t.id)
+        }));
+        this.tenantFilterOptions = [
+          { label: 'All tenants', value: null },
+          ...tenants.map((t: TenantDto) => ({
+            label: (t as { displayName?: string }).displayName || t.companyName || String(t.id),
+            value: t.id
+          }))
+        ];
+      }
+    });
+  }
+
+  loadDependents(tenantId: number | null) {
+    if (this.systemAdmin && tenantId == null) {
+      this.assets = [];
+      this.types = [];
+      this.checklists = [];
+      return;
+    }
+    const tid = tenantId ?? undefined;
+    this.assetService.filter({ pageNumber: 1, pageSize: 500, isActive: true, tenantId: tid ?? null }).subscribe((a) => {
+      const { rows } = readPagedList<Asset>(a);
+      this.assets = rows.map((x) => ({ label: `${x.assetCode} — ${x.name}`, value: x.id }));
+    });
+    this.typeService.getAll(tid).subscribe((t) => (this.types = t.map((x) => ({ label: x.name, value: x.id }))));
+    this.checklistService.getAll(tid).subscribe((c) => (this.checklists = c.map((x) => ({ label: x.name, value: x.id }))));
+  }
+
+  onTenantFilterChange() {
+    this.filter.pageNumber = 1;
+    this.load();
   }
 
   get recurrenceType(): number {
@@ -159,12 +225,14 @@ export class MaintenanceScheduleComponent implements OnInit {
     this.isEditing = false;
     this.submitted = false;
     this.form.reset({
+      tenantId: this.systemAdmin ? null : this.getFixedTenantId(),
       intervalValue: 1,
       generationHorizonDays: 90,
       isActive: true,
       recurrenceType: 3,
       startDate: new Date()
     });
+    this.loadDependents(this.getFormTenantId());
     this.drawerVisible = true;
   }
 
@@ -172,8 +240,11 @@ export class MaintenanceScheduleComponent implements OnInit {
     this.isEditing = true;
     this.submitted = false;
     this.service.getById(row.id).subscribe((s) => {
+      const tenantId = this.normalizeTenantId(s.tenantId);
+      this.loadDependents(tenantId);
       this.form.patchValue({
         ...s,
+        tenantId,
         startDate: s.startDate ? new Date(s.startDate) : new Date(),
         endDate: s.endDate ? new Date(s.endDate) : null
       });
@@ -193,7 +264,11 @@ export class MaintenanceScheduleComponent implements OnInit {
       return;
     }
     if (this.form.invalid) return;
-    const payload = { ...this.form.getRawValue() };
+    const raw = this.form.getRawValue();
+    const payload = {
+      ...raw,
+      tenantId: this.systemAdmin ? this.normalizeTenantId(raw.tenantId) : this.getFixedTenantId()
+    };
     const obs = payload.id ? this.service.update(payload) : this.service.create(payload);
     obs.subscribe({
       next: () => {

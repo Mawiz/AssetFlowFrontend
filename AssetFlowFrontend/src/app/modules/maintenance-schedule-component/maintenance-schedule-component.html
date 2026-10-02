@@ -22,15 +22,27 @@
   <ng-template #caption>
     <div class="flex justify-between items-center flex-wrap gap-2">
       <h5 class="m-0">Maintenance Schedules</h5>
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
-      </p-iconfield>
+      <div class="flex gap-2 flex-wrap items-center">
+        <p-select
+          *ngIf="systemAdmin"
+          [options]="tenantFilterOptions"
+          [(ngModel)]="filter.tenantId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All tenants"
+          [style]="{ minWidth: '12rem' }"
+          (onChange)="onTenantFilterChange()" />
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+        </p-iconfield>
+      </div>
     </div>
   </ng-template>
   <ng-template #header>
     <tr>
       <th>Asset</th>
+      <th *ngIf="systemAdmin">Tenant</th>
       <th>Schedule</th>
       <th>Type</th>
       <th>Frequency</th>
@@ -43,6 +55,7 @@
   <ng-template #body let-item>
     <tr>
       <td>{{ item.assetCode }}</td>
+      <td *ngIf="systemAdmin">{{ item.tenantId ?? '—' }}</td>
       <td>{{ item.name }}</td>
       <td>{{ item.maintenanceTypeName }}</td>
       <td>{{ item.frequencyDisplay }}</td>
@@ -81,6 +94,20 @@
   [style]="{ width: '480px' }"
   [header]="isEditing ? 'Edit Maintenance Schedule' : 'Create Maintenance Schedule'">
   <form [formGroup]="form" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2" *ngIf="systemAdmin">
+      <label for="msTenant">Tenant</label>
+      <p-select
+        inputId="msTenant"
+        formControlName="tenantId"
+        [options]="tenantsForForm"
+        optionLabel="displayName"
+        optionValue="id"
+        placeholder="Select tenant"
+        [disabled]="isEditing"
+        appendTo="body"
+        styleClass="w-full" />
+      <small *ngIf="submitted && form.controls['tenantId'].invalid" class="text-red-500">Tenant is required.</small>
+    </div>
     <div class="flex flex-col gap-2">
       <label for="msAsset">Asset</label>
       <p-select
