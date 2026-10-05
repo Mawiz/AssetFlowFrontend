@@ -90,14 +90,31 @@ export class AuthService {
     return this.decodeToken();
   }
 
-  getUserId(): string | null {
+  /** Numeric application user id (matches WorkOrder.assignedToUserId and API userId claim). */
+  getUserId(): number | null {
     const decoded: any = this.decodeToken();
-    return (
-      decoded?.sub ||
-      decoded?.nameid ||
-      decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
-      null
-    );
+    if (!decoded) return null;
+
+    const fromClaim = decoded.userId ?? decoded['userId'] ?? decoded.nameid;
+    if (fromClaim != null && fromClaim !== '') {
+      const n = Number(fromClaim);
+      if (!Number.isNaN(n)) return n;
+    }
+
+    const nameIdentifier =
+      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    if (nameIdentifier != null && nameIdentifier !== '') {
+      const n = Number(nameIdentifier);
+      if (!Number.isNaN(n)) return n;
+    }
+
+    // AssetFlow JWT uses sub for username, not id — only use sub when it is numeric.
+    const sub = decoded.sub;
+    if (sub != null && /^\d+$/.test(String(sub).trim())) {
+      return Number(String(sub).trim());
+    }
+
+    return null;
   }
 
   getUserName(): string | null {

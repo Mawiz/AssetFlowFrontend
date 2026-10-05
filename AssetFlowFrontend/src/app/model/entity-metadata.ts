@@ -13,4 +13,11 @@ export interface MetaDataByTypeRequest {
   parentId?: number | null;
   tenantId?: number | null;
   locationTypeId?: number | null;
+  searchText?: string | null;
+}
+
+export interface MetaDataByTypeItemExtended extends MetaDataByTypeItem {
+  code?: string;
+  isSerialized?: boolean | null;
+  availableQuantity?: number | null;
 }

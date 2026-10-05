@@ -21,9 +21,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { WorkOrderService } from '../../services/work-order-service';
 import { PartReplacementService } from '../../services/part-replacement-service';
-import { AssetComponentService } from '../../services/asset-component-service';
-import { PartInventoryService } from '../../services/part-inventory-service';
-import { PartService } from '../../services/part-service';
+import { MetaDataByTypeItemExtended } from '../../model/entity-metadata';
 import {
   ConfirmPartReplacement,
   PartReplacement,
@@ -106,7 +104,7 @@ export class WorkOrderComponent implements OnInit {
 
   replacements: PartReplacement[] = [];
   replacementDialogVisible = false;
-  assetComponentOptions: { label: string; value: number }[] = [];
+  assetComponentOptions: { label: string; value: number; partNumber?: string }[] = [];
   batchOptions: { label: string; value: number }[] = [];
   replacementValidation: PartReplacementValidationResult | null = null;
   replacementSaving = false;
@@ -125,9 +123,6 @@ export class WorkOrderComponent implements OnInit {
   constructor(
     private service: WorkOrderService,
     private partReplacementService: PartReplacementService,
-    private assetComponentService: AssetComponentService,
-    private partInventoryService: PartInventoryService,
-    private partService: PartService,
     private userService: UserService,
     private metadata: MetadataService,
     private authService: AuthService,
@@ -259,8 +254,8 @@ export class WorkOrderComponent implements OnInit {
   canReplacePart(wo: WorkOrder): boolean {
     const allowed = [5, 6, 7, 11];
     if (!allowed.includes(wo.status)) return false;
-    const uid = Number(this.authService.getUserId());
-    return !!wo.assignedToUserId && wo.assignedToUserId === uid;
+    const uid = this.authService.getUserId();
+    return !!wo.assignedToUserId && uid != null && wo.assignedToUserId === uid;
   }
 
   openReplacementDialog() {
@@ -282,14 +277,25 @@ export class WorkOrderComponent implements OnInit {
     this.replacementDialogVisible = true;
   }
 
+  replacementTenantId(): number | null {
+    if (this.systemAdmin) return this.active?.tenantId ?? this.filter.tenantId ?? null;
+    return this.authService.getTenantId();
+  }
+
   loadAssetComponents(assetId: number) {
-    this.assetComponentService
-      .filter({ pageNumber: 1, pageSize: 200, assetId, isActive: true })
+    this.metadata
+      .getByType({
+        type: 'AssetComponent',
+        parentId: assetId,
+        tenantId: this.replacementTenantId()
+      })
       .subscribe({
-        next: (items) => {
+        next: (res) => {
+          const items = (res?.result ?? []) as MetaDataByTypeItemExtended[];
           this.assetComponentOptions = items.map((c) => ({
-            label: `${c.componentName} (${c.partNumber || '—'})${c.serialNumber ? ' · ' + c.serialNumber : ''}`,
-            value: c.id
+            label: c.displayName || c.name,
+            value: c.id,
+            partNumber: c.code?.trim() || undefined
           }));
         }
       });
@@ -302,32 +308,41 @@ export class WorkOrderComponent implements OnInit {
     this.replacementForm.newPartId = null;
     if (!this.replacementForm.oldAssetComponentId) return;
     const comp = this.assetComponentOptions.find((o) => o.value === this.replacementForm.oldAssetComponentId);
-    const pn = comp?.label.match(/\(([^)]+)\)/)?.[1];
-    if (!pn || pn === '—') return;
-    this.partService.filter({ pageNumber: 1, pageSize: 20, searchText: pn }).subscribe((parts) => {
-      const match = parts.find((p) => p.partNumber?.toLowerCase() === pn.toLowerCase() && !p.isSerialized);
-      if (!match) return;
-      this.replacementForm.newPartId = match.id;
-      this.loadBatchesForPart(match.id);
-    });
+    const pn = comp?.partNumber;
+    if (!pn) return;
+    this.metadata
+      .getByType({
+        type: 'Part',
+        searchText: pn,
+        tenantId: this.replacementTenantId()
+      })
+      .subscribe({
+        next: (res) => {
+          const parts = (res?.result ?? []) as MetaDataByTypeItemExtended[];
+          const match = parts.find((p) => !p.isSerialized);
+          if (!match) return;
+          this.replacementForm.newPartId = match.id;
+          this.loadBatchesForPart(match.id);
+        }
+      });
   }
 
   loadBatchesForPart(partId: number) {
-    this.partInventoryService.filter({ pageNumber: 1, pageSize: 50, partId }).subscribe((invRows) => {
-      const first = invRows[0];
-      if (!first) {
-        this.batchOptions = [];
-        return;
-      }
-      this.partInventoryService.getById(first.id).subscribe((detail) => {
-        this.batchOptions = (detail.batches ?? [])
-          .filter((b) => b.isActive !== false && (b.availableQuantity ?? 0) > 0)
-          .map((b) => ({
-            label: `${b.batchReference || 'Batch #' + b.id} — avail ${b.availableQuantity}`,
+    this.metadata
+      .getByType({
+        type: 'PartInventoryBatch',
+        parentId: partId,
+        tenantId: this.replacementTenantId()
+      })
+      .subscribe({
+        next: (res) => {
+          const batches = (res?.result ?? []) as MetaDataByTypeItemExtended[];
+          this.batchOptions = batches.map((b) => ({
+            label: b.displayName || b.name,
             value: b.id
           }));
+        }
       });
-    });
   }
 
   lookupNewSerial() {
