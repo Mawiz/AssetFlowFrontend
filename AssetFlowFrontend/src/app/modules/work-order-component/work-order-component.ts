@@ -16,8 +16,19 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { FileUploadModule } from 'primeng/fileupload';
+import { DialogModule } from 'primeng/dialog';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { WorkOrderService } from '../../services/work-order-service';
+import { PartReplacementService } from '../../services/part-replacement-service';
+import { AssetComponentService } from '../../services/asset-component-service';
+import { PartInventoryService } from '../../services/part-inventory-service';
+import { PartService } from '../../services/part-service';
+import {
+  ConfirmPartReplacement,
+  PartReplacement,
+  PartReplacementValidationResult
+} from '../../model/part-replacement';
 import { UserService } from '../../services/user-service';
 import { WorkOrder, WorkOrderFilter } from '../../model/work-order';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
@@ -54,6 +65,8 @@ type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contr
     IconFieldModule,
     InputIconModule,
     FileUploadModule,
+    DialogModule,
+    InputNumberModule,
     HasPermissionDirective
   ],
   providers: [MessageService]
@@ -91,8 +104,30 @@ export class WorkOrderComponent implements OnInit {
   rejectReason = '';
   myAssignmentsOnly = false;
 
+  replacements: PartReplacement[] = [];
+  replacementDialogVisible = false;
+  assetComponentOptions: { label: string; value: number }[] = [];
+  batchOptions: { label: string; value: number }[] = [];
+  replacementValidation: PartReplacementValidationResult | null = null;
+  replacementSaving = false;
+  replacementForm: ConfirmPartReplacement = {
+    workOrderId: 0,
+    oldAssetComponentId: 0,
+    newSerialNumber: '',
+    quantity: 1,
+    removalReason: '',
+    failureReason: '',
+    installationLocation: '',
+    remarks: '',
+    markOldSerialFaulty: true
+  };
+
   constructor(
     private service: WorkOrderService,
+    private partReplacementService: PartReplacementService,
+    private assetComponentService: AssetComponentService,
+    private partInventoryService: PartInventoryService,
+    private partService: PartService,
     private userService: UserService,
     private metadata: MetadataService,
     private authService: AuthService,
@@ -176,7 +211,15 @@ export class WorkOrderComponent implements OnInit {
     this.service.getById(row.id).subscribe((wo) => {
       this.active = wo;
       this.patchForms(wo);
+      this.loadReplacements(wo.id);
       this.detailVisible = true;
+    });
+  }
+
+  loadReplacements(workOrderId: number) {
+    this.partReplacementService.getByWorkOrder(workOrderId).subscribe({
+      next: (list) => (this.replacements = list),
+      error: () => (this.replacements = [])
     });
   }
 
@@ -210,6 +253,138 @@ export class WorkOrderComponent implements OnInit {
   hideDetail() {
     this.detailVisible = false;
     this.active = null;
+    this.replacements = [];
+  }
+
+  canReplacePart(wo: WorkOrder): boolean {
+    const allowed = [5, 6, 7, 11];
+    if (!allowed.includes(wo.status)) return false;
+    const uid = Number(this.authService.getUserId());
+    return !!wo.assignedToUserId && wo.assignedToUserId === uid;
+  }
+
+  openReplacementDialog() {
+    if (!this.active) return;
+    this.replacementForm = {
+      workOrderId: this.active.id,
+      oldAssetComponentId: 0,
+      newSerialNumber: '',
+      quantity: 1,
+      removalReason: '',
+      failureReason: '',
+      installationLocation: '',
+      remarks: '',
+      markOldSerialFaulty: true
+    };
+    this.replacementValidation = null;
+    this.batchOptions = [];
+    this.loadAssetComponents(this.active.assetId);
+    this.replacementDialogVisible = true;
+  }
+
+  loadAssetComponents(assetId: number) {
+    this.assetComponentService
+      .filter({ pageNumber: 1, pageSize: 200, assetId, isActive: true })
+      .subscribe({
+        next: (items) => {
+          this.assetComponentOptions = items.map((c) => ({
+            label: `${c.componentName} (${c.partNumber || '—'})${c.serialNumber ? ' · ' + c.serialNumber : ''}`,
+            value: c.id
+          }));
+        }
+      });
+  }
+
+  onOldComponentChange() {
+    this.replacementValidation = null;
+    this.batchOptions = [];
+    this.replacementForm.newPartInventoryBatchId = null;
+    this.replacementForm.newPartId = null;
+    if (!this.replacementForm.oldAssetComponentId) return;
+    const comp = this.assetComponentOptions.find((o) => o.value === this.replacementForm.oldAssetComponentId);
+    const pn = comp?.label.match(/\(([^)]+)\)/)?.[1];
+    if (!pn || pn === '—') return;
+    this.partService.filter({ pageNumber: 1, pageSize: 20, searchText: pn }).subscribe((parts) => {
+      const match = parts.find((p) => p.partNumber?.toLowerCase() === pn.toLowerCase() && !p.isSerialized);
+      if (!match) return;
+      this.replacementForm.newPartId = match.id;
+      this.loadBatchesForPart(match.id);
+    });
+  }
+
+  loadBatchesForPart(partId: number) {
+    this.partInventoryService.filter({ pageNumber: 1, pageSize: 50, partId }).subscribe((invRows) => {
+      const first = invRows[0];
+      if (!first) {
+        this.batchOptions = [];
+        return;
+      }
+      this.partInventoryService.getById(first.id).subscribe((detail) => {
+        this.batchOptions = (detail.batches ?? [])
+          .filter((b) => b.isActive !== false && (b.availableQuantity ?? 0) > 0)
+          .map((b) => ({
+            label: `${b.batchReference || 'Batch #' + b.id} — avail ${b.availableQuantity}`,
+            value: b.id
+          }));
+      });
+    });
+  }
+
+  lookupNewSerial() {
+    if (!this.active || !this.replacementForm.newSerialNumber?.trim()) return;
+    this.partReplacementService.lookupSerial(this.active.id, this.replacementForm.newSerialNumber.trim()).subscribe({
+      next: (r) => {
+        this.replacementValidation = r;
+        if (r.newPart?.id) this.replacementForm.newPartId = r.newPart.id;
+        if (r.serial?.id) this.replacementForm.newPartSerialNumberId = r.serial.id;
+      },
+      error: (e) =>
+        this.messages.add({
+          severity: 'error',
+          summary: 'Lookup failed',
+          detail: e?.error?.errors?.[0] || 'Serial lookup failed'
+        })
+    });
+  }
+
+  validateReplacement() {
+    if (!this.active) return;
+    const dto = { ...this.replacementForm, workOrderId: this.active.id };
+    this.partReplacementService.validate(dto).subscribe({
+      next: (r) => (this.replacementValidation = r),
+      error: (e) =>
+        this.messages.add({
+          severity: 'error',
+          summary: 'Validation failed',
+          detail: e?.error?.errors?.[0] || 'Validation failed'
+        })
+    });
+  }
+
+  confirmReplacement() {
+    if (!this.active || !this.replacementForm.oldAssetComponentId) {
+      this.messages.add({ severity: 'warn', summary: 'Required', detail: 'Select the component being replaced.' });
+      return;
+    }
+    this.replacementSaving = true;
+    const dto = { ...this.replacementForm, workOrderId: this.active.id };
+    this.partReplacementService.replace(dto).subscribe({
+      next: () => {
+        this.replacementSaving = false;
+        this.replacementDialogVisible = false;
+        this.messages.add({ severity: 'success', summary: 'Success', detail: 'Part replaced and installed.' });
+        this.loadReplacements(this.active!.id);
+        this.refreshActive();
+      },
+      error: (e) => {
+        this.replacementSaving = false;
+        this.messages.add({
+          severity: 'error',
+          summary: 'Replace failed',
+          detail: e?.error?.errors?.[0] || e?.error?.result?.errors?.[0] || 'Replace failed'
+        });
+      }
+    });
   }
 
   runAction(call: () => Observable<WorkOrder>, success: string) {

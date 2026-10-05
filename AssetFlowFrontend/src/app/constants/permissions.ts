@@ -154,5 +154,12 @@ export const Permissions = {
     Reject: 'WorkOrder.Reject',
     Reopen: 'WorkOrder.Reopen',
     Cancel: 'WorkOrder.Cancel'
+  },
+  PartReplacement: {
+    View: 'PartReplacement.View',
+    Create: 'PartReplacement.Create',
+    Validate: 'PartReplacement.Validate',
+    Replace: 'PartReplacement.Replace',
+    Delete: 'PartReplacement.Delete'
   }
 } as const;
