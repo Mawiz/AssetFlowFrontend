@@ -8,10 +8,11 @@ import { KpiMetric } from '../../model/reporting';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div
-      class="card mb-0 h-full cursor-pointer hover:surface-hover transition-colors"
-      [routerLink]="kpi.drillRoute || null"
-      [queryParams]="parseQuery(kpi.drillQuery)"
+    @if (kpi.drillRoute) {
+    <a
+      class="card mb-0 h-full block no-underline text-inherit cursor-pointer hover:surface-hover transition-colors"
+      [routerLink]="kpi.drillRoute"
+      [queryParams]="parseQuery(kpi.drillQuery) ?? undefined"
     >
       <div class="flex justify-between items-start gap-2">
         <div class="flex-1 min-w-0">
@@ -30,7 +31,28 @@ import { KpiMetric } from '../../model/reporting';
           <i class="pi pi-chart-line text-primary"></i>
         </div>
       </div>
+    </a>
+    } @else {
+    <div class="card mb-0 h-full">
+      <div class="flex justify-between items-start gap-2">
+        <div class="flex-1 min-w-0">
+          <span class="block text-muted-color text-sm font-medium mb-2">{{ kpi.label }}</span>
+          <div class="text-surface-900 dark:text-surface-0 font-semibold text-2xl leading-none">
+            {{ displayValue() }}
+          </div>
+          @if (kpi.changePercent != null && kpi.previousValue != null) {
+            <div class="mt-2 text-sm" [class.text-green-600]="trendGood()" [class.text-red-500]="!trendGood()">
+              {{ kpi.changePercent > 0 ? '↑' : '↓' }} {{ absChange() }}%
+              <span class="text-muted-color"> vs prev. period</span>
+            </div>
+          }
+        </div>
+        <div class="flex items-center justify-center bg-primary/10 rounded-border shrink-0" style="width:2.5rem;height:2.5rem">
+          <i class="pi pi-chart-line text-primary"></i>
+        </div>
+      </div>
     </div>
+    }
   `
 })
 export class AnalyticsKpiCardComponent {

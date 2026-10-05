@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ButtonModule } from 'primeng/button';
 import { ReportingService } from '../../services/reporting-service';
 import { ManagementAnalytics, PeriodPreset, ReportingFilter, StackedCostMonth } from '../../model/reporting';
 import { AnalyticsFilterBarComponent } from '../../shared/analytics/analytics-filter-bar.component';
@@ -13,7 +14,7 @@ import { AnalyticsInsightsComponent } from '../../shared/analytics/analytics-ins
 import { baseChartOptions, chartPalette } from '../../shared/analytics/analytics-chart-options';
 
 @Component({
-  selector: 'app-management-dashboard',
+  selector: 'app-management-analytics-dashboard',
   standalone: true,
   imports: [
     CommonModule,
@@ -21,25 +22,26 @@ import { baseChartOptions, chartPalette } from '../../shared/analytics/analytics
     ChartModule,
     TableModule,
     ProgressSpinnerModule,
+    ButtonModule,
     AnalyticsFilterBarComponent,
     AnalyticsKpiCardComponent,
     AnalyticsSectionComponent,
     AnalyticsInsightsComponent
   ],
-  templateUrl: './management-dashboard.html'
+  templateUrl: './management-analytics-dashboard.component.html'
 })
-export class ManagementDashboard implements OnInit {
+export class ManagementAnalyticsDashboardComponent implements OnInit {
   periodPreset: PeriodPreset | string = '30Days';
   loading = signal(true);
   error = signal(false);
   data = signal<ManagementAnalytics | null>(null);
 
-  healthChart = signal<any>(null);
-  activityChart = signal<any>(null);
-  pipelineChart = signal<any>(null);
-  costChart = signal<any>(null);
-  downtimeChart = signal<any>(null);
-  partsChart = signal<any>(null);
+  healthChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
+  activityChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
+  pipelineChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
+  costChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
+  downtimeChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
+  partsChart = signal<{ labels: string[]; datasets: unknown[] } | null>(null);
 
   chartOptions = baseChartOptions(true);
   barOptions = { ...baseChartOptions(false), indexAxis: 'y' as const };

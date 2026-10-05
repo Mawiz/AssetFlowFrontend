@@ -44,7 +44,16 @@ export const appRoutes: Routes = [
     component: AppLayout,
     canActivate: [AuthGuard],
     children: [
-      { path: 'dashboard', component: Dashboard, canActivate: [PermissionGuard], data: { permissions: [Permissions.Dashboard.View] } },
+      { path: 'dashboard', component: Dashboard },
+      {
+        path: 'dashboard/management',
+        loadComponent: () =>
+          import('./app/pages/dashboard/management-analytics-dashboard.component').then(
+            (m) => m.ManagementAnalyticsDashboardComponent
+          ),
+        canActivate: [PermissionGuard],
+        data: { permissions: [Permissions.Dashboard.View] }
+      },
       { path: 'subscription', component: SubscriptionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Subscription.List] } },
       { path: 'role', component: RoleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Role.List] } },
       { path: 'tenant', component: TenantComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.Tenant.List] } },

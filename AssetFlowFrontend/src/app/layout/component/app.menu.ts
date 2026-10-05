@@ -80,7 +80,13 @@ export class AppMenu implements OnInit {
             {
                 label: 'Home',
                 items: [
-                    { label: 'Management Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'], visible: this.authService.hasPermission('Dashboard.View') || this.authService.hasPrefix('Dashboard.') },
+                    { label: 'Dashboard (Demo)', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard'] },
+                    {
+                        label: 'Management Dashboard',
+                        icon: 'pi pi-fw pi-home',
+                        routerLink: ['/dashboard/management'],
+                        visible: this.authService.hasPermission('Dashboard.View') || this.authService.hasPrefix('Dashboard.')
+                    },
                     ...reportItems
                 ].filter((item) => item.visible !== false)
             },

@@ -1,0 +1,181 @@
+<div class="flex flex-col gap-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-muted-color text-sm m-0 mb-1">Dashboard</p>
+      <h1 class="text-3xl font-semibold m-0">Asset &amp; Maintenance Overview</h1>
+    </div>
+    <app-analytics-filter-bar
+      [periodPreset]="periodPreset"
+      [loading]="loading()"
+      [lastUpdated]="data()?.lastUpdatedUtc ?? null"
+      (periodChange)="onPeriodChange($event)"
+      (refresh)="load()"
+    />
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-16"><p-progressSpinner /></div>
+  } @else if (error()) {
+    <div class="card text-center py-8">
+      <p class="m-0 mb-3">Unable to load dashboard analytics.</p>
+      <p-button label="Retry" (onClick)="load()" />
+    </div>
+  } @else {
+    @if (data(); as d) {
+      <app-analytics-section title="Executive KPIs" subtitle="Current state and period metrics · click a card to drill down">
+        <div class="grid grid-cols-12 gap-4">
+          @for (kpi of d.heroKpis; track kpi.key) {
+            <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+              <app-analytics-kpi-card [kpi]="kpi" />
+            </div>
+          }
+        </div>
+      </app-analytics-section>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 xl:col-span-8">
+          <app-analytics-section title="Asset health overview" subtitle="Live asset status mix">
+            <div class="card mb-0 relative">
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-8">
+                <span class="text-3xl font-bold">{{ d.summary.asset.totalAssets }}</span>
+                <span class="text-muted-color text-sm">Total assets</span>
+              </div>
+              @if (healthChart(); as hc) {
+                <p-chart type="doughnut" [data]="hc" [options]="doughnutOptions" class="h-24rem" />
+              }
+            </div>
+          </app-analytics-section>
+        </div>
+        <div class="col-span-12 xl:col-span-4">
+          <app-analytics-section title="Maintenance health" subtitle="Period performance indicators">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="card mb-0 p-4 text-center">
+                <div class="text-muted-color text-sm">PM compliance</div>
+                <div class="text-2xl font-semibold">{{ d.summary.performance.pmCompliancePercent ?? 'N/A' }}@if (d.summary.performance.pmCompliancePercent != null) {%}</div>
+              </div>
+              <div class="card mb-0 p-4 text-center">
+                <div class="text-muted-color text-sm">First-time fix</div>
+                <div class="text-2xl font-semibold">{{ d.summary.performance.firstTimeFixRatePercent ?? 'N/A' }}@if (d.summary.performance.firstTimeFixRatePercent != null) {%}</div>
+              </div>
+              <div class="card mb-0 p-4 text-center">
+                <div class="text-muted-color text-sm">MTBF</div>
+                <div class="text-xl font-semibold">{{ d.summary.performance.mtbfHours ?? 'N/A' }}@if (d.summary.performance.mtbfHours != null) { hrs}</div>
+              </div>
+              <div class="card mb-0 p-4 text-center">
+                <div class="text-muted-color text-sm">MTTR</div>
+                <div class="text-xl font-semibold">{{ d.summary.performance.mttrHours ?? 'N/A' }}@if (d.summary.performance.mttrHours != null) { hrs}</div>
+              </div>
+              <div class="col-span-2 card mb-0 p-4 text-center">
+                <div class="text-muted-color text-sm">Total downtime (period)</div>
+                <div class="text-2xl font-semibold">{{ formatMinutes(d.summary.performance.totalDowntimeMinutes) }}</div>
+              </div>
+            </div>
+          </app-analytics-section>
+        </div>
+      </div>
+
+      <app-analytics-section title="Maintenance activity" subtitle="Issues, work orders, and PM completed over time">
+        <div class="card mb-0">
+          @if (activityChart(); as ac) {
+            <p-chart type="line" [data]="ac" [options]="chartOptions" class="h-22rem" />
+          }
+        </div>
+      </app-analytics-section>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6">
+          <app-analytics-section title="Work order pipeline" subtitle="Open work orders by status">
+            <div class="card mb-0">
+              @if (pipelineChart(); as pc) {
+                <p-chart type="bar" [data]="pc" [options]="barOptions" class="h-20rem" />
+              }
+            </div>
+          </app-analytics-section>
+        </div>
+        <div class="col-span-12 lg:col-span-6">
+          <app-analytics-section title="Maintenance cost trend" subtitle="Stacked cost composition">
+            <div class="card mb-0">
+              @if (costChart(); as cc) {
+                <p-chart type="bar" [data]="cc" [options]="stackedBarOptions" class="h-20rem" />
+              }
+            </div>
+          </app-analytics-section>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-7">
+          <app-analytics-section title="Assets requiring attention" subtitle="Ranked by breakdowns, overdue PM, downtime, and cost">
+            <div class="flex flex-col gap-2">
+              @for (a of d.attentionAssets; track a.assetId) {
+                <a [routerLink]="['/modules/assets', a.assetId]" class="card mb-0 p-4 no-underline text-inherit block hover:surface-hover">
+                  <div class="font-semibold">{{ a.assetCode }} · {{ a.assetName }}</div>
+                  <div class="text-sm text-muted-color mt-1">{{ a.reasons.join(' · ') }}</div>
+                </a>
+              }
+              @if (!d.attentionAssets.length) {
+                <p class="text-muted-color text-sm">No assets flagged for this period.</p>
+              }
+            </div>
+          </app-analytics-section>
+        </div>
+        <div class="col-span-12 lg:col-span-5">
+          <app-analytics-section title="Key insights" subtitle="Rule-based highlights from your data">
+            <app-analytics-insights [insights]="d.insights" />
+          </app-analytics-section>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6">
+          <app-analytics-section title="Spare parts snapshot">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="card mb-0 p-3"><span class="text-muted-color text-sm">Total parts</span><div class="text-xl font-semibold">{{ d.summary.spareParts.totalParts }}</div></div>
+              <div class="card mb-0 p-3"><span class="text-muted-color text-sm">Low stock</span><div class="text-xl font-semibold">{{ d.summary.spareParts.lowStockParts }}</div></div>
+              <div class="card mb-0 p-3"><span class="text-muted-color text-sm">Consumed</span><div class="text-xl font-semibold">{{ d.summary.spareParts.partsConsumedInPeriod }}</div></div>
+              <div class="card mb-0 p-3"><span class="text-muted-color text-sm">Replaced</span><div class="text-xl font-semibold">{{ d.summary.spareParts.partsReplacedInPeriod }}</div></div>
+            </div>
+            <div class="card mb-0">
+              @if (partsChart(); as ptc) {
+                <p-chart type="bar" [data]="ptc" [options]="barOptions" class="h-16rem" />
+              }
+            </div>
+          </app-analytics-section>
+        </div>
+        <div class="col-span-12 lg:col-span-6">
+          <app-analytics-section title="Maintenance team performance">
+            <p-table [value]="d.teamPerformance" styleClass="p-datatable-sm">
+              <ng-template pTemplate="header">
+                <tr><th>Engineer</th><th>Done</th><th>Rate</th><th>Avg repair</th></tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-r>
+                <tr>
+                  <td><a [routerLink]="['/modules/analytics/performance']">{{ r.engineerName }}</a></td>
+                  <td>{{ r.completedJobs }}/{{ r.assignedJobs }}</td>
+                  <td>{{ r.completionRatePercent }}%</td>
+                  <td>{{ r.avgRepairTimeMinutes ?? 'N/A' }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </app-analytics-section>
+        </div>
+      </div>
+
+      <app-analytics-section title="Top downtime assets">
+        <p-table [value]="d.topDowntimeAssets" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr><th>Asset</th><th>Breakdowns</th><th>Downtime</th><th>Cost</th></tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr>
+              <td><a [routerLink]="['/modules/assets', r.assetId]">{{ r.assetCode }}</a></td>
+              <td>{{ r.breakdownCount }}</td>
+              <td>{{ formatMinutes(r.totalDowntimeMinutes) }}</td>
+              <td>{{ r.maintenanceCost | number: '1.0-0' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </app-analytics-section>
+    }
+  }
+</div>
