@@ -11,6 +11,7 @@
         <p-tab value="0">Overview</p-tab>
         <p-tab value="1" [disabled]="isCreateMode">Components</p-tab>
         <p-tab value="2" [disabled]="isCreateMode">Preventive Maintenance</p-tab>
+        <p-tab value="3" [disabled]="isCreateMode">Service History</p-tab>
     </p-tablist>
     <p-tabpanels>
         <p-tabpanel value="0">
@@ -106,6 +107,11 @@
         </p-tabpanel>
         <p-tabpanel value="2">
             <app-asset-pm-panel *ngIf="assetId" [assetId]="assetId"></app-asset-pm-panel>
+        </p-tabpanel>
+        <p-tabpanel value="3">
+            <ng-container *appHasPermission="Permissions.AssetHistory.View">
+                <app-asset-history-panel *ngIf="assetId" [assetId]="assetId" [tenantId]="loadedTenantId"></app-asset-history-panel>
+            </ng-container>
         </p-tabpanel>
     </p-tabpanels>
 </p-tabs>

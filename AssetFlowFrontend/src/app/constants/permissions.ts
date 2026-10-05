@@ -161,5 +161,14 @@ export const Permissions = {
     Validate: 'PartReplacement.Validate',
     Replace: 'PartReplacement.Replace',
     Delete: 'PartReplacement.Delete'
+  },
+  AssetHistory: {
+    View: 'AssetHistory.View'
+  },
+  CostManagement: {
+    View: 'CostManagement.View',
+    Create: 'CostManagement.Create',
+    Update: 'CostManagement.Update',
+    Delete: 'CostManagement.Delete'
   }
 } as const;

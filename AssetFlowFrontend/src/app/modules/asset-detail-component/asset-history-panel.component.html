@@ -1,0 +1,152 @@
+<div class="flex flex-col gap-4" *ngIf="summary as s">
+  <div class="grid grid-cols-12 gap-3 text-sm">
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Events</strong><br />{{ s.totalMaintenanceEvents }}</div>
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Breakdowns</strong><br />{{ s.totalBreakdowns }}</div>
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Work orders</strong><br />{{ s.totalWorkOrders }}</div>
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Parts replaced</strong><br />{{ s.totalPartsReplaced }}</div>
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Downtime</strong><br />{{ formatMinutes(s.totalDowntimeMinutes) }}</div>
+    <div class="col-span-6 md:col-span-2 surface-ground border-round p-2"><strong>Total cost</strong><br />{{ s.totalMaintenanceCost | number: '1.2-2' }}</div>
+  </div>
+
+  <div class="flex flex-wrap gap-2 align-items-end">
+    <p-datepicker [(ngModel)]="filter.startDate" placeholder="From" dateFormat="yy-mm-dd" [showIcon]="true" appendTo="body" />
+    <p-datepicker [(ngModel)]="filter.endDate" placeholder="To" dateFormat="yy-mm-dd" [showIcon]="true" appendTo="body" />
+    <p-button label="Apply filters" icon="pi pi-filter" (onClick)="onFilterApply()" />
+  </div>
+
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Timeline</p-tab>
+      <p-tab value="1">Maintenance</p-tab>
+      <p-tab value="2">Breakdowns</p-tab>
+      <p-tab value="3">Work orders</p-tab>
+      <p-tab value="4">Parts</p-tab>
+      <p-tab value="5">Downtime</p-tab>
+      <p-tab value="6">Costs</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        <p-table [value]="timeline" [paginator]="false" styleClass="text-sm">
+          <ng-template #header>
+            <tr><th>When</th><th>Event</th><th>Description</th><th>Reference</th><th>User</th></tr>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.eventAt | date: 'medium' }}</td>
+              <td>{{ row.title || row.eventTypeName }}</td>
+              <td>{{ row.description }}</td>
+              <td>{{ row.referenceNumber }}</td>
+              <td>{{ row.userName }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <small class="text-color-secondary">Showing {{ timeline.length }} of {{ timelineTotal }} events</small>
+      </p-tabpanel>
+      <p-tabpanel value="1">
+        <p-table [value]="maintenanceRows" styleClass="text-sm">
+          <ng-template #header><tr><th>Date</th><th>Type</th><th>Schedule</th><th>Status</th><th>Completed by</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.maintenanceDate | date: 'mediumDate' }}</td>
+              <td>{{ row.maintenanceTypeName }}</td>
+              <td>{{ row.scheduleName }}</td>
+              <td>{{ row.statusName }}</td>
+              <td>{{ row.completedByUserName }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="2">
+        <p-table [value]="breakdownRows" styleClass="text-sm">
+          <ng-template #header><tr><th>Issue</th><th>Reported</th><th>Category</th><th>WO</th><th>Downtime</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.issueNumber }}</td>
+              <td>{{ row.reportedAt | date: 'medium' }}</td>
+              <td>{{ row.issueCategoryName }}</td>
+              <td>{{ row.workOrderNumber }}</td>
+              <td>{{ formatMinutes(row.downtimeMinutes) }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="3">
+        <p-table [value]="workOrderRows" styleClass="text-sm">
+          <ng-template #header><tr><th>WO</th><th>Status</th><th>Engineer</th><th>Total cost</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.workOrderNumber }}</td>
+              <td>{{ row.statusName }}</td>
+              <td>{{ row.assignedToUserName }}</td>
+              <td>{{ row.totalCost | number: '1.2-2' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="4">
+        <p-table [value]="partsRows" styleClass="text-sm">
+          <ng-template #header><tr><th>Part</th><th>Serial</th><th>Installed</th><th>Removed</th><th>Life (days)</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.partNumber }} — {{ row.partName }}</td>
+              <td>{{ row.serialNumber }}</td>
+              <td>{{ row.installedAt | date: 'mediumDate' }}</td>
+              <td>{{ row.removedAt | date: 'mediumDate' }}</td>
+              <td>{{ row.lifeDays }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="5">
+        <p-table [value]="downtimeRows" styleClass="text-sm">
+          <ng-template #header><tr><th>Start</th><th>End</th><th>Duration</th><th>Issue</th><th>WO</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.downtimeStart | date: 'medium' }}</td>
+              <td>{{ row.downtimeEnd | date: 'medium' }}</td>
+              <td>{{ formatMinutes(row.durationMinutes) }}</td>
+              <td>{{ row.issueNumber }}</td>
+              <td>{{ row.workOrderNumber }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="6">
+        <div class="flex justify-between mb-2">
+          <div class="text-sm" *ngIf="costSummary as cs">
+            Parts {{ cs.partsCost | number: '1.2-2' }} · Labor {{ cs.laborCost | number: '1.2-2' }} · External {{ cs.externalServiceCost | number: '1.2-2' }} · Other {{ cs.otherCost | number: '1.2-2' }}
+          </div>
+          <p-button *appHasPermission="Permissions.CostManagement.Create" label="Add cost" icon="pi pi-plus" size="small" (onClick)="openAddCost()" />
+        </div>
+        <p-table [value]="costRows" styleClass="text-sm">
+          <ng-template #header><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>WO</th></tr></ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>{{ row.costDate | date: 'mediumDate' }}</td>
+              <td>{{ row.costTypeName }}</td>
+              <td>{{ row.description }}</td>
+              <td>{{ row.amount | number: '1.2-2' }} {{ row.currency }}</td>
+              <td>{{ row.workOrderNumber }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+
+<p-dialog header="Record cost" [(visible)]="costDialogVisible" [modal]="true" [style]="{ width: '420px' }">
+  <div class="flex flex-col gap-3">
+    <p-select [(ngModel)]="costForm.costType" [options]="costTypeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" />
+    <input pInputText class="w-full" [(ngModel)]="costForm.description" placeholder="Description" />
+    <p-inputNumber [(ngModel)]="costForm.amount" [min]="0" mode="decimal" [minFractionDigits]="2" styleClass="w-full" />
+    <input pInputText class="w-full" [(ngModel)]="costForm.currency" placeholder="Currency" />
+    <p-datepicker [(ngModel)]="costForm.costDate" dateFormat="yy-mm-dd" appendTo="body" styleClass="w-full" />
+    <input pInputText class="w-full" type="number" [(ngModel)]="costForm.workOrderId" placeholder="Work order id (optional)" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" [text]="true" (onClick)="costDialogVisible = false" />
+    <p-button label="Save" (onClick)="saveCost()" />
+  </ng-template>
+</p-dialog>
+<p-toast />
