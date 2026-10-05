@@ -15,6 +15,9 @@
     </p-tablist>
     <p-tabpanels>
         <p-tabpanel value="0">
+            @if (!isCreateMode && assetId) {
+                <app-asset-analytics-overview [assetId]="assetId" class="block mb-4" />
+            }
             <form [formGroup]="form" class="grid grid-cols-12 gap-4">
                 <div class="col-span-12"><h6>Basic Information</h6></div>
                 <div class="col-span-12 md:col-span-4" *ngIf="systemAdmin">

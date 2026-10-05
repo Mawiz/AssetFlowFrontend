@@ -38,7 +38,8 @@ export class AppMenu implements OnInit {
         const assetItems: MenuItem[] = [
             { label: 'Asset Categories', icon: 'pi pi-fw pi-box', routerLink: ['/modules/asset-category'], visible: this.authService.hasPrefix('AssetCategory.') },
             { label: 'Asset Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/asset-type'], visible: this.authService.hasPrefix('AssetType.') },
-            { label: 'Assets', icon: 'pi pi-fw pi-server', routerLink: ['/modules/assets'], visible: this.authService.hasPrefix('Asset.') }
+            { label: 'Assets', icon: 'pi pi-fw pi-server', routerLink: ['/modules/assets'], visible: this.authService.hasPrefix('Asset.') },
+            { label: 'Asset Analytics', icon: 'pi pi-fw pi-chart-line', routerLink: ['/modules/analytics/assets'], visible: this.authService.hasPermission('Dashboard.View') }
         ].filter((item) => item.visible !== false);
 
         const maintenanceItems: MenuItem[] = [
@@ -61,11 +62,29 @@ export class AppMenu implements OnInit {
             { label: 'Low Stock', icon: 'pi pi-fw pi-exclamation-triangle', routerLink: ['/modules/parts'], queryParams: { lowStock: 'true' }, visible: this.authService.hasPrefix('Part.') }
         ].filter((item) => item.visible !== false);
 
+        const reportItems: MenuItem[] = [
+            { label: 'Reports Center', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/modules/reports'], visible: this.authService.hasPermission('Reports.View') }
+        ].filter((item) => item.visible !== false);
+
+        const analyticsItems: MenuItem[] = [
+            { label: 'Asset Analytics', icon: 'pi pi-fw pi-server', routerLink: ['/modules/analytics/assets'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Maintenance Analytics', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/analytics/maintenance'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Reliability Analytics', icon: 'pi pi-fw pi-exclamation-triangle', routerLink: ['/modules/analytics/reliability'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Work Order Analytics', icon: 'pi pi-fw pi-briefcase', routerLink: ['/modules/analytics/work-orders'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Spare Parts Analytics', icon: 'pi pi-fw pi-wrench', routerLink: ['/modules/analytics/spare-parts'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Cost Analytics', icon: 'pi pi-fw pi-dollar', routerLink: ['/modules/analytics/cost'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Team Performance', icon: 'pi pi-fw pi-users', routerLink: ['/modules/analytics/performance'], visible: this.authService.hasPermission('Dashboard.View') }
+        ].filter((item) => item.visible !== false);
+
         this.model = [
             {
                 label: 'Home',
-                items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }]
+                items: [
+                    { label: 'Management Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'], visible: this.authService.hasPermission('Dashboard.View') || this.authService.hasPrefix('Dashboard.') },
+                    ...reportItems
+                ].filter((item) => item.visible !== false)
             },
+            ...(analyticsItems.length ? [{ label: 'Analytics', items: analyticsItems }] : []),
             ...(adminItems.length
                 ? [{
                     label: 'Admin Components',

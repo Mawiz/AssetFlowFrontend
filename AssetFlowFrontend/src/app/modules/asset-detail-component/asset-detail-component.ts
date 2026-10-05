@@ -33,6 +33,7 @@ import { Permissions } from '@/constants/permissions';
 import { AssetComponentsPanelComponent } from './asset-components-panel.component';
 import { AssetPmPanelComponent } from './asset-pm-panel.component';
 import { AssetHistoryPanelComponent } from './asset-history-panel.component';
+import { AssetAnalyticsOverviewComponent } from './asset-analytics-overview.component';
 
 interface LocationLevel {
   label: string;
@@ -62,7 +63,8 @@ interface LocationLevel {
     HasPermissionDirective,
     AssetComponentsPanelComponent,
     AssetPmPanelComponent,
-    AssetHistoryPanelComponent
+    AssetHistoryPanelComponent,
+    AssetAnalyticsOverviewComponent
   ],
   providers: [MessageService]
 })

@@ -1,0 +1,110 @@
+<div class="flex flex-col gap-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-muted-color text-sm m-0 mb-1">Analytics</p>
+      <h1 class="text-3xl font-semibold m-0">{{ title() }}</h1>
+    </div>
+    <app-analytics-filter-bar [periodPreset]="periodPreset" [loading]="loading()" (periodChange)="onPeriodChange($event)" (refresh)="load()" />
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-16"><p-progressSpinner /></div>
+  } @else {
+    @if (mode() === 'assets' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        @for (k of p.kpis; track k.key) {
+          <div class="col-span-12 sm:col-span-6 lg:col-span-3"><app-analytics-kpi-card [kpi]="k" /></div>
+        }
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Status distribution"><div class="card mb-0"><p-chart type="doughnut" [data]="chart('status')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Assets by category"><div class="card mb-0"><p-chart type="bar" [data]="chart('category')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
+      </div>
+      <app-analytics-section title="Asset reliability">
+        <p-table [value]="p.reliability" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header"><tr><th>Asset</th><th>Breakdowns</th><th>MTBF</th><th>MTTR</th><th>Cost</th></tr></ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr><td><a [routerLink]="['/modules/assets', r.assetId]">{{ r.assetCode }}</a></td><td>{{ r.breakdowns }}</td><td>{{ r.mtbfHours ?? 'N/A' }}</td><td>{{ r.mttrHours ?? 'N/A' }}</td><td>{{ r.maintenanceCost | number:'1.0-0' }}</td></tr>
+          </ng-template>
+        </p-table>
+      </app-analytics-section>
+    }
+
+    @if (mode() === 'maintenance' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">PM completed</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.completed }}</div></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Overdue</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.overdue }}</div></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Compliance</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.compliancePercent ?? 'N/A' }}@if (p.preventiveMaintenance.compliancePercent != null) {%}</div></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Open WOs</span><div class="text-2xl font-semibold">{{ p.summary.openWorkOrders }}</div></div>
+      </div>
+      <app-analytics-section title="Overdue maintenance">
+        <p-table [value]="p.overduePm" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header"><tr><th>Asset</th><th>Type</th><th>Due</th><th>Days overdue</th></tr></ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr><td>{{ r.assetCode }}</td><td>{{ r.maintenanceTypeName }}</td><td>{{ r.dueDate | date:'mediumDate' }}</td><td>{{ r.daysOverdue }}</td></tr>
+          </ng-template>
+        </p-table>
+      </app-analytics-section>
+    }
+
+    @if (mode() === 'reliability' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">Breakdowns: <strong>{{ p.breakdown.totalBreakdowns }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">MTBF: <strong>{{ p.performance.mtbfHours ?? 'N/A' }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">MTTR: <strong>{{ p.performance.mttrHours ?? 'N/A' }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">First-time fix: <strong>{{ p.performance.firstTimeFixRatePercent ?? 'N/A' }}@if (p.performance.firstTimeFixRatePercent != null) {%}</strong></div>
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-7"><app-analytics-section title="Breakdown trend"><div class="card mb-0"><p-chart type="line" [data]="chart('trend')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-5"><app-analytics-section title="MTBF vs MTTR"><div class="card mb-0"><p-chart type="scatter" [data]="chart('scatter')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section></div>
+      </div>
+    }
+
+    @if (mode() === 'work-orders' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        @for (k of p.kpis; track k.key) { <div class="col-span-12 sm:col-span-6 lg:col-span-4"><app-analytics-kpi-card [kpi]="k" /></div> }
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Status pipeline"><div class="card mb-0"><p-chart type="bar" [data]="chart('pipeline')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Work order aging (open)"><div class="card mb-0"><p-chart type="bar" [data]="chart('aging')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
+      </div>
+    }
+
+    @if (mode() === 'spare-parts' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">Stock qty: <strong>{{ p.totalStockQuantity }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">Faulty: <strong>{{ p.faultyStockQuantity }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">Low stock: <strong>{{ p.report.summary.lowStockParts }}</strong></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4">Replaced: <strong>{{ p.report.summary.partsReplacedInPeriod }}</strong></div>
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Consumption trend"><div class="card mb-0"><p-chart type="line" [data]="chart('consumption')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Inventory health"><div class="card mb-0"><p-chart type="doughnut" [data]="chart('health')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section></div>
+      </div>
+    }
+
+    @if (mode() === 'cost' && payload(); as p) {
+      <div class="grid grid-cols-12 gap-4 mb-4">
+        @for (k of p.kpis; track k.key) { <div class="col-span-12 sm:col-span-6 lg:col-span-3"><app-analytics-kpi-card [kpi]="k" /></div> }
+      </div>
+      <app-analytics-section title="Cost by month"><div class="card mb-0"><p-chart type="bar" [data]="chart('costMonth')" [options]="chartOptions" class="h-20rem" /></div></app-analytics-section>
+      <app-analytics-section title="Highest cost assets">
+        <p-table [value]="p.report.byAsset" [paginator]="true" [rows]="10" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header"><tr><th>Asset</th><th>Labor</th><th>Parts</th><th>Total</th></tr></ng-template>
+          <ng-template pTemplate="body" let-r><tr><td>{{ r.assetCode }}</td><td>{{ r.laborCost | number:'1.0-0' }}</td><td>{{ r.partsCost | number:'1.0-0' }}</td><td>{{ r.totalMaintenanceCost | number:'1.0-0' }}</td></tr></ng-template>
+        </p-table>
+      </app-analytics-section>
+    }
+
+    @if (mode() === 'performance' && payload(); as p) {
+      <app-analytics-section title="Engineer comparison">
+        <p-table [value]="p.engineers" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header"><tr><th>Engineer</th><th>Assigned</th><th>Completed</th><th>Rate</th><th>Response</th><th>Repair</th><th>Reopened</th></tr></ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr><td>{{ r.engineerName }}</td><td>{{ r.assignedJobs }}</td><td>{{ r.completedJobs }}</td><td>{{ r.completionRatePercent }}%</td><td>{{ r.avgResponseTimeMinutes ?? 'N/A' }}</td><td>{{ r.avgRepairTimeMinutes ?? 'N/A' }}</td><td>{{ r.reopenedJobs }}</td></tr>
+          </ng-template>
+        </p-table>
+      </app-analytics-section>
+    }
+  }
+</div>

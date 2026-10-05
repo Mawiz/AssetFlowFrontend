@@ -170,5 +170,11 @@ export const Permissions = {
     Create: 'CostManagement.Create',
     Update: 'CostManagement.Update',
     Delete: 'CostManagement.Delete'
+  },
+  Dashboard: {
+    View: 'Dashboard.View'
+  },
+  Reports: {
+    View: 'Reports.View'
   }
 } as const;

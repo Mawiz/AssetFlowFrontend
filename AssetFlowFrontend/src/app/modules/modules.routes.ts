@@ -57,4 +57,6 @@ export const routes: Routes = [
   { path: 'issue-categories', component: IssueCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.IssueCategory.View] } },
   { path: 'issues', component: AssetIssueComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetIssue.View] } },
   { path: 'work-orders', component: WorkOrderComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkOrder.View] } },
+  { path: 'reports', loadComponent: () => import('./reports-component/reports-component').then(m => m.ReportsComponent), canActivate: [PermissionGuard], data: { permissions: [Permissions.Reports.View] } },
+  { path: 'analytics', loadChildren: () => import('./analytics-component/analytics.routes').then(m => m.analyticsRoutes) },
 ];
