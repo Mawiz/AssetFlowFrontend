@@ -23,8 +23,12 @@ export interface WorkflowModuleStage {
   isFinalApprover: boolean;
   acknowledgementTemplateId?: number | null;
   isClosingStage: boolean;
+  isInitialStage: boolean;
   isLogOpen: boolean;
   isTATExtension: boolean;
+  assigneeTypeId?: number | null;
+  assignmentValue?: number | null;
+  assigneeDisplayName?: string | null;
   isActive: boolean;
 }
 

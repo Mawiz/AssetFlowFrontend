@@ -99,12 +99,14 @@
       </div>
       <p-table [value]="stages()" dataKey="stageId" styleClass="text-sm">
         <ng-template #header>
-          <tr><th>Seq</th><th>Name</th><th>Ver</th><th></th></tr>
+          <tr><th>Seq</th><th>Name</th><th>Initial</th><th>Assignee</th><th>Ver</th><th></th></tr>
         </ng-template>
         <ng-template #body let-s>
           <tr>
             <td>{{ s.sequenceNo }}</td>
             <td>{{ s.stageNameEn }}</td>
+            <td>{{ s.isInitialStage ? 'Yes' : '—' }}</td>
+            <td>{{ s.assigneeDisplayName || (s.assigneeTypeId === 2 ? 'User (runtime)' : '—') }}</td>
             <td>{{ s.versionNo }}</td>
             <td class="text-end">
               <p-button icon="pi pi-cog" size="small" [rounded]="true" [outlined]="true" (onClick)="editStage(s)" />
@@ -139,8 +141,34 @@
           <div class="col-span-6"><p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" /></div>
           <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isFinalApprover" [binary]="true" inputId="finApp" /><label for="finApp">Final approver</label></div>
           <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isClosingStage" [binary]="true" inputId="closeSt" /><label for="closeSt">Closing stage</label></div>
+          <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isInitialStage" [binary]="true" inputId="initSt" /><label for="initSt">Initial stage</label></div>
           <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isLogOpen" [binary]="true" inputId="logOpen" /><label for="logOpen">Log open</label></div>
           <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isTATExtension" [binary]="true" inputId="tatExt" /><label for="tatExt">TAT extension</label></div>
+          <div class="col-span-12 font-semibold text-sm mt-1">Stage assignee</div>
+          <div class="col-span-12 md:col-span-6">
+            <p-select
+              formControlName="assigneeTypeId"
+              [options]="partyTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Assignee type (optional)"
+              appendTo="body"
+              styleClass="w-full"
+              [showClear]="true" />
+          </div>
+          <div class="col-span-12 md:col-span-6" *ngIf="showStageRoleAssignee()">
+            <p-select
+              formControlName="assignmentValue"
+              [options]="roleOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Role *"
+              appendTo="body"
+              styleClass="w-full" />
+          </div>
+          <p *ngIf="stageUsesRuntimeUser()" class="col-span-12 text-sm text-color-secondary m-0">
+            Stage assignee type User: the specific user is chosen when the workflow runs (no user selected here).
+          </p>
           <div class="col-span-12 flex gap-2">
             <p-button label="Save stage" (onClick)="saveStage()" />
             <p-button *ngIf="stageEditing && activeStage" label="Delete stage" severity="danger" [outlined]="true" (onClick)="deleteStage(activeStage)" />
@@ -201,8 +229,25 @@
     <input pInputText formControlName="stageActionDisplayNameAr" placeholder="Display name (AR)" />
     <p-inputNumber formControlName="displayOrderNo" styleClass="w-full" placeholder="Display order" />
     <p-select formControlName="nextSageId" [options]="stageOptionsForNext()" optionLabel="label" optionValue="value" placeholder="Next stage" appendTo="body" styleClass="w-full" [showClear]="true" />
-    <p-select formControlName="assigneeTypeId" [options]="partyTypeOptions" optionLabel="label" optionValue="value" placeholder="Assignee type" appendTo="body" styleClass="w-full" [showClear]="true" />
-    <p-select formControlName="assignmentValue" [options]="assigneeOptions()" optionLabel="label" optionValue="value" placeholder="Assignee" appendTo="body" styleClass="w-full" [showClear]="true" />
+    <p-select
+      formControlName="assigneeTypeId"
+      [options]="partyTypeOptions"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Action assignee type (optional)"
+      appendTo="body"
+      styleClass="w-full"
+      [showClear]="true" />
+    <p-select
+      *ngIf="stageActionForm.get('assigneeTypeId')?.value"
+      formControlName="assignmentValue"
+      [options]="assigneeOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [placeholder]="stageActionForm.get('assigneeTypeId')?.value === 2 ? 'User *' : 'Role *'"
+      appendTo="body"
+      styleClass="w-full"
+      [showClear]="true" />
     <input pInputText formControlName="cssClass" placeholder="CSS class" />
     <p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" />
     <textarea pTextarea formControlName="actionPopUpRenderingComponents" placeholder="Popup components JSON/config" rows="2"></textarea>

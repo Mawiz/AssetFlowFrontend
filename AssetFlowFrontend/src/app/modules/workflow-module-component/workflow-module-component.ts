@@ -142,9 +142,17 @@ export class WorkflowModuleComponent implements OnInit {
       isFinalApprover: [false],
       acknowledgementTemplateId: [null],
       isClosingStage: [false],
+      isInitialStage: [false],
       isLogOpen: [false],
       isTATExtension: [false],
+      assigneeTypeId: [null as number | null],
+      assignmentValue: [null as number | null],
       isActive: [true]
+    });
+    this.stageForm.get('assigneeTypeId')?.valueChanges.subscribe(() => {
+      if (this.stageUsesRuntimeUser()) {
+        this.stageForm.patchValue({ assignmentValue: null }, { emitEvent: false });
+      }
     });
     this.stageActionForm = this.fb.group({
       stageActionId: [null],
@@ -161,6 +169,9 @@ export class WorkflowModuleComponent implements OnInit {
       acknowledgementTemplateId: [null],
       actionPopUpRenderingComponents: [''],
       isActive: [true]
+    });
+    this.stageActionForm.get('assigneeTypeId')?.valueChanges.subscribe(() => {
+      this.stageActionForm.patchValue({ assignmentValue: null }, { emitEvent: false });
     });
     this.viewerForm = this.fb.group({
       stageActionViewerId: [null],
@@ -347,10 +358,21 @@ export class WorkflowModuleComponent implements OnInit {
       isFinalApprover: this.coerceBool(s['isFinalApprover'] ?? s['IsFinalApprover']),
       acknowledgementTemplateId: s['acknowledgementTemplateId'] ?? s['AcknowledgementTemplateId'] ?? null,
       isClosingStage: this.coerceBool(s['isClosingStage'] ?? s['IsClosingStage']),
+      isInitialStage: this.coerceBool(s['isInitialStage'] ?? s['IsInitialStage']),
       isLogOpen: this.coerceBool(s['isLogOpen'] ?? s['IsLogOpen']),
       isTATExtension: this.coerceBool(s['isTATExtension'] ?? s['IsTATExtension']),
+      assigneeTypeId: (s['assigneeTypeId'] ?? s['AssigneeTypeId'] ?? null) as number | null,
+      assignmentValue: (s['assignmentValue'] ?? s['AssignmentValue'] ?? null) as number | null,
       isActive: this.coerceBool(s['isActive'] ?? s['IsActive'], true)
     };
+  }
+
+  stageUsesRuntimeUser(): boolean {
+    return this.stageForm.get('assigneeTypeId')?.value === 2;
+  }
+
+  showStageRoleAssignee(): boolean {
+    return this.stageForm.get('assigneeTypeId')?.value === 1;
   }
 
   private coerceBool(value: unknown, defaultValue = false): boolean {
@@ -361,7 +383,11 @@ export class WorkflowModuleComponent implements OnInit {
   }
 
   private stagePayloadFromForm(): Record<string, unknown> {
-    return this.normalizeStageForm(this.stageForm.getRawValue());
+    const payload = this.normalizeStageForm(this.stageForm.getRawValue());
+    if (payload['assigneeTypeId'] === 2) {
+      payload['assignmentValue'] = null;
+    }
+    return payload;
   }
 
   saveStage() {
@@ -381,6 +407,8 @@ export class WorkflowModuleComponent implements OnInit {
           this.stageEditing = true;
           this.activeStage = s;
           this.stageForm.patchValue(this.normalizeStageForm(s as unknown as Record<string, unknown>));
+        } else if (this.stageEditing && s && this.activeStage?.stageId === s.stageId) {
+          this.activeStage = s;
         }
         if (this.selectedModule) this.loadStages(this.selectedModule.moduleId);
       },
@@ -443,7 +471,7 @@ export class WorkflowModuleComponent implements OnInit {
 
   saveStageAction() {
     if (this.stageActionForm.invalid) return;
-    const v = this.stageActionForm.value;
+    const v = { ...this.stageActionForm.value };
     const req = this.stageActionEditing ? this.service.updateStageAction(v) : this.service.createStageAction(v);
     req.subscribe({
       next: () => {
