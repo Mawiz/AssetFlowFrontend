@@ -182,5 +182,15 @@ export const Permissions = {
     Update: 'WorkflowConfiguration.Update',
     View: 'WorkflowConfiguration.View',
     Delete: 'WorkflowConfiguration.Delete'
+  },
+  WorkflowModuleItemMapping: {
+    View: 'WorkflowModuleItemMapping.View',
+    Create: 'WorkflowModuleItemMapping.Create',
+    Update: 'WorkflowModuleItemMapping.Update',
+    Delete: 'WorkflowModuleItemMapping.Delete'
+  },
+  WorkflowRuntime: {
+    View: 'WorkflowRuntime.View',
+    Perform: 'WorkflowRuntime.Perform'
   }
 } as const;

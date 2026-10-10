@@ -23,6 +23,8 @@ export class AppMenu implements OnInit {
 
     ngOnInit() {
         const workflowItems: MenuItem[] = [
+            { label: 'Task inbox', icon: 'pi pi-fw pi-inbox', routerLink: ['/modules/workflow-inbox'], visible: this.authService.hasPrefix('WorkflowRuntime.') },
+            { label: 'Module–item mapping', icon: 'pi pi-fw pi-link', routerLink: ['/modules/workflow-module-item-mapping'], visible: this.authService.hasPrefix('WorkflowModuleItemMapping.') },
             { label: 'Workflow modules', icon: 'pi pi-fw pi-sitemap', routerLink: ['/modules/workflow-modules'], visible: this.authService.hasPrefix('WorkflowConfiguration.') },
             { label: 'Workflow actions', icon: 'pi pi-fw pi-bolt', routerLink: ['/modules/workflow-actions'], visible: this.authService.hasPrefix('WorkflowConfiguration.') }
         ].filter((item) => item.visible !== false);
