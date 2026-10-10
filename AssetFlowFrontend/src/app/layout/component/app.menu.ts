@@ -22,6 +22,11 @@ export class AppMenu implements OnInit {
     constructor(private authService: AuthService) {}
 
     ngOnInit() {
+        const workflowItems: MenuItem[] = [
+            { label: 'Workflow modules', icon: 'pi pi-fw pi-sitemap', routerLink: ['/modules/workflow-modules'], visible: this.authService.hasPrefix('WorkflowConfiguration.') },
+            { label: 'Workflow actions', icon: 'pi pi-fw pi-bolt', routerLink: ['/modules/workflow-actions'], visible: this.authService.hasPrefix('WorkflowConfiguration.') }
+        ].filter((item) => item.visible !== false);
+
         const adminItems: MenuItem[] = [
             { label: 'Subscription', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/subscription'], visible: this.authService.hasPrefix('Subscription.') },
             { label: 'Tenant', icon: 'pi pi-fw pi-id-card', routerLink: ['/modules/tenant'], visible: this.authService.hasPrefix('Tenant.') },
@@ -91,6 +96,7 @@ export class AppMenu implements OnInit {
                 ].filter((item) => item.visible !== false)
             },
             ...(analyticsItems.length ? [{ label: 'Analytics', items: analyticsItems }] : []),
+            ...(workflowItems.length ? [{ label: 'Workflow', items: workflowItems }] : []),
             ...(adminItems.length
                 ? [{
                     label: 'Admin Components',

@@ -176,5 +176,11 @@ export const Permissions = {
   },
   Reports: {
     View: 'Reports.View'
+  },
+  WorkflowConfiguration: {
+    Create: 'WorkflowConfiguration.Create',
+    Update: 'WorkflowConfiguration.Update',
+    View: 'WorkflowConfiguration.View',
+    Delete: 'WorkflowConfiguration.Delete'
   }
 } as const;

@@ -1,0 +1,225 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button *appHasPermission="Permissions.WorkflowConfiguration.Create" label="New workflow" icon="pi pi-plus" (onClick)="openNewModule()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  (onPage)="onPage($event)"
+  dataKey="moduleId">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Workflow modules</h5>
+      <div class="flex gap-2 flex-wrap">
+        <p-select
+          *ngIf="systemAdmin"
+          [options]="tenantFilterOptions"
+          [(ngModel)]="filter.tenantId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All tenants"
+          [style]="{ minWidth: '12rem' }"
+          (onChange)="onTenantFilterChange()" />
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+        </p-iconfield>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template #header>
+    <tr>
+      <th>Name (EN)</th>
+      <th *ngIf="systemAdmin">Tenant</th>
+      <th>Order</th>
+      <th>Re-open</th>
+      <th>Active</th>
+      <th style="width: 8rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr>
+      <td>{{ item.moduleNameEn }}</td>
+      <td *ngIf="systemAdmin">{{ item.tenantName || '—' }}</td>
+      <td>{{ item.displayOrder }}</td>
+      <td>{{ item.isReOpen ? 'Yes' : 'No' }}</td>
+      <td><p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" /></td>
+      <td class="text-end">
+        <p-button *appHasPermission="Permissions.WorkflowConfiguration.Update" icon="pi pi-pencil" [rounded]="true" [outlined]="true" (onClick)="editModule(item)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer [(visible)]="moduleDrawerVisible" position="right" [modal]="true" [style]="{ width: '520px' }" header="Workflow module">
+  <form [formGroup]="moduleForm" class="flex flex-col gap-3 mb-4">
+    <p-select
+      *ngIf="systemAdmin"
+      formControlName="tenantId"
+      [options]="tenantsForForm"
+      optionLabel="displayName"
+      optionValue="id"
+      placeholder="Tenant *"
+      appendTo="body"
+      styleClass="w-full" />
+    <input pInputText formControlName="moduleNameEn" placeholder="Module name (EN) *" />
+    <input pInputText formControlName="moduleNameAr" placeholder="Module name (AR)" />
+    <p-inputNumber formControlName="displayOrder" placeholder="Display order" styleClass="w-full" />
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isReOpen" [binary]="true" inputId="isReOpen" />
+      <label for="isReOpen">Allow re-open</label>
+    </div>
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" [binary]="true" inputId="modActive" />
+      <label for="modActive">Active</label>
+    </div>
+    <div class="flex gap-2">
+      <p-button label="Save module" (onClick)="saveModule()" />
+      <ng-container *ngIf="moduleEditing && selectedModule">
+        <p-button
+          *appHasPermission="Permissions.WorkflowConfiguration.Delete"
+          label="Delete"
+          severity="danger"
+          [outlined]="true"
+          (onClick)="deleteModule(selectedModule!)" />
+      </ng-container>
+    </div>
+  </form>
+
+  @if (moduleEditing && selectedModule) {
+    <div class="border-t pt-3">
+      <div class="flex justify-between items-center mb-2">
+        <h6 class="m-0">Stages</h6>
+        <p-button *appHasPermission="Permissions.WorkflowConfiguration.Create" label="Add stage" size="small" icon="pi pi-plus" (onClick)="openNewStage()" />
+      </div>
+      <p-table [value]="stages()" dataKey="stageId" styleClass="text-sm">
+        <ng-template #header>
+          <tr><th>Seq</th><th>Name</th><th>Ver</th><th></th></tr>
+        </ng-template>
+        <ng-template #body let-s>
+          <tr>
+            <td>{{ s.sequenceNo }}</td>
+            <td>{{ s.stageNameEn }}</td>
+            <td>{{ s.versionNo }}</td>
+            <td class="text-end">
+              <p-button icon="pi pi-cog" size="small" [rounded]="true" [outlined]="true" (onClick)="editStage(s)" />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  }
+</p-drawer>
+
+<p-dialog
+  [(visible)]="stageDialogVisible"
+  [modal]="true"
+  [style]="{ width: '720px' }"
+  [breakpoints]="{ '960px': '95vw' }"
+  header="Stage configuration">
+  <p-tabs [(value)]="stageTab">
+    <p-tablist>
+      <p-tab value="details">Details</p-tab>
+      <p-tab value="actions">Stage actions</p-tab>
+      <p-tab value="viewers">Viewers</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="details">
+        <form [formGroup]="stageForm" class="grid grid-cols-12 gap-3 pt-2">
+          <div class="col-span-12"><input pInputText class="w-full" formControlName="stageNameEn" placeholder="Stage name (EN) *" /></div>
+          <div class="col-span-12"><input pInputText class="w-full" formControlName="stageNameAr" placeholder="Stage name (AR)" /></div>
+          <div class="col-span-6"><p-inputNumber formControlName="sequenceNo" styleClass="w-full" placeholder="Sequence" /></div>
+          <div class="col-span-6"><p-inputNumber formControlName="versionNo" styleClass="w-full" placeholder="Version" /></div>
+          <div class="col-span-6"><p-inputNumber formControlName="dueInHours" styleClass="w-full" placeholder="Due (hours)" /></div>
+          <div class="col-span-6"><p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" /></div>
+          <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isFinalApprover" [binary]="true" inputId="finApp" /><label for="finApp">Final approver</label></div>
+          <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isClosingStage" [binary]="true" inputId="closeSt" /><label for="closeSt">Closing stage</label></div>
+          <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isLogOpen" [binary]="true" inputId="logOpen" /><label for="logOpen">Log open</label></div>
+          <div class="col-span-6 flex items-center gap-2"><p-checkbox formControlName="isTATExtension" [binary]="true" inputId="tatExt" /><label for="tatExt">TAT extension</label></div>
+          <div class="col-span-12 flex gap-2">
+            <p-button label="Save stage" (onClick)="saveStage()" />
+            <p-button *ngIf="stageEditing && activeStage" label="Delete stage" severity="danger" [outlined]="true" (onClick)="deleteStage(activeStage)" />
+          </div>
+        </form>
+      </p-tabpanel>
+      <p-tabpanel value="actions">
+        <div class="flex justify-end mb-2">
+          <p-button *appHasPermission="Permissions.WorkflowConfiguration.Create" label="Add action" size="small" icon="pi pi-plus" (onClick)="openNewStageAction()" />
+        </div>
+        <p-table [value]="stageActions()" styleClass="text-sm">
+          <ng-template #header>
+            <tr><th>Display</th><th>Action</th><th>Assignee</th><th>Next stage</th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-a>
+            <tr>
+              <td>{{ a.stageActionDisplayName }}</td>
+              <td>{{ a.actionLabel || a.actionId }}</td>
+              <td>{{ a.assigneeDisplayName || '—' }}</td>
+              <td>{{ a.nextStageName || a.nextSageId || '—' }}</td>
+              <td class="text-end">
+                <p-button icon="pi pi-pencil" size="small" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="editStageAction(a)" />
+                <p-button icon="pi pi-trash" size="small" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteStageAction(a)" />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="viewers">
+        <div class="flex justify-end mb-2">
+          <p-button *appHasPermission="Permissions.WorkflowConfiguration.Create" label="Add viewer" size="small" icon="pi pi-plus" (onClick)="openNewViewer()" />
+        </div>
+        <p-table [value]="viewers()" styleClass="text-sm">
+          <ng-template #header>
+            <tr><th>Type</th><th>Target</th><th>Active</th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-v>
+            <tr>
+              <td>{{ v.viewerTypeId === 2 ? 'User' : 'Role' }}</td>
+              <td>{{ v.viewerDisplayName || v.viewerValue }}</td>
+              <td>{{ v.isActive ? 'Yes' : 'No' }}</td>
+              <td class="text-end">
+                <p-button icon="pi pi-pencil" size="small" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="editViewer(v)" />
+                <p-button icon="pi pi-trash" size="small" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteViewer(v)" />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</p-dialog>
+
+<p-dialog [(visible)]="stageActionFormVisible" [modal]="true" [style]="{ width: '480px' }" header="Stage action">
+  <form [formGroup]="stageActionForm" class="flex flex-col gap-2">
+    <p-select formControlName="actionId" [options]="actionDefs" optionLabel="afterActionEn" optionValue="actionId" placeholder="Action *" appendTo="body" styleClass="w-full" />
+    <input pInputText formControlName="stageActionDisplayName" placeholder="Display name (EN) *" />
+    <input pInputText formControlName="stageActionDisplayNameAr" placeholder="Display name (AR)" />
+    <p-inputNumber formControlName="displayOrderNo" styleClass="w-full" placeholder="Display order" />
+    <p-select formControlName="nextSageId" [options]="stageOptionsForNext()" optionLabel="label" optionValue="value" placeholder="Next stage" appendTo="body" styleClass="w-full" [showClear]="true" />
+    <p-select formControlName="assigneeTypeId" [options]="partyTypeOptions" optionLabel="label" optionValue="value" placeholder="Assignee type" appendTo="body" styleClass="w-full" [showClear]="true" />
+    <p-select formControlName="assignmentValue" [options]="assigneeOptions()" optionLabel="label" optionValue="value" placeholder="Assignee" appendTo="body" styleClass="w-full" [showClear]="true" />
+    <input pInputText formControlName="cssClass" placeholder="CSS class" />
+    <p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" />
+    <textarea pTextarea formControlName="actionPopUpRenderingComponents" placeholder="Popup components JSON/config" rows="2"></textarea>
+    <p-button label="Save" (onClick)="saveStageAction()" />
+  </form>
+</p-dialog>
+
+<p-dialog [(visible)]="viewerFormVisible" [modal]="true" [style]="{ width: '400px' }" header="Stage viewer">
+  <form [formGroup]="viewerForm" class="flex flex-col gap-2">
+    <p-select formControlName="viewerTypeId" [options]="partyTypeOptions" optionLabel="label" optionValue="value" placeholder="Viewer type *" appendTo="body" styleClass="w-full" />
+    <p-select formControlName="viewerValue" [options]="viewerTargetOptions()" optionLabel="label" optionValue="value" placeholder="Role or user *" appendTo="body" styleClass="w-full" />
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" [binary]="true" inputId="viewActive" />
+      <label for="viewActive">Active</label>
+    </div>
+    <p-button label="Save" (onClick)="saveViewer()" />
+  </form>
+</p-dialog>
+
+<p-toast />

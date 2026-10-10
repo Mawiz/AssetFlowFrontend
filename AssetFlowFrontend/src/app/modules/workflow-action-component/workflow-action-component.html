@@ -1,0 +1,68 @@
+<p-toolbar styleClass="mb-4">
+  <ng-template #start>
+    <p-button *appHasPermission="Permissions.WorkflowConfiguration.Create" label="New action" icon="pi pi-plus" (onClick)="openNew()" />
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  [value]="rows()"
+  [rows]="filter.pageSize"
+  [paginator]="true"
+  [lazy]="true"
+  [totalRecords]="totalRecords"
+  (onPage)="onPage($event)"
+  dataKey="actionId">
+  <ng-template #caption>
+    <div class="flex justify-between items-center flex-wrap gap-2">
+      <h5 class="m-0">Workflow actions</h5>
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" [(ngModel)]="filter.searchText" (keydown.enter)="onSearch()" placeholder="Search..." />
+      </p-iconfield>
+    </div>
+  </ng-template>
+  <ng-template #header>
+    <tr>
+      <th>Before (EN)</th>
+      <th>After (EN)</th>
+      <th>CSS class</th>
+      <th>Notes req.</th>
+      <th>Active</th>
+      <th style="width: 8rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr>
+      <td>{{ item.beforeActionEn }}</td>
+      <td>{{ item.afterActionEn }}</td>
+      <td>{{ item.baseCssClass || '—' }}</td>
+      <td>{{ item.isNotesRequired ? 'Yes' : 'No' }}</td>
+      <td><p-tag [value]="item.isActive ? 'Active' : 'Inactive'" [severity]="item.isActive ? 'success' : 'danger'" /></td>
+      <td class="text-end">
+        <p-button *appHasPermission="Permissions.WorkflowConfiguration.Update" icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (onClick)="editItem(item)" />
+        <p-button *appHasPermission="Permissions.WorkflowConfiguration.Delete" icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteItem(item)" />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-drawer [(visible)]="drawerVisible" position="right" [modal]="true" [style]="{ width: '420px' }" header="Workflow action">
+  <form [formGroup]="form" class="flex flex-col gap-3">
+    <input pInputText formControlName="beforeActionEn" placeholder="Before action (EN) *" />
+    <input pInputText formControlName="beforeActionAr" placeholder="Before action (AR)" />
+    <input pInputText formControlName="afterActionEn" placeholder="After action (EN) *" />
+    <input pInputText formControlName="afterActionAr" placeholder="After action (AR)" />
+    <input pInputText formControlName="baseCssClass" placeholder="Base CSS class" />
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isNotesRequired" [binary]="true" inputId="notesReq" />
+      <label for="notesReq">Notes required</label>
+    </div>
+    <div class="flex items-center gap-2">
+      <p-checkbox formControlName="isActive" [binary]="true" inputId="actActive" />
+      <label for="actActive">Active</label>
+    </div>
+    <p-button label="Save" (onClick)="save()" />
+  </form>
+</p-drawer>
+
+<p-toast />

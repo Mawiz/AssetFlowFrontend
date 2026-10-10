@@ -25,6 +25,8 @@ import { MaintenanceCalendarComponent } from './maintenance-calendar-component/m
 import { IssueCategoryComponent } from './issue-category-component/issue-category-component';
 import { AssetIssueComponent } from './asset-issue-component/asset-issue-component';
 import { WorkOrderComponent } from './work-order-component/work-order-component';
+import { WorkflowModuleComponent } from './workflow-module-component/workflow-module-component';
+import { WorkflowActionComponent } from './workflow-action-component/workflow-action-component';
 import { PermissionGuard } from '@/guards/permission-guard';
 import { Permissions } from '@/constants/permissions';
 
@@ -57,6 +59,8 @@ export const routes: Routes = [
   { path: 'issue-categories', component: IssueCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.IssueCategory.View] } },
   { path: 'issues', component: AssetIssueComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetIssue.View] } },
   { path: 'work-orders', component: WorkOrderComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkOrder.View] } },
+  { path: 'workflow-modules', component: WorkflowModuleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
+  { path: 'workflow-actions', component: WorkflowActionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
   { path: 'reports', loadComponent: () => import('./reports-component/reports-component').then(m => m.ReportsComponent), canActivate: [PermissionGuard], data: { permissions: [Permissions.Reports.View] } },
   { path: 'analytics', loadChildren: () => import('./analytics-component/analytics.routes').then(m => m.analyticsRoutes) },
 ];
