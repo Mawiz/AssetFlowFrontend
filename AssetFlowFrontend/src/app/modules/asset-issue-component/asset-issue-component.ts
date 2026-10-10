@@ -29,8 +29,12 @@ import { readPagedList } from '../../utils/paged-list';
 import { TenantDto } from '../../model/tenant';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments';
-import { WorkOrderService } from '../../services/work-order-service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { WorkflowRuntimeService } from '../../services/workflow-runtime-service';
+import {
+  IssueWorkflowIntegration,
+  WorkflowStageActionOption
+} from '../../model/workflow-runtime';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -86,6 +90,10 @@ export class AssetIssueComponent implements OnInit {
   statusChangeStatus: number | null = null;
   statusRemarks = '';
   pendingUploads: File[] = [];
+  workflowIntegration: IssueWorkflowIntegration | null = null;
+  workflowActionForm!: FormGroup;
+  selectedWorkflowAction: WorkflowStageActionOption | null = null;
+  workflowOnlyView = false;
 
   constructor(
     private service: AssetIssueService,
@@ -96,8 +104,9 @@ export class AssetIssueComponent implements OnInit {
     private messages: MessageService,
     private fb: FormBuilder,
     private http: HttpClient,
-    private workOrderService: WorkOrderService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute,
+    private workflowRuntime: WorkflowRuntimeService
   ) {}
 
   ngOnInit() {
@@ -119,7 +128,18 @@ export class AssetIssueComponent implements OnInit {
       this.loadTenants();
     }
     this.loadDependents(this.getFormTenantId());
+    this.workflowActionForm = this.fb.group({ notes: [''] });
     this.load();
+    this.route.queryParams.subscribe((q) => {
+      const issueId = q['issueId'] ? Number(q['issueId']) : null;
+      if (issueId) {
+        this.openDetailById(issueId, q['taskId'] as string | undefined);
+      }
+    });
+  }
+
+  hasAssetIssueView(): boolean {
+    return this.authService.hasPermission(Permissions.AssetIssue.View);
   }
 
   initForm() {
@@ -283,14 +303,83 @@ export class AssetIssueComponent implements OnInit {
   }
 
   openDetail(row: AssetIssue) {
-    this.service.getById(row.id).subscribe({
+    this.openDetailById(row.id);
+  }
+
+  openDetailById(issueId: number, workflowTaskId?: string) {
+    this.workflowOnlyView = !this.hasAssetIssueView();
+    this.workflowIntegration = null;
+    this.selectedWorkflowAction = null;
+    this.workflowActionForm.reset({ notes: '' });
+
+    if (this.workflowOnlyView) {
+      this.activeIssue = null;
+      this.loadWorkflowIntegration(issueId, workflowTaskId, () => {
+        this.detailDrawerVisible = true;
+      });
+      return;
+    }
+
+    this.service.getById(issueId).subscribe({
       next: (issue) => {
         this.activeIssue = issue;
         this.statusChangeStatus = issue.status;
         this.statusRemarks = issue.resolutionRemarks ?? '';
+        this.loadWorkflowIntegration(issueId, workflowTaskId);
         this.detailDrawerVisible = true;
+      },
+      error: (e) =>
+        this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Load failed' })
+    });
+  }
+
+  private loadWorkflowIntegration(issueId: number, workflowTaskId?: string, done?: () => void) {
+    const req = this.hasAssetIssueView()
+      ? this.service.getWorkflowIntegration(issueId, workflowTaskId)
+      : this.authService.hasPermission(Permissions.WorkflowRuntime.View)
+        ? this.workflowRuntime.getIssueIntegration(issueId, workflowTaskId)
+        : null;
+    if (!req) {
+      done?.();
+      return;
+    }
+    req.subscribe({
+      next: (w) => {
+        this.workflowIntegration = w;
+        done?.();
+      },
+      error: () => {
+        this.workflowIntegration = null;
+        done?.();
       }
     });
+  }
+
+  pickWorkflowAction(action: WorkflowStageActionOption) {
+    this.selectedWorkflowAction = action;
+    if (!action.isNotesRequired) this.workflowActionForm.get('notes')?.clearValidators();
+    else this.workflowActionForm.get('notes')?.setValidators([Validators.required]);
+    this.workflowActionForm.get('notes')?.updateValueAndValidity();
+  }
+
+  performWorkflowAction() {
+    const taskId = this.workflowIntegration?.activeWorkflowTaskId;
+    if (!taskId || !this.selectedWorkflowAction || this.workflowActionForm.invalid) return;
+    this.workflowRuntime
+      .performAction({
+        workflowTaskId: taskId,
+        stageActionId: this.selectedWorkflowAction.stageActionId,
+        notes: this.workflowActionForm.value.notes
+      })
+      .subscribe({
+        next: () => {
+          this.messages.add({ severity: 'success', summary: 'Done', detail: 'Action performed' });
+          const issueId = this.activeIssue?.id ?? this.workflowIntegration?.issue?.id;
+          if (issueId) this.openDetailById(issueId);
+        },
+        error: (e) =>
+          this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Action failed' })
+      });
   }
 
   hideFormDrawer() {
@@ -305,6 +394,9 @@ export class AssetIssueComponent implements OnInit {
   hideDetailDrawer() {
     this.detailDrawerVisible = false;
     this.activeIssue = null;
+    this.workflowIntegration = null;
+    this.selectedWorkflowAction = null;
+    this.router.navigate([], { relativeTo: this.route, queryParams: {} });
   }
 
   save() {
@@ -476,31 +568,6 @@ export class AssetIssueComponent implements OnInit {
   get canEditActive(): boolean {
     if (!this.activeIssue) return false;
     return this.activeIssue.status !== 3 && this.activeIssue.status !== 4;
-  }
-
-  get canCreateWorkOrder(): boolean {
-    return !!this.activeIssue && !this.activeIssue.workOrderId;
-  }
-
-  createWorkOrderFromIssue() {
-    if (!this.activeIssue) return;
-    const tenantId = this.systemAdmin ? this.normalizeTenantId(this.activeIssue.tenantId) : this.getFixedTenantId();
-    this.workOrderService
-      .createFromIssue({
-        tenantId,
-        assetIssueId: this.activeIssue.id,
-        title: this.activeIssue.description?.slice(0, 200),
-        description: this.activeIssue.description
-      })
-      .subscribe({
-        next: (wo) => {
-          this.messages.add({ severity: 'success', summary: 'Work Order', detail: wo.workOrderNumber + ' created' });
-          this.activeIssue = { ...this.activeIssue!, workOrderId: wo.id };
-          this.router.navigate(['/modules/work-orders']);
-        },
-        error: (e) =>
-          this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Could not create work order' })
-      });
   }
 
   get issueStatusChangeOptions(): { label: string; value: number }[] {

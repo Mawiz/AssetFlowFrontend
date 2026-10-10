@@ -76,6 +76,33 @@ export enum WorkflowInboxCategory {
 export type WorkflowModuleItemMappingFilter = ListFilterDto & { tenantId?: number | null; isActive?: boolean | null };
 export type WorkflowInboxFilter = ListFilterDto & { category: WorkflowInboxCategory };
 
+export interface IssueWorkflowIssue {
+  id: number;
+  issueNumber: string;
+  tenantId?: number | null;
+  assetId: number;
+  assetCode: string;
+  assetName: string;
+  locationDisplayPath: string;
+  issueCategoryName: string;
+  priority: number;
+  status: number;
+  description: string;
+  immediateAction: string;
+  reportedAt: string;
+  reportedByUserName: string;
+  assetStatusAtReport: number;
+}
+
+export interface IssueWorkflowIntegration {
+  issue: IssueWorkflowIssue;
+  master?: WorkflowMaster | null;
+  activeWorkflowTaskId?: string | null;
+  activeTask?: WorkflowTask | null;
+  history: WorkflowTask[];
+  availableActions: WorkflowStageActionOption[];
+}
+
 export const WORKFLOW_REFERENCE_ITEM_TYPES = [
   { label: 'Issue', value: 'Issue' },
   { label: 'Maintenance', value: 'Maintenance' }

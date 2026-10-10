@@ -5,10 +5,10 @@
 
 <p-tabs [value]="category.toString()" (valueChange)="onTabChange($event)">
   <p-tablist>
-    <p-tab [value]="WorkflowInboxCategory.Created.toString()">Created / My</p-tab>
-    <p-tab [value]="WorkflowInboxCategory.PendingWithMe.toString()">Pending with me</p-tab>
+    <p-tab [value]="WorkflowInboxCategory.Created.toString()">Items I Created</p-tab>
+    <p-tab [value]="WorkflowInboxCategory.PendingWithMe.toString()">Pending With Me</p-tab>
     <p-tab [value]="WorkflowInboxCategory.View.toString()">View</p-tab>
-    <p-tab [value]="WorkflowInboxCategory.PerformedByMe.toString()">Performed by me</p-tab>
+    <p-tab [value]="WorkflowInboxCategory.PerformedByMe.toString()">Performed By Me</p-tab>
   </p-tablist>
   <p-tabpanels>
     <p-tabpanel [value]="category.toString()">

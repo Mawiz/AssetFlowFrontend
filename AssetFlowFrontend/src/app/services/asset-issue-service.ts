@@ -10,6 +10,7 @@ import {
   IssueAttachment,
   UpdateAssetIssue
 } from '../model/issue';
+import { IssueWorkflowIntegration } from '../model/workflow-runtime';
 
 interface ApiResult<T> {
   result: T;
@@ -28,6 +29,14 @@ export class AssetIssueService {
 
   getById(id: number): Observable<AssetIssue> {
     return this.http.get<ApiResult<AssetIssue>>(`${this.apiUrl}/${id}`).pipe(map((r) => r.result));
+  }
+
+  getWorkflowIntegration(issueId: number, workflowTaskId?: string | null) {
+    const params: Record<string, string> = {};
+    if (workflowTaskId) params['workflowTaskId'] = workflowTaskId;
+    return this.http
+      .get<ApiResult<IssueWorkflowIntegration>>(`${this.apiUrl}/${issueId}/workflow`, { params })
+      .pipe(map((r) => r.result));
   }
 
   create(dto: CreateAssetIssue) {

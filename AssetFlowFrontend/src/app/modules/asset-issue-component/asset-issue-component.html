@@ -1,4 +1,4 @@
-<p-toolbar styleClass="mb-4">
+<p-toolbar styleClass="mb-4" *ngIf="hasAssetIssueView()">
   <ng-template #start>
     <p-button
       *appHasPermission="Permissions.AssetIssue.Create"
@@ -9,7 +9,10 @@
   </ng-template>
 </p-toolbar>
 
+<p *ngIf="!hasAssetIssueView()" class="text-color-secondary text-sm px-2">Issue tasks open from Task Inbox.</p>
+
 <p-table
+  *ngIf="hasAssetIssueView()"
   [value]="rows()"
   [rows]="filter.pageSize"
   [paginator]="true"
@@ -208,9 +211,30 @@
   position="right"
   [modal]="true"
   [blockScroll]="true"
-  [style]="{ width: '520px' }"
+  [style]="{ width: workflowIntegration ? '720px' : '520px' }"
   header="Issue Details"
   (onHide)="hideDetailDrawer()">
+  <ng-container *ngIf="!activeIssue && workflowIntegration?.issue as wi">
+    <div class="flex flex-col gap-4">
+      <div>
+        <h4 class="m-0 mb-2">{{ wi.issueNumber }}</h4>
+        <p-tag [value]="labelIssueStatus(wi.status)" [severity]="issueStatusSeverity(wi.status)" />
+      </div>
+      <div class="flex flex-col gap-2 text-sm">
+        <div><span class="font-semibold">Asset:</span> {{ wi.assetCode }} — {{ wi.assetName }}</div>
+        <div><span class="font-semibold">Location:</span> {{ wi.locationDisplayPath || '—' }}</div>
+        <div><span class="font-semibold">Reported By:</span> {{ wi.reportedByUserName }}</div>
+        <div><span class="font-semibold">Reported:</span> {{ wi.reportedAt | date: 'medium' }}</div>
+        <div><span class="font-semibold">Category:</span> {{ wi.issueCategoryName }}</div>
+        <div><span class="font-semibold">Priority:</span> {{ labelPriority(wi.priority) }}</div>
+        <div><span class="font-semibold">Description:</span> {{ wi.description }}</div>
+      </div>
+      <ng-container *ngTemplateOutlet="workflowPanel" />
+      <div class="flex justify-end">
+        <p-button label="Close" icon="pi pi-times" text (onClick)="hideDetailDrawer()" />
+      </div>
+    </div>
+  </ng-container>
   <ng-container *ngIf="activeIssue as issue">
     <div class="flex flex-col gap-4">
       <div>
@@ -268,13 +292,8 @@
         <textarea pTextarea [(ngModel)]="statusRemarks" rows="2" placeholder="Remarks (optional)"></textarea>
         <p-button label="Update Status" icon="pi pi-check" (onClick)="applyStatusChange()" />
       </div>
+      <ng-container *ngTemplateOutlet="workflowPanel" />
       <div class="flex justify-end gap-2 flex-wrap">
-        <p-button
-          *appHasPermission="Permissions.WorkOrder.Create"
-          label="Create Work Order"
-          icon="pi pi-briefcase"
-          [style.display]="canCreateWorkOrder ? '' : 'none'"
-          (onClick)="createWorkOrderFromIssue()" />
         <p-button
           *appHasPermission="Permissions.AssetIssue.Update"
           label="Edit"
@@ -286,5 +305,57 @@
     </div>
   </ng-container>
 </p-drawer>
+
+<ng-template #workflowPanel>
+  <div *ngIf="workflowIntegration?.master as master" class="flex flex-col gap-3 border-t pt-4">
+    <div class="font-semibold">Workflow</div>
+    <div class="text-sm flex flex-col gap-1">
+      <div><span class="font-semibold">Module:</span> {{ master.moduleNameEn || '—' }}</div>
+      <div><span class="font-semibold">Current stage:</span> {{ master.currentStageName || '—' }}</div>
+      <div><span class="font-semibold">Pending with:</span> {{ master.pendingAssigneeDisplayName || '—' }}</div>
+      <div *ngIf="master.lastOperationDisplay"><span class="font-semibold">Last operation:</span> {{ master.lastOperationDisplay }}</div>
+      <div><span class="font-semibold">Workflow status:</span> {{ master.isCompleted ? 'Completed' : 'In progress' }}</div>
+    </div>
+    <div *ngIf="workflowIntegration?.availableActions?.length && workflowIntegration?.activeWorkflowTaskId">
+      <div class="font-semibold mb-2">Actions</div>
+      <div class="flex flex-wrap gap-2">
+        <p-button
+          *ngFor="let a of workflowIntegration?.availableActions"
+          [label]="a.stageActionDisplayName"
+          size="small"
+          [outlined]="selectedWorkflowAction?.stageActionId !== a.stageActionId"
+          (onClick)="pickWorkflowAction(a)" />
+      </div>
+      <form [formGroup]="workflowActionForm" class="mt-2" *ngIf="selectedWorkflowAction">
+        <textarea
+          pTextarea
+          formControlName="notes"
+          rows="2"
+          class="w-full"
+          [placeholder]="selectedWorkflowAction.isNotesRequired ? 'Notes *' : 'Notes (optional)'"></textarea>
+        <p-button
+          *appHasPermission="Permissions.WorkflowRuntime.Perform"
+          class="mt-2"
+          label="Submit action"
+          (onClick)="performWorkflowAction()" />
+      </form>
+    </div>
+    <div class="font-semibold mt-2">Operation history</div>
+    <p-table [value]="workflowIntegration?.history || []" styleClass="text-sm">
+      <ng-template #header>
+        <tr><th>Stage</th><th>Action</th><th>By</th><th>Completed</th><th>Notes</th></tr>
+      </ng-template>
+      <ng-template #body let-h>
+        <tr>
+          <td>{{ h.stageNameEn }}</td>
+          <td>{{ h.actionDisplayName || '—' }}</td>
+          <td>{{ h.performedByDisplayName || '—' }}</td>
+          <td>{{ h.completedAt | date: 'short' }}</td>
+          <td>{{ h.notes || '—' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</ng-template>
 
 <p-toast />

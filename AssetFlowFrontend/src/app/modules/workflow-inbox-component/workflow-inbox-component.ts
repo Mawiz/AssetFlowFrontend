@@ -15,6 +15,7 @@ import { WorkflowInboxCategory, WorkflowStageActionOption, WorkflowTask, Workflo
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
 import { readPagedList } from '../../utils/paged-list';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-workflow-inbox-component',
@@ -51,7 +52,8 @@ export class WorkflowInboxComponent implements OnInit {
   constructor(
     private service: WorkflowRuntimeService,
     private messages: MessageService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -79,6 +81,12 @@ export class WorkflowInboxComponent implements OnInit {
   }
 
   openTask(row: WorkflowTask) {
+    if (row.referenceItemType === 'Issue') {
+      this.router.navigate(['/modules/issues'], {
+        queryParams: { issueId: row.referenceItemId, taskId: row.workflowTaskId }
+      });
+      return;
+    }
     this.service.getTaskDetail(row.workflowTaskId).subscribe({
       next: (d) => {
         this.detail = d;

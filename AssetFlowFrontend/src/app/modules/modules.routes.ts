@@ -59,7 +59,12 @@ export const routes: Routes = [
   { path: 'preventive-maintenance', component: PreventiveMaintenanceComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
   { path: 'maintenance-calendar', component: MaintenanceCalendarComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.PreventiveMaintenance.View] } },
   { path: 'issue-categories', component: IssueCategoryComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.IssueCategory.View] } },
-  { path: 'issues', component: AssetIssueComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.AssetIssue.View] } },
+  {
+    path: 'issues',
+    component: AssetIssueComponent,
+    canActivate: [PermissionGuard],
+    data: { permissions: [Permissions.AssetIssue.View, Permissions.WorkflowRuntime.View] }
+  },
   { path: 'work-orders', component: WorkOrderComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkOrder.View] } },
   { path: 'workflow-modules', component: WorkflowModuleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
   { path: 'workflow-actions', component: WorkflowActionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
