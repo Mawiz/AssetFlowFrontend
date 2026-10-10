@@ -104,11 +104,12 @@
       <div class="text-sm flex flex-col gap-1">
         <div><strong>Asset:</strong> {{ wo.assetCode }} — {{ wo.assetName }}</div>
         <div><strong>Location:</strong> {{ wo.locationDisplayPath }}</div>
+        <div><strong>Assigned to:</strong> {{ wo.assignedToUserName || '—' }}</div>
         <div *ngIf="wo.issueNumber"><strong>Issue:</strong> {{ wo.issueNumber }} — {{ wo.issueDescription }}</div>
         <div *ngIf="wo.maintenanceScheduleName"><strong>PM:</strong> {{ wo.maintenanceScheduleName }} ({{ wo.maintenanceTypeName }})</div>
       </div>
 
-      <div *appHasPermission="Permissions.WorkOrder.Assign" class="flex flex-col gap-2 border-t pt-3">
+      <div *ngIf="showAssignmentSection(wo)" class="flex flex-col gap-2 border-t pt-3">
         <label class="font-semibold">Assignment</label>
         <p-select
           [(ngModel)]="assignToUserId"
@@ -120,20 +121,24 @@
           styleClass="w-full" />
         <textarea pTextarea [(ngModel)]="actionRemarks" rows="2" placeholder="Remarks"></textarea>
         <div class="flex gap-2">
-          <p-button *appHasPermission="Permissions.WorkOrder.Assign" label="Assign" (onClick)="doAssign(false)" />
-          <p-button *appHasPermission="Permissions.WorkOrder.Reassign" label="Reassign" [outlined]="true" (onClick)="doAssign(true)" />
+          <p-button *ngIf="canAssign(wo)" label="Assign" (onClick)="doAssign(false)" />
+          <p-button *ngIf="canReassign(wo)" label="Reassign" [outlined]="true" (onClick)="doAssign(true)" />
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2 border-t pt-3">
-        <p-button *appHasPermission="Permissions.WorkOrder.Accept" label="Accept" size="small" (onClick)="doAccept()" />
-        <p-button *appHasPermission="Permissions.WorkOrder.Start" label="Start" size="small" (onClick)="doStart()" />
-        <p-button *appHasPermission="Permissions.WorkOrder.Pause" label="Pause" size="small" [outlined]="true" (onClick)="doPause()" />
-        <p-button *appHasPermission="Permissions.WorkOrder.Pause" label="Waiting for parts" size="small" [outlined]="true" (onClick)="doWaitingForParts()" />
-        <p-button *appHasPermission="Permissions.WorkOrder.Resume" label="Resume" size="small" [outlined]="true" (onClick)="doResume()" />
+      <div *ngIf="showEngineerActionBar(wo)" class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Your actions</label>
+        <textarea pTextarea [(ngModel)]="actionRemarks" rows="2" placeholder="Remarks (optional)"></textarea>
+        <div class="flex flex-wrap gap-2">
+          <p-button *ngIf="canAccept(wo)" label="Accept" size="small" (onClick)="doAccept()" />
+          <p-button *ngIf="canStart(wo)" label="Start work" size="small" (onClick)="doStart()" />
+          <p-button *ngIf="canPause(wo)" label="Pause" size="small" [outlined]="true" (onClick)="doPause()" />
+          <p-button *ngIf="canWaitingForParts(wo)" label="Waiting for parts" size="small" [outlined]="true" (onClick)="doWaitingForParts()" />
+          <p-button *ngIf="canResume(wo)" label="Resume" size="small" [outlined]="true" (onClick)="doResume()" />
+        </div>
       </div>
 
-      <div class="flex flex-col gap-2 border-t pt-3">
+      <div *ngIf="canEditDiagnosis(wo)" class="flex flex-col gap-2 border-t pt-3">
         <label class="font-semibold">Diagnosis</label>
         <input pInputText [(ngModel)]="diagnosisForm.initialProblem" placeholder="Initial problem" />
         <textarea pTextarea [(ngModel)]="diagnosisForm.diagnosis" rows="2" placeholder="Diagnosis"></textarea>
@@ -142,8 +147,16 @@
         <p-button label="Save diagnosis" (onClick)="saveDiagnosis()" />
       </div>
 
-      <div class="flex flex-col gap-2 border-t pt-3">
-        <label class="font-semibold">Complete</label>
+      <div *ngIf="showDiagnosisReadOnly(wo)" class="flex flex-col gap-1 border-t pt-3 text-sm">
+        <label class="font-semibold">Diagnosis</label>
+        <div *ngIf="diagnosisForm.initialProblem"><strong>Initial problem:</strong> {{ diagnosisForm.initialProblem }}</div>
+        <div *ngIf="diagnosisForm.diagnosis"><strong>Diagnosis:</strong> {{ diagnosisForm.diagnosis }}</div>
+        <div *ngIf="diagnosisForm.rootCause"><strong>Root cause:</strong> {{ diagnosisForm.rootCause }}</div>
+        <div *ngIf="diagnosisForm.actionTaken"><strong>Action taken:</strong> {{ diagnosisForm.actionTaken }}</div>
+      </div>
+
+      <div *ngIf="canComplete(wo)" class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Complete work</label>
         <textarea pTextarea [(ngModel)]="completeForm.workPerformed" rows="2" placeholder="Work performed"></textarea>
         <textarea pTextarea [(ngModel)]="completeForm.finalResult" rows="2" placeholder="Final result"></textarea>
         <p-select
@@ -154,22 +167,35 @@
           placeholder="Asset status after work"
           appendTo="body"
           styleClass="w-full" />
-        <p-button *appHasPermission="Permissions.WorkOrder.Complete" label="Complete (await approval)" (onClick)="doComplete()" />
+        <p-button label="Submit for approval" (onClick)="doComplete()" />
       </div>
 
-      <div *appHasPermission="Permissions.WorkOrder.Approve" class="flex flex-col gap-2 border-t pt-3">
+      <div *ngIf="showCompletionReadOnly(wo)" class="flex flex-col gap-1 border-t pt-3 text-sm">
+        <label class="font-semibold">Work summary</label>
+        <div *ngIf="wo.workPerformed"><strong>Work performed:</strong> {{ wo.workPerformed }}</div>
+        <div *ngIf="wo.finalResult"><strong>Final result:</strong> {{ wo.finalResult }}</div>
+        <div *ngIf="wo.approvalRemarks"><strong>Approval notes:</strong> {{ wo.approvalRemarks }}</div>
+        <div *ngIf="wo.rejectionReason"><strong>Rejection reason:</strong> {{ wo.rejectionReason }}</div>
+      </div>
+
+      <div *ngIf="showManagerApproval(wo)" class="flex flex-col gap-2 border-t pt-3">
         <label class="font-semibold">Manager approval</label>
-        <textarea pTextarea [(ngModel)]="approveForm.approvalRemarks" rows="2"></textarea>
-        <div class="flex items-center gap-2">
+        <textarea pTextarea [(ngModel)]="approveForm.approvalRemarks" rows="2" placeholder="Approval remarks"></textarea>
+        <div class="flex items-center gap-2" *ngIf="canApprove(wo)">
           <p-checkbox [(ngModel)]="approveForm.restoreAssetOperational" [binary]="true" inputId="restoreOp" />
           <label for="restoreOp">Restore asset to Operational</label>
         </div>
-        <div class="flex gap-2">
-          <p-button label="Approve" (onClick)="doApprove()" />
-          <p-button *appHasPermission="Permissions.WorkOrder.Reject" label="Reject" severity="danger" [outlined]="true" (onClick)="doReject()" />
+        <div class="flex gap-2 flex-wrap">
+          <p-button *ngIf="canApprove(wo)" label="Approve & close" (onClick)="doApprove()" />
+          <p-button *ngIf="canReject(wo)" label="Reject" severity="danger" [outlined]="true" (onClick)="doReject()" />
         </div>
-        <textarea pTextarea [(ngModel)]="rejectReason" rows="2" placeholder="Rejection reason"></textarea>
-        <p-button *appHasPermission="Permissions.WorkOrder.Reopen" label="Reopen (from rejected)" [outlined]="true" (onClick)="doReopen()" />
+        <textarea *ngIf="canReject(wo)" pTextarea [(ngModel)]="rejectReason" rows="2" placeholder="Rejection reason"></textarea>
+      </div>
+
+      <div *ngIf="canReopen(wo)" class="flex flex-col gap-2 border-t pt-3">
+        <label class="font-semibold">Reopen for engineer</label>
+        <textarea pTextarea [(ngModel)]="actionRemarks" rows="2" placeholder="Reopen remarks"></textarea>
+        <p-button label="Reopen work order" [outlined]="true" (onClick)="doReopen()" />
       </div>
 
       <div *appHasPermission="Permissions.PartReplacement.View" class="border-t pt-3">
@@ -207,7 +233,12 @@
 
       <div class="border-t pt-3">
         <label class="font-semibold block mb-2">Attachments</label>
-        <p-fileUpload mode="basic" chooseLabel="Add file" [multiple]="true" (onSelect)="uploadFile($event)" />
+        <p-fileUpload
+          *ngIf="canUploadAttachment(wo)"
+          mode="basic"
+          chooseLabel="Add file"
+          [multiple]="true"
+          (onSelect)="uploadFile($event)" />
         <ul class="list-none pl-0 mt-2">
           <li *ngFor="let att of wo.attachments" class="flex justify-between gap-2 text-sm mb-1">
             <span>{{ att.fileName }}</span>

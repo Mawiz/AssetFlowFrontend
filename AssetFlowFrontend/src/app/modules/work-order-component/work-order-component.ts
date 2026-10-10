@@ -34,6 +34,7 @@ import { Permissions } from '@/constants/permissions';
 import { MetadataService } from '@/services/metadata-service';
 import { AuthService } from '@/services/auth-service';
 import { readPagedList } from '../../utils/paged-list';
+import * as WoPolicy from './work-order-action-policy';
 import { TenantDto } from '../../model/tenant';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments';
@@ -251,8 +252,92 @@ export class WorkOrderComponent implements OnInit {
     this.replacements = [];
   }
 
+  private woActionCtx(): WoPolicy.WorkOrderActionContext {
+    return {
+      userId: this.authService.getUserId(),
+      hasPermission: (p) => this.authService.hasPermission(p)
+    };
+  }
+
+  showAssignmentSection(wo: WorkOrder): boolean {
+    return WoPolicy.showAssignmentSection(this.woActionCtx(), wo);
+  }
+
+  canAssign(wo: WorkOrder): boolean {
+    return WoPolicy.canAssignWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canReassign(wo: WorkOrder): boolean {
+    return WoPolicy.canReassignWorkOrder(this.woActionCtx(), wo);
+  }
+
+  showEngineerActionBar(wo: WorkOrder): boolean {
+    return WoPolicy.showEngineerActionBar(this.woActionCtx(), wo);
+  }
+
+  canAccept(wo: WorkOrder): boolean {
+    return WoPolicy.canAcceptWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canStart(wo: WorkOrder): boolean {
+    return WoPolicy.canStartWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canPause(wo: WorkOrder): boolean {
+    return WoPolicy.canPauseWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canWaitingForParts(wo: WorkOrder): boolean {
+    return WoPolicy.canWaitingForParts(this.woActionCtx(), wo);
+  }
+
+  canResume(wo: WorkOrder): boolean {
+    return WoPolicy.canResumeWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canEditDiagnosis(wo: WorkOrder): boolean {
+    return WoPolicy.canEditDiagnosis(this.woActionCtx(), wo);
+  }
+
+  showDiagnosisReadOnly(wo: WorkOrder): boolean {
+    return WoPolicy.showDiagnosisReadOnly(wo) && !this.canEditDiagnosis(wo);
+  }
+
+  canComplete(wo: WorkOrder): boolean {
+    return WoPolicy.canCompleteWorkOrder(this.woActionCtx(), wo);
+  }
+
+  showCompletionReadOnly(wo: WorkOrder): boolean {
+    return WoPolicy.showCompletionReadOnly(this.woActionCtx(), wo);
+  }
+
+  showManagerApproval(wo: WorkOrder): boolean {
+    return WoPolicy.showManagerApprovalSection(this.woActionCtx(), wo);
+  }
+
+  canApprove(wo: WorkOrder): boolean {
+    return WoPolicy.canApproveWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canReject(wo: WorkOrder): boolean {
+    return WoPolicy.canRejectWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canReopen(wo: WorkOrder): boolean {
+    return WoPolicy.canReopenWorkOrder(this.woActionCtx(), wo);
+  }
+
+  canUploadAttachment(wo: WorkOrder): boolean {
+    return WoPolicy.canUploadWorkOrderAttachment(this.woActionCtx(), wo);
+  }
+
   canReplacePart(wo: WorkOrder): boolean {
-    const allowed = [5, 6, 7, 11];
+    const allowed: number[] = [
+      WoPolicy.WoStatus.Accepted,
+      WoPolicy.WoStatus.InProgress,
+      WoPolicy.WoStatus.WaitingForParts,
+      WoPolicy.WoStatus.Reopened
+    ];
     if (!allowed.includes(wo.status)) return false;
     const uid = this.authService.getUserId();
     return !!wo.assignedToUserId && uid != null && wo.assignedToUserId === uid;

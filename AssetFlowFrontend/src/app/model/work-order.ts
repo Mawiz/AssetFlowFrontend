@@ -34,6 +34,7 @@ export interface WorkOrder {
   pausedAt?: string | Date | null;
   resumedAt?: string | Date | null;
   completedAt?: string | Date | null;
+  completedByUserId?: number | null;
   completedByUserName?: string;
   assetRestoredAt?: string | Date | null;
   assetStatusAfterWork?: number | null;
