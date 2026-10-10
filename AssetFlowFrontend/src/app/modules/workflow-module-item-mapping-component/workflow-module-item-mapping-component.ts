@@ -50,6 +50,7 @@ export class WorkflowModuleItemMappingComponent implements OnInit {
   form!: FormGroup;
   systemAdmin = false;
   tenantFilterOptions: { label: string; value: number | null }[] = [{ label: 'All tenants', value: null }];
+  tenantsForForm: { id: number; displayName: string }[] = [];
   modules: WorkflowModule[] = [];
   itemTypes = WORKFLOW_REFERENCE_ITEM_TYPES;
 
@@ -64,6 +65,9 @@ export class WorkflowModuleItemMappingComponent implements OnInit {
 
   ngOnInit() {
     this.systemAdmin = this.authService.systemAdminPermissions();
+    if (!this.systemAdmin) {
+      this.filter.tenantId = this.getFixedTenantId();
+    }
     this.form = this.fb.group({
       moduleItemMappingId: [null],
       tenantId: [this.systemAdmin ? null : this.getFixedTenantId(), this.systemAdmin ? Validators.required : []],
@@ -71,30 +75,62 @@ export class WorkflowModuleItemMappingComponent implements OnInit {
       referenceItemType: [null, Validators.required],
       isActive: [true]
     });
-    if (this.systemAdmin) this.loadTenants();
+    if (this.systemAdmin) {
+      this.loadTenants();
+    }
     this.loadModules();
     this.load();
   }
 
+  /** Super admin: JWT tenantId is null/0 — tenant picker shown. Tenant users: fixed tenant from login. */
   getFixedTenantId(): number | null {
     const t = this.authService.getTenantId();
-    return t == null || t === 0 ? null : t;
+    return this.normalizeTenantId(t == null ? null : Number(t));
+  }
+
+  private normalizeTenantId(tenantId: number | null | undefined): number | null {
+    return tenantId == null || tenantId === 0 || Number.isNaN(tenantId) ? null : tenantId;
+  }
+
+  /** Tenant sent on list/filter API — never null for tenant users. */
+  getFilterTenantId(): number | null {
+    if (!this.systemAdmin) {
+      return this.getFixedTenantId();
+    }
+    return this.normalizeTenantId(this.filter.tenantId);
+  }
+
+  getFormTenantId(): number | null {
+    if (!this.systemAdmin) {
+      return this.getFixedTenantId();
+    }
+    return this.normalizeTenantId(this.form.get('tenantId')?.value);
   }
 
   loadTenants() {
     this.metadataService.getMetadataValues({ secretKeys: ['Tenant'] }).subscribe({
-      next: (data) => {
-        const tenants = (data?.['Tenant'] as TenantDto[]) || [];
+      next: (res) => {
+        const tenants = (res.result?.metaResult?.[0]?.data as TenantDto[]) || [];
+        this.tenantsForForm = tenants.map((t) => ({
+          id: t.id,
+          displayName: (t as { displayName?: string }).displayName || t.companyName || String(t.id)
+        }));
         this.tenantFilterOptions = [
           { label: 'All tenants', value: null },
-          ...tenants.map((t) => ({ label: t.companyName, value: t.id }))
+          ...this.tenantsForForm.map((t) => ({ label: t.displayName, value: t.id }))
         ];
-      }
+      },
+      error: () =>
+        this.messages.add({ severity: 'error', summary: 'Error', detail: 'Failed to load tenants for filter' })
     });
   }
 
-  loadModules() {
-    const tenantId = this.systemAdmin ? this.filter.tenantId : this.getFixedTenantId();
+  loadModules(tenantIdOverride?: number | null) {
+    const tenantId = this.systemAdmin
+      ? tenantIdOverride !== undefined
+        ? this.normalizeTenantId(tenantIdOverride)
+        : this.getFilterTenantId()
+      : this.getFixedTenantId();
     this.moduleService.filterModules({ pageNumber: 1, pageSize: 500, searchText: '', tenantId }).subscribe({
       next: (r) => {
         const { rows } = readPagedList<WorkflowModule>(r);
@@ -104,7 +140,7 @@ export class WorkflowModuleItemMappingComponent implements OnInit {
   }
 
   load() {
-    this.service.filter({ ...this.filter }).subscribe({
+    this.service.filter({ ...this.filter, tenantId: this.getFilterTenantId() }).subscribe({
       next: (r) => {
         const { rows, total } = readPagedList<WorkflowModuleItemMapping>(r);
         this.rows.set(rows);
@@ -136,8 +172,7 @@ export class WorkflowModuleItemMappingComponent implements OnInit {
 
   save() {
     if (this.form.invalid) return;
-    const v = { ...this.form.value };
-    if (!this.systemAdmin) v.tenantId = this.getFixedTenantId();
+    const v = { ...this.form.value, tenantId: this.getFormTenantId() };
     const req = this.isEditing
       ? this.service.update(v as WorkflowModuleItemMapping)
       : this.service.create(v);

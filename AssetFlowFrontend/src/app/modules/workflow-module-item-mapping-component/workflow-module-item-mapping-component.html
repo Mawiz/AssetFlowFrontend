@@ -44,7 +44,16 @@
 
 <p-drawer [(visible)]="drawerVisible" [style]="{ width: '420px' }" header="Mapping">
   <form [formGroup]="form" class="flex flex-col gap-3">
-    <p-select *ngIf="systemAdmin" formControlName="tenantId" [options]="tenantFilterOptions.slice(1)" optionLabel="label" optionValue="value" placeholder="Tenant *" appendTo="body" styleClass="w-full" />
+    <p-select
+      *ngIf="systemAdmin"
+      formControlName="tenantId"
+      [options]="tenantsForForm"
+      optionLabel="displayName"
+      optionValue="id"
+      placeholder="Tenant *"
+      appendTo="body"
+      styleClass="w-full"
+      (onChange)="loadModules($event.value)" />
     <p-select formControlName="referenceItemType" [options]="itemTypes" optionLabel="label" optionValue="value" placeholder="Item type *" appendTo="body" styleClass="w-full" />
     <p-select formControlName="moduleId" [options]="modules" optionLabel="moduleNameEn" optionValue="moduleId" placeholder="Workflow module *" appendTo="body" styleClass="w-full" />
     <div class="flex items-center gap-2">
