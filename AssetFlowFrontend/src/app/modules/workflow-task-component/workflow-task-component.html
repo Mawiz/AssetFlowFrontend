@@ -1,0 +1,123 @@
+<p-toast />
+<div class="flex flex-col gap-3 p-2 min-h-[calc(100vh-8rem)]">
+  <div class="flex items-center gap-2">
+    <p-button label="Back to inbox" icon="pi pi-arrow-left" severity="secondary" [text]="true" (onClick)="backToInbox()" />
+    <span class="font-semibold text-lg" *ngIf="detail">Workflow task — {{ detail.referenceItemType }} #{{ detail.referenceItemId }}</span>
+  </div>
+
+  <div *ngIf="loading" class="text-muted-color">Loading…</div>
+  <div *ngIf="loadError && !loading" class="text-red-500 text-sm">{{ loadError }}</div>
+
+  <div *ngIf="detail && !loading" class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+    <div class="lg:col-span-8 flex flex-col gap-3">
+      <div class="border border-surface rounded-lg p-4 bg-surface-0 dark:bg-surface-900">
+        <div class="flex flex-wrap gap-4 text-sm mb-3">
+          <div><strong>Module:</strong> {{ detail.moduleNameEn || '—' }}</div>
+          <div><strong>Stage:</strong> {{ detail.stageNameEn || '—' }}</div>
+          <div><strong>Pending with:</strong> {{ detail.assigneeDisplayName || '—' }}</div>
+          <div>
+            <p-tag [value]="detail.isCompleted ? 'Completed' : 'Open'" [severity]="detail.isCompleted ? 'success' : 'warn'" />
+          </div>
+        </div>
+
+        <ng-container *ngIf="detail.issue">
+          <div class="font-semibold mb-2">Issue</div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div><strong>Number:</strong> {{ detail.issue.issueNumber }}</div>
+            <div><strong>Category:</strong> {{ detail.issue.issueCategoryName }}</div>
+            <div><strong>Asset:</strong> {{ detail.issue.assetCode }} — {{ detail.issue.assetName }}</div>
+            <div><strong>Location:</strong> {{ detail.issue.locationDisplayPath || '—' }}</div>
+            <div class="col-span-2"><strong>Description:</strong> {{ detail.issue.description }}</div>
+            <div class="col-span-2" *ngIf="detail.issue.immediateAction"><strong>Immediate action:</strong> {{ detail.issue.immediateAction }}</div>
+            <div><strong>Reported:</strong> {{ detail.issue.reportedAt | date: 'short' }}</div>
+            <div><strong>By:</strong> {{ detail.issue.reportedByUserName }}</div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="detail.maintenance">
+          <div class="font-semibold mb-2">Maintenance activity</div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div><strong>Schedule:</strong> {{ detail.maintenance.scheduleName }}</div>
+            <div><strong>Type:</strong> {{ detail.maintenance.maintenanceTypeName }}</div>
+            <div><strong>Asset:</strong> {{ detail.maintenance.assetCode }} — {{ detail.maintenance.assetName }}</div>
+            <div><strong>Due:</strong> {{ detail.maintenance.dueDate | date: 'short' }}</div>
+            <div class="col-span-2" *ngIf="detail.maintenance.remarks"><strong>Remarks:</strong> {{ detail.maintenance.remarks }}</div>
+          </div>
+        </ng-container>
+
+        <div *ngIf="!detail.issue && !detail.maintenance" class="text-sm text-muted-color">
+          {{ detail.referenceItemType }} #{{ detail.referenceItemId }}
+        </div>
+      </div>
+
+      <div class="flex justify-end items-end gap-2 mt-auto pt-2" *ngIf="!detail.isCompleted && detail.availableActions?.length">
+        <p-button
+          *ngFor="let a of detail.availableActions"
+          [label]="a.stageActionDisplayName"
+          size="small"
+          (onClick)="openAction(a)" />
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 border border-surface rounded-lg p-3 bg-surface-50 dark:bg-surface-800">
+      <div class="font-semibold mb-2">Operation history</div>
+      <p *ngIf="!detail.history?.length" class="text-sm text-muted-color">No history yet.</p>
+      <p-timeline [value]="historyEvents()" styleClass="text-sm max-h-[70vh] overflow-y-auto" *ngIf="detail.history?.length">
+        <ng-template #content let-h>
+          <div class="pb-2">
+            <div><strong>{{ h.stageNameEn }}</strong> — {{ h.actionDisplayName || 'Task' }}</div>
+            <div class="text-muted-color">{{ h.completedAt ? (h.completedAt | date: 'short') : (h.assignedAt | date: 'short') }}</div>
+            <div *ngIf="h.performedByDisplayName">
+              By: {{ h.performedByDisplayName }}
+              <span *ngIf="h.performedByRoleDisplayName"> ({{ h.performedByRoleDisplayName }})</span>
+            </div>
+            <div *ngIf="h.assigneeDisplayName"><em>Assigned to:</em> {{ h.assigneeDisplayName }}</div>
+            <div *ngIf="h.notes"><em>Comment:</em> {{ h.notes }}</div>
+            <div *ngIf="h.solution"><em>Solution:</em> {{ h.solution }}</div>
+          </div>
+        </ng-template>
+      </p-timeline>
+    </div>
+  </div>
+</div>
+
+<p-dialog
+  [(visible)]="actionDialogVisible"
+  [modal]="true"
+  [style]="{ width: '480px' }"
+  [header]="selectedAction?.stageActionDisplayName || 'Action'"
+  (onHide)="selectedAction = null">
+  <form [formGroup]="actionForm" class="flex flex-col gap-3" *ngIf="selectedAction">
+    <div *ngIf="showCommentInDialog()">
+      <label class="block text-sm font-medium mb-1">Comment</label>
+      <textarea pTextarea formControlName="comment" rows="3" class="w-full"></textarea>
+    </div>
+    <div *ngIf="showSolutionInDialog()">
+      <label class="block text-sm font-medium mb-1">Solution</label>
+      <textarea pTextarea formControlName="solution" rows="3" class="w-full"></textarea>
+    </div>
+    <div *ngIf="showPersonInDialog()">
+      <label class="block text-sm font-medium mb-1">Assign task to</label>
+      <p-autoComplete
+        [(ngModel)]="selectedUser"
+        [ngModelOptions]="{ standalone: true }"
+        [suggestions]="userSuggestions"
+        (completeMethod)="searchUsers($event)"
+        field="fullName"
+        [dropdown]="true"
+        placeholder="Search by name"
+        styleClass="w-full"
+        (onSelect)="onUserSelected($event.value)"
+        (onClear)="onUserSelected(null)" />
+    </div>
+    <div class="flex justify-end gap-2">
+      <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="actionDialogVisible = false" [disabled]="submitting" />
+      <p-button
+        *appHasPermission="Permissions.WorkflowRuntime.Perform"
+        label="Confirm"
+        (onClick)="confirmPerformAction()"
+        [loading]="submitting"
+        [disabled]="actionForm.invalid || submitting" />
+    </div>
+  </form>
+</p-dialog>

@@ -44,7 +44,9 @@ export interface WorkflowTask {
   performedByUserId?: number | null;
   performedByDisplayName?: string | null;
   performedByRoleId?: number | null;
+  performedByRoleDisplayName?: string | null;
   notes?: string | null;
+  solution?: string | null;
   dueDate?: string | null;
   dueInHours?: number | null;
   referenceItemId: number;
@@ -58,12 +60,31 @@ export interface WorkflowStageActionOption {
   stageActionDisplayName: string;
   isNotesRequired: boolean;
   nextSageId?: number | null;
+  actionPopUpRenderingComponents?: string | null;
+  popupComponentIds?: number[];
 }
 
 export interface WorkflowTaskDetail extends WorkflowTask {
   master?: WorkflowMaster | null;
   availableActions: WorkflowStageActionOption[];
   history: WorkflowTask[];
+  issue?: IssueWorkflowIssue | null;
+  maintenance?: MaintenanceWorkflowItem | null;
+}
+
+export interface MaintenanceWorkflowItem {
+  id: number;
+  tenantId?: number | null;
+  scheduleName: string;
+  assetId: number;
+  assetCode: string;
+  assetName: string;
+  locationName: string;
+  maintenanceTypeName: string;
+  scheduledDate?: string | null;
+  dueDate: string;
+  status: number;
+  remarks: string;
 }
 
 export enum WorkflowInboxCategory {

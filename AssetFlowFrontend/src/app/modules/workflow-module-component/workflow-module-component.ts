@@ -34,6 +34,12 @@ import { MetadataService } from '@/services/metadata-service';
 import { TenantDto } from '../../model/tenant';
 import { UserService } from '../../services/user-service';
 import { RoleService } from '../../services/role-service';
+import { MultiSelectModule } from 'primeng/multiselect';
+import {
+  parsePopupComponentIds,
+  popupComponentIdsToStorage,
+  WORKFLOW_POPUP_COMPONENT_OPTIONS
+} from '../../constants/workflow-popup-components';
 
 @Component({
   selector: 'app-workflow-module-component',
@@ -58,12 +64,14 @@ import { RoleService } from '../../services/role-service';
     TabsModule,
     IconFieldModule,
     InputIconModule,
+    MultiSelectModule,
     HasPermissionDirective
   ],
   providers: [MessageService]
 })
 export class WorkflowModuleComponent implements OnInit {
   Permissions = Permissions;
+  workflowPopupOptions = WORKFLOW_POPUP_COMPONENT_OPTIONS;
   rows = signal<WorkflowModule[]>([]);
   totalRecords = 0;
   filter = { pageNumber: 1, pageSize: 10, searchText: '', tenantId: null as number | null };
@@ -167,7 +175,7 @@ export class WorkflowModuleComponent implements OnInit {
       assigneeTypeId: [null],
       assignmentValue: [null],
       acknowledgementTemplateId: [null],
-      actionPopUpRenderingComponents: [''],
+      popupComponentIds: [[] as number[]],
       isActive: [true]
     });
     this.stageActionForm.get('assigneeTypeId')?.valueChanges.subscribe(() => {
@@ -465,13 +473,19 @@ export class WorkflowModuleComponent implements OnInit {
 
   editStageAction(item: WorkflowStageAction) {
     this.stageActionEditing = true;
-    this.stageActionForm.patchValue(item);
+    this.stageActionForm.patchValue({
+      ...item,
+      popupComponentIds: parsePopupComponentIds(item.actionPopUpRenderingComponents)
+    });
     this.stageActionFormVisible = true;
   }
 
   saveStageAction() {
     if (this.stageActionForm.invalid) return;
     const v = { ...this.stageActionForm.value };
+    const ids = Array.isArray(v.popupComponentIds) ? v.popupComponentIds : parsePopupComponentIds(v.actionPopUpRenderingComponents);
+    v.actionPopUpRenderingComponents = popupComponentIdsToStorage(ids);
+    delete v.popupComponentIds;
     const req = this.stageActionEditing ? this.service.updateStageAction(v) : this.service.createStageAction(v);
     req.subscribe({
       next: () => {

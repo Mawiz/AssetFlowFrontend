@@ -35,7 +35,13 @@ export class WorkflowRuntimeService {
       .pipe(map((r) => r.result));
   }
 
-  performAction(payload: { workflowTaskId: string; stageActionId: number; notes?: string | null }) {
+  performAction(payload: {
+    workflowTaskId: string;
+    stageActionId: number;
+    notes?: string | null;
+    solution?: string | null;
+    specificPersonUserId?: number | null;
+  }) {
     return this.http.post<ApiResult<WorkflowMaster>>(`${this.url}/perform`, payload).pipe(map((r) => r.result));
   }
 

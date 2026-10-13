@@ -250,7 +250,15 @@
       [showClear]="true" />
     <input pInputText formControlName="cssClass" placeholder="CSS class" />
     <p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" />
-    <textarea pTextarea formControlName="actionPopUpRenderingComponents" placeholder="Popup components JSON/config" rows="2"></textarea>
+    <p-multiSelect
+      formControlName="popupComponentIds"
+      [options]="workflowPopupOptions"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Action popup components"
+      appendTo="body"
+      styleClass="w-full"
+      display="chip" />
     <p-button label="Save" (onClick)="saveStageAction()" />
   </form>
 </p-dialog>

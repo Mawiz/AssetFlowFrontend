@@ -131,9 +131,14 @@ export class AssetIssueComponent implements OnInit {
     this.workflowActionForm = this.fb.group({ notes: [''] });
     this.load();
     this.route.queryParams.subscribe((q) => {
+      const taskId = q['taskId'] as string | undefined;
+      if (taskId) {
+        this.router.navigate(['/modules/workflow-inbox/task', taskId]);
+        return;
+      }
       const issueId = q['issueId'] ? Number(q['issueId']) : null;
       if (issueId) {
-        this.openDetailById(issueId, q['taskId'] as string | undefined);
+        this.openDetailById(issueId);
       }
     });
   }
