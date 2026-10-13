@@ -32,7 +32,6 @@ import { readPagedList } from '../../utils/paged-list';
 import { AuthService } from '@/services/auth-service';
 import { MetadataService } from '@/services/metadata-service';
 import { TenantDto } from '../../model/tenant';
-import { UserService } from '../../services/user-service';
 import { RoleService } from '../../services/role-service';
 import { MultiSelectModule } from 'primeng/multiselect';
 import {
@@ -116,7 +115,6 @@ export class WorkflowModuleComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private metadataService: MetadataService,
-    private userService: UserService,
     private roleService: RoleService
   ) {}
 
@@ -213,14 +211,15 @@ export class WorkflowModuleComponent implements OnInit {
 
   loadLookupsForModule(module: WorkflowModule) {
     const tenantId = module.tenantId ?? this.getFixedTenantId();
-    this.userService.filter({ pageNumber: 1, pageSize: 200, tenantId, isActive: true }).subscribe({
-      next: (page) => {
-        const { rows } = readPagedList<any>(page?.result ?? page);
-        this.userOptions = rows.map((u: any) => ({
-          label: u.fullName || u.userName || String(u.id),
+    this.metadataService.getByType({ type: 'ApplicationUser', tenantId }).subscribe({
+      next: (res) => {
+        const list = res?.result ?? [];
+        this.userOptions = list.map((u: { id: number; displayName?: string; name?: string }) => ({
+          label: u.displayName || u.name || String(u.id),
           value: u.id
         }));
-      }
+      },
+      error: () => (this.userOptions = [])
     });
     this.roleService.getRolesByTenant(tenantId ?? undefined).subscribe({
       next: (roles) => {

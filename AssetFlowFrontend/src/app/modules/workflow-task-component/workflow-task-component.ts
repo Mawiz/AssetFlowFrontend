@@ -6,21 +6,21 @@ import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { TextareaModule } from 'primeng/textarea';
-import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { TimelineModule } from 'primeng/timeline';
 import { MessageService } from 'primeng/api';
 import { WorkflowRuntimeService } from '../../services/workflow-runtime-service';
-import { UserService } from '../../services/user-service';
+import { MetadataService } from '@/services/metadata-service';
+import { MetaDataByTypeItem } from '../../model/entity-metadata';
 import { WorkflowStageActionOption, WorkflowTaskDetail } from '../../model/workflow-runtime';
 import { ActionPopUpRenderingComponents, parsePopupComponentIds } from '../../constants/workflow-popup-components';
 import { HasPermissionDirective } from '@/directives/has-permission.directive';
 import { Permissions } from '@/constants/permissions';
-import { readPagedList } from '../../utils/paged-list';
 
-interface UserOption {
+interface UserSelectOption {
   id: number;
-  fullName: string;
+  displayName: string;
 }
 
 @Component({
@@ -36,7 +36,7 @@ interface UserOption {
     ToastModule,
     DialogModule,
     TextareaModule,
-    AutoCompleteModule,
+    SelectModule,
     TagModule,
     TimelineModule,
     HasPermissionDirective
@@ -56,14 +56,14 @@ export class WorkflowTaskComponent implements OnInit {
   selectedAction: WorkflowStageActionOption | null = null;
   actionForm!: FormGroup;
 
-  userSuggestions: UserOption[] = [];
-  selectedUser: UserOption | null = null;
+  userOptions: UserSelectOption[] = [];
+  userOptionsLoading = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private workflowService: WorkflowRuntimeService,
-    private userService: UserService,
+    private metadataService: MetadataService,
     private messages: MessageService,
     private fb: FormBuilder
   ) {}
@@ -120,9 +120,13 @@ export class WorkflowTaskComponent implements OnInit {
 
   openAction(action: WorkflowStageActionOption) {
     this.selectedAction = action;
-    this.selectedUser = null;
+    this.userOptions = [];
     this.actionForm.reset({ comment: '', solution: '', specificPersonUserId: null });
     this.configureActionValidators(action);
+
+    if (this.popupIds(action).includes(ActionPopUpRenderingComponents.SpecificPerson)) {
+      this.loadUserOptionsFromMetadata();
+    }
 
     if (!this.needsActionDialog(action)) {
       this.confirmPerformAction();
@@ -160,32 +164,24 @@ export class WorkflowTaskComponent implements OnInit {
     personCtrl.updateValueAndValidity();
   }
 
-  searchUsers(event: AutoCompleteCompleteEvent) {
-    const q = (event.query || '').trim();
+  loadUserOptionsFromMetadata() {
     const tenantId = this.detail?.master?.tenantId ?? null;
-    this.userService
-      .filter({
-        pageNumber: 1,
-        pageSize: 20,
-        searchText: q,
-        isActive: true,
-        tenantId
-      })
-      .subscribe({
-        next: (r) => {
-          const { rows } = readPagedList<any>(r.result ?? r);
-          this.userSuggestions = rows.map((u: any) => ({
-            id: u.id,
-            fullName: u.fullName || u.userName || `#${u.id}`
-          }));
-        },
-        error: () => (this.userSuggestions = [])
-      });
-  }
-
-  onUserSelected(user: UserOption | null) {
-    this.selectedUser = user;
-    this.actionForm.patchValue({ specificPersonUserId: user?.id ?? null });
+    this.userOptionsLoading = true;
+    this.metadataService.getByType({ type: 'ApplicationUser', tenantId }).subscribe({
+      next: (res) => {
+        const list = (res?.result ?? []) as MetaDataByTypeItem[];
+        this.userOptions = list.map((u) => ({
+          id: u.id,
+          displayName: u.displayName || u.name || String(u.id)
+        }));
+        this.userOptionsLoading = false;
+      },
+      error: () => {
+        this.userOptions = [];
+        this.userOptionsLoading = false;
+        this.messages.add({ severity: 'error', summary: 'Error', detail: 'Failed to load users' });
+      }
+    });
   }
 
   confirmPerformAction() {

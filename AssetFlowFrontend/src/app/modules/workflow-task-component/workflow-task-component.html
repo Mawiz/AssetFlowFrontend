@@ -98,17 +98,18 @@
     </div>
     <div *ngIf="showPersonInDialog()">
       <label class="block text-sm font-medium mb-1">Assign task to</label>
-      <p-autoComplete
-        [(ngModel)]="selectedUser"
-        [ngModelOptions]="{ standalone: true }"
-        [suggestions]="userSuggestions"
-        (completeMethod)="searchUsers($event)"
-        field="fullName"
-        [dropdown]="true"
+      <p-select
+        formControlName="specificPersonUserId"
+        [options]="userOptions"
+        optionLabel="displayName"
+        optionValue="id"
+        [filter]="true"
+        filterBy="displayName"
+        [loading]="userOptionsLoading"
         placeholder="Search by name"
+        appendTo="body"
         styleClass="w-full"
-        (onSelect)="onUserSelected($event.value)"
-        (onClear)="onUserSelected(null)" />
+        [showClear]="true" />
     </div>
     <div class="flex justify-end gap-2">
       <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="actionDialogVisible = false" [disabled]="submitting" />
