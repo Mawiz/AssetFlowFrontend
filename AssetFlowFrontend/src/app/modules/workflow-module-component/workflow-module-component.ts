@@ -39,6 +39,11 @@ import {
   popupComponentIdsToStorage,
   WORKFLOW_POPUP_COMPONENT_OPTIONS
 } from '../../constants/workflow-popup-components';
+import {
+  selectionTypeLabel,
+  WORKFLOW_SELECTION_TYPE_OPTIONS,
+  WorkflowSelectionTypeId
+} from '../../constants/workflow-selection-type';
 
 @Component({
   selector: 'app-workflow-module-component',
@@ -71,6 +76,9 @@ import {
 export class WorkflowModuleComponent implements OnInit {
   Permissions = Permissions;
   workflowPopupOptions = WORKFLOW_POPUP_COMPONENT_OPTIONS;
+  workflowSelectionTypeOptions = WORKFLOW_SELECTION_TYPE_OPTIONS;
+  WorkflowSelectionTypeId = WorkflowSelectionTypeId;
+  selectionTypeLabel = selectionTypeLabel;
   rows = signal<WorkflowModule[]>([]);
   totalRecords = 0;
   filter = { pageNumber: 1, pageSize: 10, searchText: '', tenantId: null as number | null };
@@ -174,10 +182,15 @@ export class WorkflowModuleComponent implements OnInit {
       assignmentValue: [null],
       acknowledgementTemplateId: [null],
       popupComponentIds: [[] as number[]],
+      selectionTypeId: [WorkflowSelectionTypeId.NoAssignee],
       isActive: [true]
     });
-    this.stageActionForm.get('assigneeTypeId')?.valueChanges.subscribe(() => {
-      this.stageActionForm.patchValue({ assignmentValue: null }, { emitEvent: false });
+    this.stageActionForm.get('assigneeTypeId')?.valueChanges.subscribe((typeId) => {
+      if (typeId !== 1 && typeId !== 2) {
+        this.stageActionForm.patchValue({ assignmentValue: null }, { emitEvent: false });
+      } else if (typeId === 1) {
+        this.stageActionForm.patchValue({ assignmentValue: null }, { emitEvent: false });
+      }
     });
     this.viewerForm = this.fb.group({
       stageActionViewerId: [null],
@@ -465,6 +478,7 @@ export class WorkflowModuleComponent implements OnInit {
       stageId,
       displayOrderNo: 1,
       emailTemplateId: 0,
+      selectionTypeId: WorkflowSelectionTypeId.NoAssignee,
       isActive: true
     });
     this.stageActionFormVisible = true;
@@ -474,6 +488,7 @@ export class WorkflowModuleComponent implements OnInit {
     this.stageActionEditing = true;
     this.stageActionForm.patchValue({
       ...item,
+      selectionTypeId: item.selectionTypeId ?? WorkflowSelectionTypeId.NoAssignee,
       popupComponentIds: parsePopupComponentIds(item.actionPopUpRenderingComponents)
     });
     this.stageActionFormVisible = true;
@@ -504,9 +519,12 @@ export class WorkflowModuleComponent implements OnInit {
     });
   }
 
-  assigneeOptions(): { label: string; value: number }[] {
-    const typeId = this.stageActionForm?.value?.assigneeTypeId;
-    return typeId === 2 ? this.userOptions : this.roleOptions;
+  showStageActionRoleAssignee(): boolean {
+    return this.stageActionForm?.get('assigneeTypeId')?.value === 1;
+  }
+
+  showStageActionUserAssignee(): boolean {
+    return this.stageActionForm?.get('assigneeTypeId')?.value === 2;
   }
 
   openNewViewer() {

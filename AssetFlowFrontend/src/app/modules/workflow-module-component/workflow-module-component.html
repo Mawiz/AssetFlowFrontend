@@ -181,13 +181,14 @@
         </div>
         <p-table [value]="stageActions()" styleClass="text-sm">
           <ng-template #header>
-            <tr><th>Display</th><th>Action</th><th>Assignee</th><th>Next stage</th><th></th></tr>
+            <tr><th>Display</th><th>Action</th><th>Assignee</th><th>Next assign</th><th>Next stage</th><th></th></tr>
           </ng-template>
           <ng-template #body let-a>
             <tr>
               <td>{{ a.stageActionDisplayName }}</td>
               <td>{{ a.actionLabel || a.actionId }}</td>
               <td>{{ a.assigneeDisplayName || '—' }}</td>
+              <td>{{ selectionTypeLabel(a.selectionTypeId) }}</td>
               <td>{{ a.nextStageName || a.nextSageId || '—' }}</td>
               <td class="text-end">
                 <p-button icon="pi pi-pencil" size="small" [rounded]="true" [outlined]="true" class="mr-1" (onClick)="editStageAction(a)" />
@@ -222,7 +223,7 @@
   </p-tabs>
 </p-dialog>
 
-<p-dialog [(visible)]="stageActionFormVisible" [modal]="true" [style]="{ width: '480px' }" header="Stage action">
+<p-dialog [(visible)]="stageActionFormVisible" [modal]="true" [style]="{ width: '520px' }" header="Stage action">
   <form [formGroup]="stageActionForm" class="flex flex-col gap-2">
     <p-select formControlName="actionId" [options]="actionDefs" optionLabel="afterActionEn" optionValue="actionId" placeholder="Action *" appendTo="body" styleClass="w-full" />
     <input pInputText formControlName="stageActionDisplayName" placeholder="Display name (EN) *" />
@@ -239,15 +240,51 @@
       styleClass="w-full"
       [showClear]="true" />
     <p-select
-      *ngIf="stageActionForm.get('assigneeTypeId')?.value"
+      *ngIf="showStageActionRoleAssignee()"
       formControlName="assignmentValue"
-      [options]="assigneeOptions()"
+      [options]="roleOptions"
       optionLabel="label"
       optionValue="value"
-      [placeholder]="stageActionForm.get('assigneeTypeId')?.value === 2 ? 'User *' : 'Role *'"
+      placeholder="Role *"
       appendTo="body"
       styleClass="w-full"
       [showClear]="true" />
+    <p-select
+      *ngIf="showStageActionUserAssignee()"
+      formControlName="assignmentValue"
+      [options]="userOptions"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="User (optional)"
+      appendTo="body"
+      styleClass="w-full"
+      [showClear]="true" />
+    <p *ngIf="showStageActionUserAssignee()" class="text-sm text-color-secondary m-0">
+      Leave user empty to allow the current task assignee; select a user to restrict this action to that person only.
+    </p>
+    <p-select
+      formControlName="selectionTypeId"
+      [options]="workflowSelectionTypeOptions"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Next task assignment *"
+      appendTo="body"
+      styleClass="w-full" />
+    <p *ngIf="stageActionForm.get('selectionTypeId')?.value === WorkflowSelectionTypeId.NoAssignee" class="text-sm text-color-secondary m-0">
+      Next task uses the next stage assignee only (current behavior).
+    </p>
+    <p *ngIf="stageActionForm.get('selectionTypeId')?.value === WorkflowSelectionTypeId.LastRequestSubmitter" class="text-sm text-color-secondary m-0">
+      After this action, the next task is assigned to the user who originally submitted the request (e.g. send back on reject).
+    </p>
+    <p *ngIf="stageActionForm.get('selectionTypeId')?.value === WorkflowSelectionTypeId.RequestAssignTo" class="text-sm text-color-secondary m-0">
+      Next task is assigned to the person chosen in the Specific person popup, or to the user set on this action when no popup selection is made.
+    </p>
+    <p *ngIf="stageActionForm.get('selectionTypeId')?.value === WorkflowSelectionTypeId.CurrentRequester" class="text-sm text-color-secondary m-0">
+      Next task is assigned to the user who performed this action.
+    </p>
+    <p *ngIf="stageActionForm.get('selectionTypeId')?.value === WorkflowSelectionTypeId.ExternalAssignmentInStage" class="text-sm text-color-secondary m-0">
+      Next stage assignee rules apply; a Specific person from the popup can supply the user when the stage expects it.
+    </p>
     <input pInputText formControlName="cssClass" placeholder="CSS class" />
     <p-inputNumber formControlName="emailTemplateId" styleClass="w-full" placeholder="Email template ID" />
     <p-multiSelect

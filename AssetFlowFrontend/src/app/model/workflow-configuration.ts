@@ -58,6 +58,7 @@ export interface WorkflowStageAction {
   assigneeTypeId?: number | null;
   assignmentValue?: number | null;
   assigneeDisplayName?: string | null;
+  selectionTypeId?: number | null;
   acknowledgementTemplateId?: number | null;
   actionPopUpRenderingComponents?: string | null;
   templateId?: string | null;
