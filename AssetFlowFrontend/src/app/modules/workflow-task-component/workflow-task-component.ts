@@ -8,7 +8,6 @@ import { DialogModule } from 'primeng/dialog';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { TimelineModule } from 'primeng/timeline';
 import { MessageService } from 'primeng/api';
 import { WorkflowRuntimeService } from '../../services/workflow-runtime-service';
 import { MetadataService } from '@/services/metadata-service';
@@ -27,6 +26,34 @@ interface UserSelectOption {
   selector: 'app-workflow-task-component',
   standalone: true,
   templateUrl: './workflow-task-component.html',
+  styles: [
+    `
+      .workflow-history-rail {
+        width: 1.25rem;
+      }
+
+      .workflow-history-marker {
+        display: block;
+        width: 0.625rem;
+        height: 0.625rem;
+        border-radius: 50%;
+        border: 2px solid var(--p-primary-color);
+        background: var(--p-content-background);
+        flex-shrink: 0;
+      }
+
+      .workflow-history-line {
+        width: 2px;
+        min-height: 1rem;
+        margin-top: 0.25rem;
+        background: var(--p-content-border-color);
+      }
+
+      .workflow-history-item:last-child .workflow-history-body {
+        padding-bottom: 0;
+      }
+    `
+  ],
   imports: [
     CommonModule,
     RouterModule,
@@ -38,7 +65,6 @@ interface UserSelectOption {
     TextareaModule,
     SelectModule,
     TagModule,
-    TimelineModule,
     HasPermissionDirective
   ],
   providers: [MessageService]

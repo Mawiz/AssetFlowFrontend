@@ -59,24 +59,34 @@
       </div>
     </div>
 
-    <div class="lg:col-span-4 border border-surface rounded-lg p-3 bg-surface-50 dark:bg-surface-800">
+    <div class="lg:col-span-4 border border-surface rounded-lg p-3 bg-surface-50 dark:bg-surface-800 min-w-0">
       <div class="font-semibold mb-2">Operation history</div>
       <p *ngIf="!detail.history?.length" class="text-sm text-muted-color">No history yet.</p>
-      <p-timeline [value]="historyEvents()" styleClass="text-sm max-h-[70vh] overflow-y-auto" *ngIf="detail.history?.length">
-        <ng-template #content let-h>
-          <div class="pb-2">
-            <div><strong>{{ h.stageNameEn }}</strong> — {{ h.actionDisplayName || 'Task' }}</div>
-            <div class="text-muted-color">{{ h.completedAt ? (h.completedAt | date: 'short') : (h.assignedAt | date: 'short') }}</div>
-            <div *ngIf="h.performedByDisplayName">
+      <div class="workflow-history max-h-[70vh] overflow-y-auto" *ngIf="detail.history?.length">
+        <div
+          *ngFor="let h of historyEvents(); let last = last"
+          class="workflow-history-item flex gap-3 min-w-0 w-full">
+          <div class="workflow-history-rail flex flex-col items-center shrink-0 pt-1">
+            <span class="workflow-history-marker" aria-hidden="true"></span>
+            <span *ngIf="!last" class="workflow-history-line flex-1"></span>
+          </div>
+          <div class="workflow-history-body flex-1 min-w-0 pb-4 text-sm break-words">
+            <div class="font-semibold leading-snug">
+              {{ h.stageNameEn }} — {{ h.actionDisplayName || 'Task' }}
+            </div>
+            <div class="text-muted-color mt-0.5">
+              {{ h.completedAt ? (h.completedAt | date: 'short') : (h.assignedAt | date: 'short') }}
+            </div>
+            <div *ngIf="h.performedByDisplayName" class="mt-1">
               By: {{ h.performedByDisplayName }}
               <span *ngIf="h.performedByRoleDisplayName"> ({{ h.performedByRoleDisplayName }})</span>
             </div>
-            <div *ngIf="h.assigneeDisplayName"><em>Assigned to:</em> {{ h.assigneeDisplayName }}</div>
-            <div *ngIf="h.notes"><em>Comment:</em> {{ h.notes }}</div>
-            <div *ngIf="h.solution"><em>Solution:</em> {{ h.solution }}</div>
+            <div *ngIf="h.assigneeDisplayName" class="mt-0.5"><em>Assigned to:</em> {{ h.assigneeDisplayName }}</div>
+            <div *ngIf="h.notes" class="mt-0.5 whitespace-pre-wrap"><em>Comment:</em> {{ h.notes }}</div>
+            <div *ngIf="h.solution" class="mt-0.5 whitespace-pre-wrap"><em>Solution:</em> {{ h.solution }}</div>
           </div>
-        </ng-template>
-      </p-timeline>
+        </div>
+      </div>
     </div>
   </div>
 </div>
