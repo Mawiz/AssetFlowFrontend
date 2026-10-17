@@ -38,6 +38,8 @@ export interface WorkflowTask {
   assigneeTypeId?: number | null;
   assignmentValue?: number | null;
   assigneeDisplayName?: string | null;
+  assignedByUserId?: number | null;
+  assignedByDisplayName?: string | null;
   isCompleted: boolean;
   assignedAt: string;
   completedAt?: string | null;

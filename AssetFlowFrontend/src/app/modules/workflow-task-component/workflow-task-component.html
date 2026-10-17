@@ -67,7 +67,16 @@
           *ngFor="let h of historyEvents(); let last = last"
           class="workflow-history-item flex gap-3 min-w-0 w-full">
           <div class="workflow-history-rail flex flex-col items-center shrink-0 pt-1">
-            <span class="workflow-history-marker" aria-hidden="true"></span>
+            <span
+              *ngIf="h.isCompleted"
+              class="workflow-history-marker workflow-history-marker--done"
+              aria-hidden="true">
+              <i class="pi pi-check"></i>
+            </span>
+            <span
+              *ngIf="!h.isCompleted"
+              class="workflow-history-marker workflow-history-marker--pending"
+              aria-hidden="true"></span>
             <span *ngIf="!last" class="workflow-history-line flex-1"></span>
           </div>
           <div class="workflow-history-body flex-1 min-w-0 pb-4 text-sm break-words">
@@ -75,13 +84,18 @@
               {{ h.stageNameEn }} — {{ h.actionDisplayName || 'Task' }}
             </div>
             <div class="text-muted-color mt-0.5">
-              {{ h.completedAt ? (h.completedAt | date: 'short') : (h.assignedAt | date: 'short') }}
+              {{ h.isCompleted ? (h.completedAt | date: 'short') : (h.assignedAt | date: 'short') }}
             </div>
-            <div *ngIf="h.performedByDisplayName" class="mt-1">
-              By: {{ h.performedByDisplayName }}
-              <span *ngIf="h.performedByRoleDisplayName"> ({{ h.performedByRoleDisplayName }})</span>
-            </div>
-            <div *ngIf="h.assigneeDisplayName" class="mt-0.5"><em>Assigned to:</em> {{ h.assigneeDisplayName }}</div>
+            <ng-container *ngIf="h.isCompleted">
+              <div class="mt-1"><strong>Assigned by:</strong> {{ historyAssignedByLabel(h.assignedByDisplayName) }}</div>
+              <div class="mt-0.5"><strong>Performed by:</strong> {{ historyPerformedByLabel(h) }}</div>
+              <div class="mt-0.5 text-muted-color"><strong>Completed in:</strong> {{ historyCompletedIn(h) }}</div>
+            </ng-container>
+            <ng-container *ngIf="!h.isCompleted">
+              <div class="mt-1"><strong>Assigned by:</strong> {{ historyAssignedByLabel(h.assignedByDisplayName) }}</div>
+              <div class="mt-0.5"><strong>Pending with:</strong> {{ h.assigneeDisplayName || '—' }}</div>
+              <div class="mt-0.5 text-muted-color"><strong>Pending from:</strong> {{ historyPendingFrom(h) }}</div>
+            </ng-container>
             <div *ngIf="h.notes" class="mt-0.5 whitespace-pre-wrap"><em>Comment:</em> {{ h.notes }}</div>
             <div *ngIf="h.solution" class="mt-0.5 whitespace-pre-wrap"><em>Solution:</em> {{ h.solution }}</div>
           </div>

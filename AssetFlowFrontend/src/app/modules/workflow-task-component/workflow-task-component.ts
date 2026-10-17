@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -33,13 +33,34 @@ interface UserSelectOption {
       }
 
       .workflow-history-marker {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-sizing: border-box;
+      }
+
+      .workflow-history-marker--pending {
         width: 0.625rem;
         height: 0.625rem;
         border-radius: 50%;
         border: 2px solid var(--p-primary-color);
         background: var(--p-content-background);
-        flex-shrink: 0;
+      }
+
+      .workflow-history-marker--done {
+        width: 1.125rem;
+        height: 1.125rem;
+        border-radius: 50%;
+        border: 2px solid var(--p-primary-color);
+        background: var(--p-primary-color);
+        color: var(--p-primary-contrast-color);
+        font-size: 0.55rem;
+        line-height: 1;
+      }
+
+      .workflow-history-marker--done .pi {
+        font-size: 0.55rem;
       }
 
       .workflow-history-line {
@@ -69,7 +90,7 @@ interface UserSelectOption {
   ],
   providers: [MessageService]
 })
-export class WorkflowTaskComponent implements OnInit {
+export class WorkflowTaskComponent implements OnInit, OnDestroy {
   Permissions = Permissions;
   ActionPopUpRenderingComponents = ActionPopUpRenderingComponents;
 
@@ -85,13 +106,18 @@ export class WorkflowTaskComponent implements OnInit {
   userOptions: UserSelectOption[] = [];
   userOptionsLoading = false;
 
+  /** Refreshes pending-duration labels while the task screen is open. */
+  historyClockMs = Date.now();
+  private historyClockTimer?: ReturnType<typeof setInterval>;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private workflowService: WorkflowRuntimeService,
     private metadataService: MetadataService,
     private messages: MessageService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -104,6 +130,14 @@ export class WorkflowTaskComponent implements OnInit {
       const taskId = params.get('taskId');
       if (taskId) this.loadTask(taskId);
     });
+    this.historyClockTimer = setInterval(() => {
+      this.historyClockMs = Date.now();
+      this.cdr.markForCheck();
+    }, 60_000);
+  }
+
+  ngOnDestroy() {
+    if (this.historyClockTimer) clearInterval(this.historyClockTimer);
   }
 
   loadTask(taskId: string) {
@@ -113,6 +147,7 @@ export class WorkflowTaskComponent implements OnInit {
     this.workflowService.getTaskDetail(taskId).subscribe({
       next: (d) => {
         this.detail = d;
+        this.historyClockMs = Date.now();
         this.loading = false;
       },
       error: (e) => {
@@ -125,6 +160,45 @@ export class WorkflowTaskComponent implements OnInit {
 
   historyEvents() {
     return this.detail?.history ?? [];
+  }
+
+  historyAssignedByLabel(name?: string | null): string {
+    return name?.trim() || '—';
+  }
+
+  historyPerformedByLabel(h: { performedByDisplayName?: string | null; performedByRoleDisplayName?: string | null }): string {
+    const name = h.performedByDisplayName?.trim();
+    if (!name) return '—';
+    const role = h.performedByRoleDisplayName?.trim();
+    return role ? `${name} (${role})` : name;
+  }
+
+  historyCompletedIn(h: { assignedAt: string; completedAt?: string | null }): string {
+    if (!h.completedAt) return '—';
+    return this.formatTaskDuration(h.assignedAt, h.completedAt);
+  }
+
+  historyPendingFrom(h: { assignedAt: string }): string {
+    return this.formatTaskDuration(h.assignedAt, new Date(this.historyClockMs).toISOString());
+  }
+
+  private formatTaskDuration(fromIso: string, toIso: string): string {
+    const start = new Date(fromIso).getTime();
+    const end = new Date(toIso).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end)) return '—';
+    let totalMinutes = Math.floor(Math.max(0, end - start) / 60_000);
+    if (totalMinutes < 1) return 'Less than 1 minute';
+
+    const days = Math.floor(totalMinutes / (60 * 24));
+    totalMinutes %= 60 * 24;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days} day${days === 1 ? '' : 's'}`);
+    if (hours > 0) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+    if (minutes > 0 && days === 0) parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+    return parts.join(' ') || 'Less than 1 minute';
   }
 
   backToInbox() {
