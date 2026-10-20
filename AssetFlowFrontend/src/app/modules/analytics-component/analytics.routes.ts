@@ -22,10 +22,15 @@ export const analyticsRoutes: Routes = [
     data: { permissions: [Permissions.Dashboard.View], mode: 'reliability', title: 'Reliability & Breakdown Analytics' }
   },
   {
-    path: 'work-orders',
+    path: 'workflow-operations',
     loadComponent: () => import('./feature-analytics.component').then((m) => m.FeatureAnalyticsComponent),
     canActivate: [PermissionGuard],
-    data: { permissions: [Permissions.Dashboard.View], mode: 'work-orders', title: 'Work Order Operations' }
+    data: { permissions: [Permissions.Dashboard.View], mode: 'workflow-operations', title: 'Workflow Operations' }
+  },
+  {
+    path: 'work-orders',
+    redirectTo: 'workflow-operations',
+    pathMatch: 'full'
   },
   {
     path: 'spare-parts',

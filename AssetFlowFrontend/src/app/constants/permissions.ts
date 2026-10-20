@@ -124,7 +124,8 @@ export const Permissions = {
     View: 'PreventiveMaintenance.View',
     Update: 'PreventiveMaintenance.Update',
     Complete: 'PreventiveMaintenance.Complete',
-    Generate: 'PreventiveMaintenance.Generate'
+    Generate: 'PreventiveMaintenance.Generate',
+    Start: 'PreventiveMaintenance.Start'
   },
   IssueCategory: {
     Create: 'IssueCategory.Create',

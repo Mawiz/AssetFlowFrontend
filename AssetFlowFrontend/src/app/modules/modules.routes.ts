@@ -24,7 +24,6 @@ import { PreventiveMaintenanceComponent } from './preventive-maintenance-compone
 import { MaintenanceCalendarComponent } from './maintenance-calendar-component/maintenance-calendar-component';
 import { IssueCategoryComponent } from './issue-category-component/issue-category-component';
 import { AssetIssueComponent } from './asset-issue-component/asset-issue-component';
-import { WorkOrderComponent } from './work-order-component/work-order-component';
 import { WorkflowModuleComponent } from './workflow-module-component/workflow-module-component';
 import { WorkflowActionComponent } from './workflow-action-component/workflow-action-component';
 import { WorkflowModuleItemMappingComponent } from './workflow-module-item-mapping-component/workflow-module-item-mapping-component';
@@ -66,7 +65,6 @@ export const routes: Routes = [
     canActivate: [PermissionGuard],
     data: { permissions: [Permissions.AssetIssue.View, Permissions.WorkflowRuntime.View] }
   },
-  { path: 'work-orders', component: WorkOrderComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkOrder.View] } },
   { path: 'workflow-modules', component: WorkflowModuleComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
   { path: 'workflow-actions', component: WorkflowActionComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowConfiguration.View] } },
   { path: 'workflow-module-item-mapping', component: WorkflowModuleItemMappingComponent, canActivate: [PermissionGuard], data: { permissions: [Permissions.WorkflowModuleItemMapping.View] } },

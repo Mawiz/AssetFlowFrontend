@@ -22,8 +22,8 @@ import { MetadataService } from '@/services/metadata-service';
 import { AuthService } from '@/services/auth-service';
 import { readPagedList } from '../../utils/paged-list';
 import { TenantDto } from '../../model/tenant';
-import { WorkOrderService } from '../../services/work-order-service';
 import { Router } from '@angular/router';
+import { WorkflowReferenceItemTypes } from '../../model/workflow-runtime';
 
 type PmTagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -80,7 +80,6 @@ export class PreventiveMaintenanceComponent implements OnInit {
     private metadata: MetadataService,
     private authService: AuthService,
     private messages: MessageService,
-    private workOrderService: WorkOrderService,
     private router: Router
   ) {}
 
@@ -206,28 +205,24 @@ export class PreventiveMaintenanceComponent implements OnInit {
     return (item.options ?? []).map((o) => ({ label: o, value: o }));
   }
 
-  createWorkOrderFromPm(row: PreventiveMaintenanceOccurrence) {
-    if (row.workOrderId) {
-      this.messages.add({ severity: 'warn', summary: 'Work Order', detail: 'A work order is already linked to this occurrence.' });
-      return;
-    }
-    const tenantId = this.systemAdmin ? row.tenantId : this.authService.getTenantId();
-    this.workOrderService
-      .createFromOccurrence({
-        tenantId: tenantId ?? undefined,
-        preventiveMaintenanceOccurrenceId: row.id,
-        title: row.scheduleName,
-        description: row.scheduleName
-      })
-      .subscribe({
-        next: (wo) => {
-          this.messages.add({ severity: 'success', summary: 'Work Order', detail: wo.workOrderNumber + ' created' });
-          this.load();
-          this.router.navigate(['/modules/work-orders']);
-        },
-        error: (e) =>
-          this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Could not create work order' })
-      });
+  startMaintenanceWorkflow(row: PreventiveMaintenanceOccurrence) {
+    this.service.startWorkflow(row.id).subscribe({
+      next: (r) => {
+        this.messages.add({ severity: 'success', summary: 'Workflow', detail: 'Maintenance workflow started' });
+        this.load();
+        if (r?.activeWorkflowTaskId) {
+          this.router.navigate(['/modules/workflow-inbox/task', r.activeWorkflowTaskId]);
+        }
+      },
+      error: (e) =>
+        this.messages.add({ severity: 'error', summary: 'Error', detail: e?.error?.errors?.[0] || 'Could not start workflow' })
+    });
+  }
+
+  openWorkflowInbox(row: PreventiveMaintenanceOccurrence) {
+    this.router.navigate(['/modules/workflow-inbox'], {
+      queryParams: { referenceItemType: WorkflowReferenceItemTypes.Maintenance, referenceItemId: row.id }
+    });
   }
 
   startPm() {

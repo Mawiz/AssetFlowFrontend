@@ -97,7 +97,16 @@ export enum WorkflowInboxCategory {
 }
 
 export type WorkflowModuleItemMappingFilter = ListFilterDto & { tenantId?: number | null; isActive?: boolean | null };
-export type WorkflowInboxFilter = ListFilterDto & { category: WorkflowInboxCategory };
+export type WorkflowInboxFilter = ListFilterDto & {
+  category: WorkflowInboxCategory;
+  referenceItemType?: string | null;
+  referenceItemId?: number | null;
+};
+
+export const WorkflowReferenceItemTypes = {
+  Issue: 'Issue',
+  Maintenance: 'Maintenance'
+} as const;
 
 export interface IssueWorkflowIssue {
   id: number;

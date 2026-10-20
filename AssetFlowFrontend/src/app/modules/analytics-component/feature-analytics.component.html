@@ -35,7 +35,7 @@
         <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">PM completed</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.completed }}</div></div>
         <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Overdue</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.overdue }}</div></div>
         <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Compliance</span><div class="text-2xl font-semibold">{{ p.preventiveMaintenance.compliancePercent ?? 'N/A' }}@if (p.preventiveMaintenance.compliancePercent != null) {%}</div></div>
-        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Open WOs</span><div class="text-2xl font-semibold">{{ p.summary.openWorkOrders }}</div></div>
+        <div class="col-span-6 md:col-span-3 card mb-0 p-4"><span class="text-muted-color text-sm">Open workflow tasks</span><div class="text-2xl font-semibold">{{ p.summary.openWorkflowTasks }}</div></div>
       </div>
       <app-analytics-section title="Overdue maintenance">
         <p-table [value]="p.overduePm" styleClass="p-datatable-sm">
@@ -60,13 +60,13 @@
       </div>
     }
 
-    @if (mode() === 'work-orders' && payload(); as p) {
+    @if (mode() === 'workflow-operations' && payload(); as p) {
       <div class="grid grid-cols-12 gap-4 mb-4">
         @for (k of p.kpis; track k.key) { <div class="col-span-12 sm:col-span-6 lg:col-span-4"><app-analytics-kpi-card [kpi]="k" /></div> }
       </div>
       <div class="grid grid-cols-12 gap-4">
-        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Status pipeline"><div class="card mb-0"><p-chart type="bar" [data]="chart('pipeline')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
-        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Work order aging (open)"><div class="card mb-0"><p-chart type="bar" [data]="chart('aging')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Open tasks by stage"><div class="card mb-0"><p-chart type="bar" [data]="chart('pipeline')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
+        <div class="col-span-12 lg:col-span-6"><app-analytics-section title="Pending task aging"><div class="card mb-0"><p-chart type="bar" [data]="chart('aging')" [options]="barH" class="h-20rem" /></div></app-analytics-section></div>
       </div>
     }
 

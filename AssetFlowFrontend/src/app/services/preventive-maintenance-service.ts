@@ -32,6 +32,15 @@ export class PreventiveMaintenanceService {
     return this.http.post<ApiResult<PreventiveMaintenanceOccurrence>>(`${this.apiUrl}/${id}/start`, {}).pipe(map((r) => r.result));
   }
 
+  startWorkflow(id: number) {
+    return this.http
+      .post<ApiResult<{ occurrenceId: number; workflowMasterId: string; activeWorkflowTaskId: string }>>(
+        `${this.apiUrl}/${id}/StartWorkflow`,
+        {}
+      )
+      .pipe(map((r) => r.result));
+  }
+
   complete(dto: CompletePreventiveMaintenanceDto) {
     return this.http.post<ApiResult<PreventiveMaintenanceOccurrence>>(`${this.apiUrl}/complete`, dto).pipe(map((r) => r.result));
   }

@@ -100,8 +100,8 @@ export class ManagementAnalyticsDashboardComponent implements OnInit {
     });
 
     this.pipelineChart.set({
-      labels: d.workOrderPipeline.map((p) => p.label),
-      datasets: [{ label: 'Open WOs', data: d.workOrderPipeline.map((p) => p.value), backgroundColor: chartPalette[0] }]
+      labels: d.workflowStagePipeline.map((p: { label: string; value: number }) => p.label),
+      datasets: [{ label: 'Open tasks by stage', data: d.workflowStagePipeline.map((p: { label: string; value: number }) => p.value), backgroundColor: chartPalette[0] }]
     });
 
     this.costChart.set(this.stackedCost(d.costTrendStacked));

@@ -55,7 +55,6 @@ export class AppMenu implements OnInit {
             { label: 'Checklists', icon: 'pi pi-fw pi-list-check', routerLink: ['/modules/maintenance-checklists'], visible: this.authService.hasPrefix('MaintenanceChecklist.') },
             { label: 'Maintenance Types', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/maintenance-types'], visible: this.authService.hasPrefix('MaintenanceType.') },
             { label: 'Maintenance Calendar', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/maintenance-calendar'], visible: this.authService.hasPrefix('PreventiveMaintenance.') },
-            { label: 'Work Orders', icon: 'pi pi-fw pi-briefcase', routerLink: ['/modules/work-orders'], visible: this.authService.hasPrefix('WorkOrder.') },
             { label: 'Issues / Breakdowns', icon: 'pi pi-fw pi-exclamation-circle', routerLink: ['/modules/issues'], visible: this.authService.hasPrefix('AssetIssue.') },
             { label: 'Issue Categories', icon: 'pi pi-fw pi-tags', routerLink: ['/modules/issue-categories'], visible: this.authService.hasPrefix('IssueCategory.') }
         ].filter((item) => item.visible !== false);
@@ -77,7 +76,7 @@ export class AppMenu implements OnInit {
             { label: 'Asset Analytics', icon: 'pi pi-fw pi-server', routerLink: ['/modules/analytics/assets'], visible: this.authService.hasPermission('Dashboard.View') },
             { label: 'Maintenance Analytics', icon: 'pi pi-fw pi-calendar', routerLink: ['/modules/analytics/maintenance'], visible: this.authService.hasPermission('Dashboard.View') },
             { label: 'Reliability Analytics', icon: 'pi pi-fw pi-exclamation-triangle', routerLink: ['/modules/analytics/reliability'], visible: this.authService.hasPermission('Dashboard.View') },
-            { label: 'Work Order Analytics', icon: 'pi pi-fw pi-briefcase', routerLink: ['/modules/analytics/work-orders'], visible: this.authService.hasPermission('Dashboard.View') },
+            { label: 'Workflow Operations', icon: 'pi pi-fw pi-sitemap', routerLink: ['/modules/analytics/workflow-operations'], visible: this.authService.hasPermission('Dashboard.View') },
             { label: 'Spare Parts Analytics', icon: 'pi pi-fw pi-wrench', routerLink: ['/modules/analytics/spare-parts'], visible: this.authService.hasPermission('Dashboard.View') },
             { label: 'Cost Analytics', icon: 'pi pi-fw pi-dollar', routerLink: ['/modules/analytics/cost'], visible: this.authService.hasPermission('Dashboard.View') },
             { label: 'Team Performance', icon: 'pi pi-fw pi-users', routerLink: ['/modules/analytics/performance'], visible: this.authService.hasPermission('Dashboard.View') }

@@ -11,7 +11,7 @@ import { AnalyticsKpiCardComponent } from '../../shared/analytics/analytics-kpi-
 import { AnalyticsSectionComponent } from '../../shared/analytics/analytics-section.component';
 import { baseChartOptions, chartPalette } from '../../shared/analytics/analytics-chart-options';
 
-type AnalyticsMode = 'assets' | 'maintenance' | 'reliability' | 'work-orders' | 'spare-parts' | 'cost' | 'performance';
+type AnalyticsMode = 'assets' | 'maintenance' | 'reliability' | 'workflow-operations' | 'spare-parts' | 'cost' | 'performance';
 
 @Component({
   selector: 'app-feature-analytics',
@@ -58,7 +58,7 @@ export class FeatureAnalyticsComponent implements OnInit {
       case 'assets': this.reporting.getAssetAnalyticsDashboard(filter).subscribe(done); break;
       case 'maintenance': this.reporting.getMaintenanceAnalyticsDashboard(filter).subscribe(done); break;
       case 'reliability': this.reporting.getReliabilityAnalyticsDashboard(filter).subscribe(done); break;
-      case 'work-orders': this.reporting.getWorkOrderAnalyticsDashboard(filter).subscribe(done); break;
+      case 'workflow-operations': this.reporting.getWorkflowOperationsAnalyticsDashboard(filter).subscribe(done); break;
       case 'spare-parts': this.reporting.getSparePartsAnalyticsDashboard(filter).subscribe(done); break;
       case 'cost': this.reporting.getCostAnalyticsDashboard(filter).subscribe(done); break;
       case 'performance': this.reporting.getTeamPerformanceDashboard(filter).subscribe(done); break;
@@ -82,8 +82,8 @@ export class FeatureAnalyticsComponent implements OnInit {
         datasets: [{ label: 'MTBF vs MTTR', data: (p.mtbfMttrScatter ?? []).map((s: any) => ({ x: s.x, y: s.y })), backgroundColor: chartPalette[0] }]
       };
     }
-    if (this.mode() === 'work-orders' && p?.statusPipeline) {
-      c['pipeline'] = { labels: p.statusPipeline.map((x: any) => x.label), datasets: [{ data: p.statusPipeline.map((x: any) => x.value), backgroundColor: chartPalette[1] }] };
+    if (this.mode() === 'workflow-operations' && p?.stagePipeline) {
+      c['pipeline'] = { labels: p.stagePipeline.map((x: any) => x.label), datasets: [{ data: p.stagePipeline.map((x: any) => x.value), backgroundColor: chartPalette[1] }] };
       c['aging'] = { labels: p.aging.map((x: any) => x.label), datasets: [{ data: p.aging.map((x: any) => x.count), backgroundColor: chartPalette[2] }] };
     }
     if (this.mode() === 'spare-parts' && p?.consumptionTrend) {

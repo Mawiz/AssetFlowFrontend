@@ -40,13 +40,12 @@ export interface AssetSummary {
 
 export interface MaintenanceSummary {
   openIssues: number;
-  openWorkOrders: number;
+  openWorkflowTasks: number;
   todaysMaintenance: number;
   overdueMaintenance: number;
   completedToday: number;
-  waitingForParts: number;
   pmCompliancePercent?: number | null;
-  workOrderStatusDistribution: ChartPoint[];
+  workflowStageDistribution: ChartPoint[];
   pmStatusDistribution: ChartPoint[];
   maintenanceCostTrend: ChartPoint[];
 }
@@ -289,7 +288,7 @@ export interface ManagementAnalytics {
   insights: AnalyticsInsight[];
   attentionAssets: AssetAttention[];
   maintenanceActivity: TimeSeriesMulti;
-  workOrderPipeline: ChartPoint[];
+  workflowStagePipeline: ChartPoint[];
   costTrendStacked: StackedCostMonth[];
   downtimeTrend: ChartPoint[];
   topDowntimeAssets: TopFailingAsset[];
@@ -315,7 +314,7 @@ export interface MaintenanceAnalyticsDashboard {
   overduePm: unknown[];
   pmComplianceBreakdown: ChartPoint[];
   pmTrend: TimeSeriesMulti;
-  workOrdersByPriority: ChartPoint[];
+  workflowTasksByStage: ChartPoint[];
   pmByCategory: ChartPoint[];
 }
 
@@ -327,10 +326,10 @@ export interface ReliabilityAnalyticsDashboard {
   repeatedFailures: TopFailingAsset[];
 }
 
-export interface WorkOrderAnalyticsDashboard {
-  statusPipeline: ChartPoint[];
+export interface WorkflowOperationsAnalyticsDashboard {
+  stagePipeline: ChartPoint[];
   aging: { label: string; count: number }[];
-  byPriority: ChartPoint[];
+  byReferenceType: ChartPoint[];
   completionTrend: TimeSeriesMulti;
   kpis: KpiMetric[];
 }

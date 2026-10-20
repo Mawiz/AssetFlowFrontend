@@ -18,7 +18,7 @@ import {
   ReportingFilter,
   SparePartsAnalyticsDashboard,
   SparePartsReportBundle,
-  WorkOrderAnalyticsDashboard
+  WorkflowOperationsAnalyticsDashboard
 } from '../model/reporting';
 
 interface ApiResult<T> {
@@ -88,8 +88,8 @@ export class ReportingService {
     return this.http.post<ApiResult<ReliabilityAnalyticsDashboard>>(`${this.analyticsUrl}/reliability`, filter).pipe(map((r) => r.result));
   }
 
-  getWorkOrderAnalyticsDashboard(filter: ReportingFilter): Observable<WorkOrderAnalyticsDashboard> {
-    return this.http.post<ApiResult<WorkOrderAnalyticsDashboard>>(`${this.analyticsUrl}/work-orders`, filter).pipe(map((r) => r.result));
+  getWorkflowOperationsAnalyticsDashboard(filter: ReportingFilter): Observable<WorkflowOperationsAnalyticsDashboard> {
+    return this.http.post<ApiResult<WorkflowOperationsAnalyticsDashboard>>(`${this.analyticsUrl}/workflow-operations`, filter).pipe(map((r) => r.result));
   }
 
   getSparePartsAnalyticsDashboard(filter: ReportingFilter): Observable<SparePartsAnalyticsDashboard> {

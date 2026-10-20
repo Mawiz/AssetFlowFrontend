@@ -79,21 +79,22 @@
         <p-tag [value]="statusLabel(r.status)" [severity]="severity(r.status)" />
       </td>
       <td class="text-end flex gap-1 justify-end">
-        <ng-container *ngIf="!r.workOrderId">
+        <ng-container *appHasPermission="Permissions.PreventiveMaintenance.Start">
           <p-button
-            *appHasPermission="Permissions.WorkOrder.Create"
-            icon="pi pi-briefcase"
-            [rounded]="true"
+            *ngIf="!r.hasActiveWorkflow && !r.workflowMasterId && r.status !== 4 && r.status !== 6"
+            label="Start maintenance"
+            icon="pi pi-play"
+            size="small"
             [outlined]="true"
-            (onClick)="createWorkOrderFromPm(r)" />
+            (onClick)="startMaintenanceWorkflow(r)" />
         </ng-container>
         <p-button
-          *ngIf="r.status !== 4 && r.status !== 6"
-          icon="pi pi-external-link"
-          label="Open"
-          [rounded]="true"
+          *ngIf="r.hasActiveWorkflow || r.workflowMasterId"
+          label="Open workflow"
+          icon="pi pi-inbox"
+          size="small"
           [outlined]="true"
-          (onClick)="openExecute(r)" />
+          (onClick)="openWorkflowInbox(r)" />
       </td>
     </tr>
   </ng-template>
