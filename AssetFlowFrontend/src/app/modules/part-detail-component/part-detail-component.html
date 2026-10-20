@@ -33,6 +33,10 @@
                     <p-select formControlName="partCategoryId" [options]="categories" optionLabel="name" optionValue="id" placeholder="Category" class="w-full"></p-select>
                 </div>
                 <div class="col-span-12 md:col-span-4">
+                    <label class="block mb-1">Asset</label>
+                    <p-select formControlName="assetId" [options]="assets" optionLabel="label" optionValue="value" placeholder="Optional — link to asset" class="w-full" [showClear]="true"></p-select>
+                </div>
+                <div class="col-span-12 md:col-span-4">
                     <label class="block mb-1">Manufacturer</label>
                     <input pInputText class="w-full" formControlName="manufacturer" />
                 </div>

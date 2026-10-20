@@ -8,6 +8,9 @@ export interface Part {
   partName: string;
   partCategoryId: number;
   partCategoryName?: string;
+  assetId?: number | null;
+  assetCode?: string | null;
+  assetName?: string | null;
   description?: string;
   manufacturer?: string;
   supplierName?: string;
@@ -27,6 +30,7 @@ export interface CreatePart {
   partNumber: string;
   partName: string;
   partCategoryId: number;
+  assetId?: number | null;
   description?: string;
   manufacturer?: string;
   supplierName?: string;

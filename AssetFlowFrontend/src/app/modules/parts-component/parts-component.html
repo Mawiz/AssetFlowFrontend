@@ -40,6 +40,7 @@
             <th pSortableColumn="partNumber">Part number <p-sortIcon field="partNumber"></p-sortIcon></th>
             <th pSortableColumn="partName">Part name <p-sortIcon field="partName"></p-sortIcon></th>
             <th>Category</th>
+            <th>Asset</th>
             <th>Manufacturer</th>
             <th>Supplier</th>
             <th>Serialized</th>
@@ -55,6 +56,7 @@
             <td>{{ item.partNumber }}</td>
             <td>{{ item.partName }}</td>
             <td>{{ item.partCategoryName }}</td>
+            <td>{{ item.assetCode ? item.assetCode + ' — ' + item.assetName : '—' }}</td>
             <td>{{ item.manufacturer }}</td>
             <td>{{ item.supplierName }}</td>
             <td>{{ item.isSerialized ? 'Yes' : 'No' }}</td>

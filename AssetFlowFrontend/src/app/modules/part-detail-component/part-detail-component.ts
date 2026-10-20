@@ -20,6 +20,9 @@ import { MessageService } from 'primeng/api';
 import { combineLatest } from 'rxjs';
 import { PartService } from '../../services/part-service';
 import { PartCategoryService } from '../../services/part-category-service';
+import { AssetService } from '../../services/asset-service';
+import { Asset } from '../../model/asset';
+import { readPagedList } from '../../utils/paged-list';
 import { PartCategory } from '../../model/part-category';
 import { CreatePart, Part, UpdatePart } from '../../model/part';
 import { AuthService } from '@/services/auth-service';
@@ -63,6 +66,7 @@ export class PartDetailComponent implements OnInit {
   form!: FormGroup;
   submitted = false;
   categories: PartCategory[] = [];
+  assets: { label: string; value: number }[] = [];
   lifeUnitOptions: { label: string; value: number }[] = [];
   tenantsForForm: { id: number; displayName: string }[] = [];
   pageTitle = 'Part';
@@ -74,6 +78,7 @@ export class PartDetailComponent implements OnInit {
     private fb: FormBuilder,
     private partService: PartService,
     private categoryService: PartCategoryService,
+    private assetService: AssetService,
     private metadataService: MetadataService,
     private authService: AuthService,
     private messageService: MessageService
@@ -96,6 +101,7 @@ export class PartDetailComponent implements OnInit {
         this.part = null;
         this.pageTitle = 'New part';
         this.loadCategories(this.getFormTenantId());
+        this.loadAssets(this.getFormTenantId());
         return;
       }
 
@@ -115,6 +121,7 @@ export class PartDetailComponent implements OnInit {
       partNumber: ['', Validators.required],
       partName: ['', Validators.required],
       partCategoryId: [null as number | null, Validators.required],
+      assetId: [null as number | null],
       description: [''],
       manufacturer: [''],
       supplierName: [''],
@@ -129,8 +136,10 @@ export class PartDetailComponent implements OnInit {
 
     if (this.systemAdmin) {
       this.form.get('tenantId')?.valueChanges.subscribe((tenantId) => {
-        this.loadCategories(this.normalizeTenantId(tenantId));
-        this.form.patchValue({ partCategoryId: null }, { emitEvent: false });
+        const tid = this.normalizeTenantId(tenantId);
+        this.loadCategories(tid);
+        this.loadAssets(tid);
+        this.form.patchValue({ partCategoryId: null, assetId: null }, { emitEvent: false });
       });
     }
   }
@@ -175,17 +184,34 @@ export class PartDetailComponent implements OnInit {
     });
   }
 
+  loadAssets(tenantId: number | null) {
+    if (this.systemAdmin && tenantId == null) {
+      this.assets = [];
+      return;
+    }
+    const tid = tenantId ?? undefined;
+    this.assetService
+      .filter({ pageNumber: 1, pageSize: 500, isActive: true, tenantId: tid ?? null })
+      .subscribe((a) => {
+        const { rows } = readPagedList<Asset>(a);
+        this.assets = rows.map((x) => ({ label: `${x.assetCode} — ${x.name}`, value: x.id }));
+      });
+  }
+
   loadPart(id: number) {
     this.partService.getById(id).subscribe({
       next: (p) => {
         this.part = p;
         this.pageTitle = `${p.partNumber} — ${p.partName}`;
-        this.loadCategories(this.normalizeTenantId(p.tenantId));
+        const tid = this.normalizeTenantId(p.tenantId);
+        this.loadCategories(tid);
+        this.loadAssets(tid);
         this.form.patchValue({
           tenantId: p.tenantId,
           partNumber: p.partNumber,
           partName: p.partName,
           partCategoryId: p.partCategoryId,
+          assetId: p.assetId ?? null,
           description: p.description,
           manufacturer: p.manufacturer,
           supplierName: p.supplierName,
